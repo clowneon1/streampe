@@ -14,7 +14,7 @@ class NotificationService : NotificationListenerService() {
 
         // To filter ONLY payment apps later, populate this list.
         // Leave empty to forward ALL notifications.
-        val PAYMENT_PACKAGES = listOf(
+        val PAYMENT_PACKAGES: List<String> = listOf(
             // "com.google.android.apps.nbu.paisa.user",  // GPay
             // "net.one97.paytm",                          // Paytm
             // "com.phonepe.app",                          // PhonePe
@@ -23,7 +23,7 @@ class NotificationService : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        val pkg = sbn.packageName
+        val pkg: String = sbn.packageName
 
         // Skip our own app's notifications
         if (pkg == packageName) return
@@ -37,7 +37,7 @@ class NotificationService : NotificationListenerService() {
 
         if (title.isBlank() && text.isBlank()) return
 
-        val appName = try {
+        val appName: String = try {
             packageManager.getApplicationLabel(
                 packageManager.getApplicationInfo(pkg, PackageManager.GET_META_DATA)
             ).toString()
