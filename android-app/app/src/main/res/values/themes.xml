@@ -1,15 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.PaymentAlertsOBS" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="android:statusBarColor">#1a1a1a</item>
-        <item name="android:navigationBarColor">#1a1a1a</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="colorPrimary">#00e676</item>
-        <item name="colorPrimaryVariant">#00b248</item>
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorPrimaryVariant">@color/accentHover</item>
         <item name="colorOnPrimary">#000000</item>
-        <item name="colorSurface">#1a1a1a</item>
-        <item name="colorOnSurface">#ffffff</item>
-        <item name="android:windowBackground">#121212</item>
+        <item name="colorSurface">@color/surface1</item>
+        <item name="colorOnSurface">@color/textMain</item>
+        <item name="android:windowBackground">@color/bg</item>
         <item name="android:fitsSystemWindows">true</item>
+    </style>
+
+    <!-- Launch theme — applied to MainActivity in manifest so Android shows
+         the correct dark background before layout inflation (no white flash). -->
+    <style name="Theme.PaymentAlertsOBS.Splash" parent="Theme.PaymentAlertsOBS">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
 </resources>

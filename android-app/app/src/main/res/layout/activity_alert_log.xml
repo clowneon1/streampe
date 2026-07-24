@@ -4,51 +4,53 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F0F2F5">
+    android:background="#0d0d0d">
 
     <!-- Toolbar -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:background="#1A1A2E"
-        android:padding="12dp"
+        android:background="#0d0d0d"
+        android:paddingStart="4dp"
+        android:paddingEnd="16dp"
         android:elevation="4dp">
 
         <ImageButton
             android:id="@+id/btnAlertLogBack"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:src="@android:drawable/ic_menu_revert"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Back"
-            android:tint="#FFFFFF" />
+            android:tint="#cccccc" />
 
         <TextView
             android:id="@+id/tvAlertLogTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Alert Log"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
+            android:text="Recent Donations"
+            android:textColor="#ffffff"
+            android:textSize="17sp"
             android:textStyle="bold"
-            android:layout_marginStart="8dp" />
+            android:layout_marginStart="4dp" />
 
+        <!-- count badge -->
         <TextView
             android:id="@+id/tvLogCount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="#3D5AFE"
-            android:textColor="#FFFFFF"
-            android:textSize="12sp"
+            android:background="#1a2a1a"
+            android:textColor="#00e676"
+            android:textSize="11sp"
             android:textStyle="bold"
             android:paddingStart="10dp"
             android:paddingEnd="10dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:layout_marginEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:layout_marginEnd="10dp"
             android:text="0"
             android:visibility="gone" />
 
@@ -56,14 +58,20 @@
             android:id="@+id/btnClearLog"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Clear"
-            android:textColor="#FF5252"
-            android:textSize="13sp"
+            android:text="Clear All"
+            android:textColor="#ff5252"
+            android:textSize="12sp"
             android:background="@null"
-            android:paddingStart="8dp"
-            android:paddingEnd="4dp" />
+            android:paddingStart="4dp"
+            android:paddingEnd="0dp" />
 
     </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#1e1e1e" />
 
     <!-- Empty state -->
     <LinearLayout
@@ -75,27 +83,29 @@
         android:visibility="gone">
 
         <TextView
-            android:text="&#128395;"
+            android:text="₹"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="48sp"
-            android:layout_marginBottom="12dp" />
+            android:textSize="52sp"
+            android:textColor="#1e1e1e"
+            android:layout_marginBottom="16dp" />
 
         <TextView
             android:id="@+id/tvAlertLogEmpty"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="No alerts yet"
-            android:textSize="16sp"
-            android:textColor="#888888" />
+            android:text="No donations yet"
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:textColor="#444444" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Payment notifications will appear here"
             android:textSize="13sp"
-            android:textColor="#AAAAAA"
-            android:layout_marginTop="4dp" />
+            android:textColor="#333333"
+            android:layout_marginTop="6dp" />
 
     </LinearLayout>
 

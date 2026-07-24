@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#006400</color>
-    <color name="colorPrimary">#006400</color>
-    <color name="colorPrimaryDark">#004d00</color>
-    <color name="colorAccent">#00d4ff</color>
+    <color name="ic_launcher_background">#090a0f</color>
+    <color name="colorPrimary">#00e5ff</color>
+    <color name="colorPrimaryDark">#00b8d4</color>
+    <color name="colorAccent">#00e5ff</color>
+
+    <!-- PC-server palette -->
+    <color name="bg">#090a0f</color>
+    <color name="surface1">#12151e</color>
+    <color name="surface2">#1a1e2b</color>
+    <color name="border">#2a2f42</color>
+    <color name="accent">#00e5ff</color>
+    <color name="accentHover">#00b8d4</color>
+    <color name="textMain">#f0f3fa</color>
+    <color name="textMuted">#8c96ab</color>
+    <color name="danger">#ff4757</color>
+    <color name="success">#2ed573</color>
 </resources>
