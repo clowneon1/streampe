@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    This app is a local network tool where users enter their own server IP.
+    Cleartext HTTP is permitted for all domains since we cannot predict
+    what local IP the user's PC will be on.
+    No sensitive credentials are transmitted — only notification text.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
