@@ -1,17 +1,30 @@
 {
   "name": "payment-alerts-obs-server",
   "version": "1.0.0",
-  "description": "WebSocket server to receive mobile notifications and serve OBS overlay",
+  "description": "Payment Alerts for OBS - PC Server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "build": "pkg server.js --target node18-win-x64 --output dist/payment-alerts-server.exe --compress GZip",
+    "install-service": "node service-install.js",
+    "uninstall-service": "node service-uninstall.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "ws": "^8.16.0"
+    "ws": "^8.14.2",
+    "node-windows": "^1.0.0-beta.8"
   },
   "devDependencies": {
-    "nodemon": "^3.0.3"
+    "nodemon": "^3.0.1",
+    "pkg": "^5.8.1"
+  },
+  "pkg": {
+    "assets": [
+      "public/**/*"
+    ],
+    "scripts": [
+      "server.js"
+    ]
   }
 }
