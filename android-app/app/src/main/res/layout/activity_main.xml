@@ -1,76 +1,114 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center_horizontal">
+    android:background="#121212">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="💰 Payment Alerts for OBS"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="4dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Enter your PC server address to get started"
-        android:textSize="13sp"
-        android:textColor="#888"
-        android:gravity="center"
-        android:layout_marginBottom="32dp" />
-
-    <TextView
-        android:id="@+id/tvPermStatus"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Checking permission..."
-        android:textSize="13sp"
-        android:padding="10dp"
-        android:background="#1a1a1a"
-        android:textColor="#fff"
-        android:layout_marginBottom="8dp" />
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal">
 
-    <Button
-        android:id="@+id/btnPermission"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Grant Notification Access"
-        android:layout_marginBottom="24dp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="💰 Payment Alerts for OBS"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#ffffff"
+            android:layout_marginBottom="4dp"
+            android:layout_marginTop="24dp" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Server URL"
-        android:textSize="12sp"
-        android:textColor="#888"
-        android:layout_marginBottom="4dp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Forward phone notifications to your OBS stream"
+            android:textSize="13sp"
+            android:textColor="#888"
+            android:gravity="center"
+            android:layout_marginBottom="32dp" />
 
-    <EditText
-        android:id="@+id/etServerUrl"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="http://192.168.1.x:3000"
-        android:inputType="text"
-        android:layout_marginBottom="8dp" />
+        <!-- Permission status cards -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="PERMISSIONS"
+            android:textSize="11sp"
+            android:textColor="#666"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp" />
 
-    <Button
-        android:id="@+id/btnConnect"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Connect"
-        android:layout_marginBottom="12dp" />
+        <TextView
+            android:id="@+id/tvNotifAccess"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Checking..."
+            android:textSize="13sp"
+            android:padding="12dp"
+            android:background="#1e1e1e"
+            android:textColor="#fff"
+            android:layout_marginBottom="4dp" />
 
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:textSize="13sp"
-        android:textColor="#ff6b6b"
-        android:gravity="center" />
+        <TextView
+            android:id="@+id/tvPermStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Checking..."
+            android:textSize="13sp"
+            android:padding="12dp"
+            android:background="#1e1e1e"
+            android:textColor="#fff"
+            android:layout_marginBottom="12dp" />
 
-</LinearLayout>
+        <Button
+            android:id="@+id/btnPermission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Grant Notification Access"
+            android:layout_marginBottom="32dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+        <!-- Server config -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SERVER"
+            android:textSize="11sp"
+            android:textColor="#666"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/etServerUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="http://192.168.1.x:3000"
+            android:inputType="text"
+            android:background="#1e1e1e"
+            android:textColor="#ffffff"
+            android:textColorHint="#555"
+            android:padding="14dp"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/btnConnect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Connect to Server"
+            android:enabled="false"
+            android:alpha="0.5"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="13sp"
+            android:textColor="#ff6b6b"
+            android:gravity="center" />
+
+    </LinearLayout>
+</ScrollView>
