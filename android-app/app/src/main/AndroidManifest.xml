@@ -28,6 +28,7 @@
         </activity>
 
         <activity android:name=".AppSelectorActivity" android:exported="false" />
+        <activity android:name=".NotificationTesterActivity" android:exported="false" />
 
         <service
             android:name=".NotificationService"
@@ -44,7 +45,6 @@
             android:foregroundServiceType="dataSync"
             android:exported="false" />
 
-        <!-- Auto-start after device reboot -->
         <receiver
             android:name=".BootReceiver"
             android:exported="true"

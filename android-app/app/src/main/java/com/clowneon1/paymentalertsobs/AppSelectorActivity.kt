@@ -33,10 +33,10 @@ class AppSelectorActivity : AppCompatActivity() {
         val recycler   = findViewById<RecyclerView>(R.id.recyclerApps)
         val btnSave    = findViewById<Button>(R.id.btnSave)
         val btnDisconn = findViewById<Button>(R.id.btnDisconnect)
+        val btnTest    = findViewById<Button>(R.id.btnTest)
 
         tvServer.text = "🟢 Connected to ${prefs.serverUrl}"
 
-        // Load apps with icons in background to avoid blocking UI
         val savedPkgs = prefs.selectedPackages
         adapter = AppListAdapter(mutableListOf(), savedPkgs)
         recycler.layoutManager = LinearLayoutManager(this)
@@ -44,9 +44,7 @@ class AppSelectorActivity : AppCompatActivity() {
 
         Thread {
             allApps = getInstalledApps()
-            runOnUiThread {
-                adapter.updateList(allApps)
-            }
+            runOnUiThread { adapter.updateList(allApps) }
         }.start()
 
         etSearch.addTextChangedListener(object : TextWatcher {
@@ -77,6 +75,10 @@ class AppSelectorActivity : AppCompatActivity() {
             stopService(Intent(this, NotificationForwarderService::class.java))
             startActivity(Intent(this, MainActivity::class.java))
             finish()
+        }
+
+        btnTest.setOnClickListener {
+            startActivity(Intent(this, NotificationTesterActivity::class.java))
         }
 
         NotificationService.allowedPackages = savedPkgs

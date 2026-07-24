@@ -87,7 +87,16 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Disconnect"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="6dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+        <Button
+            android:id="@+id/btnTest"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="&#x1F514; Test"
+            android:layout_marginEnd="6dp"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
         <Button
@@ -95,7 +104,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Save Selection" />
+            android:text="Save" />
 
     </LinearLayout>
 
