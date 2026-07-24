@@ -26,17 +26,17 @@
             android:layout_height="wrap_content"
             android:text="Forward phone notifications to your OBS stream"
             android:textSize="13sp"
-            android:textColor="#888"
+            android:textColor="#888888"
             android:gravity="center"
             android:layout_marginBottom="32dp" />
 
-        <!-- Permission status cards -->
+        <!-- Permissions section -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="PERMISSIONS"
             android:textSize="11sp"
-            android:textColor="#666"
+            android:textColor="#666666"
             android:letterSpacing="0.1"
             android:layout_marginBottom="8dp" />
 
@@ -48,7 +48,7 @@
             android:textSize="13sp"
             android:padding="12dp"
             android:background="#1e1e1e"
-            android:textColor="#fff"
+            android:textColor="#ffffff"
             android:layout_marginBottom="4dp" />
 
         <TextView
@@ -59,24 +59,43 @@
             android:textSize="13sp"
             android:padding="12dp"
             android:background="#1e1e1e"
-            android:textColor="#fff"
-            android:layout_marginBottom="12dp" />
+            android:textColor="#ffffff"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvBatteryStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Checking..."
+            android:textSize="13sp"
+            android:padding="12dp"
+            android:background="#1e1e1e"
+            android:textColor="#ffffff"
+            android:layout_marginBottom="8dp" />
 
         <Button
             android:id="@+id/btnPermission"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Grant Notification Access"
+            android:layout_marginBottom="8dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+        <Button
+            android:id="@+id/btnBatteryOptimization"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Disable Battery Optimization"
             android:layout_marginBottom="32dp"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
-        <!-- Server config -->
+        <!-- Server section -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="SERVER"
             android:textSize="11sp"
-            android:textColor="#666"
+            android:textColor="#666666"
             android:letterSpacing="0.1"
             android:layout_marginBottom="8dp" />
 
@@ -88,7 +107,7 @@
             android:inputType="text"
             android:background="#1e1e1e"
             android:textColor="#ffffff"
-            android:textColorHint="#555"
+            android:textColorHint="#555555"
             android:padding="14dp"
             android:layout_marginBottom="12dp" />
 
