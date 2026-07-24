@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.PaymentAlertsOBS" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
-        <item name="colorPrimary">#006400</item>
-        <item name="colorPrimaryVariant">#004d00</item>
-        <item name="colorOnPrimary">#ffffff</item>
-        <item name="colorSecondary">#00d4ff</item>
-        <item name="colorSecondaryVariant">#00a3c4</item>
-        <item name="colorOnSecondary">#000000</item>
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+    <style name="Theme.PaymentAlertsOBS" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:statusBarColor">#1a1a1a</item>
+        <item name="android:navigationBarColor">#1a1a1a</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="colorPrimary">#00e676</item>
+        <item name="colorPrimaryVariant">#00b248</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="colorSurface">#1a1a1a</item>
+        <item name="colorOnSurface">#ffffff</item>
+        <item name="android:windowBackground">#121212</item>
+        <item name="android:fitsSystemWindows">true</item>
     </style>
 </resources>
