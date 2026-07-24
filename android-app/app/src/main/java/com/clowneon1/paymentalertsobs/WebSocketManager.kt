@@ -1,66 +1,104 @@
 package com.clowneon1.paymentalertsobs
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import okhttp3.*
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.atomic.AtomicBoolean
 
 object WebSocketManager {
-    private const val TAG = "PaymentAlertsOBS"
+
+    private const val TAG            = "WebSocketManager"
+    private const val MAX_QUEUE      = 100
+    private const val RECONNECT_MS   = 5_000L
+
     private val client = OkHttpClient.Builder()
-        .pingInterval(20, TimeUnit.SECONDS)
+        .pingInterval(20, TimeUnit.SECONDS)  // OkHttp-level WebSocket ping
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(0, TimeUnit.SECONDS)    // No timeout for persistent WS
         .build()
 
-    private var ws: WebSocket? = null
-    private var serverUrl: String = ""
-    private val messageQueue = LinkedBlockingQueue<String>(100)
-    private var isConnected = false
-
-    private val listener = object : WebSocketListener() {
-        override fun onOpen(webSocket: WebSocket, response: Response) {
-            Log.d(TAG, "Connected to server")
-            isConnected = true
-            while (messageQueue.isNotEmpty()) {
-                webSocket.send(messageQueue.poll() ?: break)
-            }
-        }
-
-        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-            Log.e(TAG, "Connection failed: ${t.message}")
-            isConnected = false
-            reconnect()
-        }
-
-        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-            Log.d(TAG, "Connection closed: $reason")
-            isConnected = false
-            reconnect()
-        }
-    }
+    private var webSocket: WebSocket? = null
+    private var serverUrl: String     = ""
+    private val isConnected           = AtomicBoolean(false)
+    private val isReconnecting        = AtomicBoolean(false)
+    private val messageQueue          = ArrayDeque<String>(MAX_QUEUE)
+    private val handler               = Handler(Looper.getMainLooper())
 
     fun connect(url: String) {
         serverUrl = url
-        val request = Request.Builder().url(url).build()
-        ws = client.newWebSocket(request, listener)
+        openSocket()
+    }
+
+    fun connectIfNeeded(url: String) {
+        if (isConnected.get()) return
+        serverUrl = url
+        openSocket()
     }
 
     fun send(message: String) {
-        if (isConnected && ws != null) {
-            ws!!.send(message)
+        if (isConnected.get() && webSocket != null) {
+            webSocket!!.send(message)
         } else {
-            if (messageQueue.size < 100) messageQueue.offer(message)
+            if (messageQueue.size >= MAX_QUEUE) messageQueue.removeFirst()
+            messageQueue.addLast(message)
+            if (!isReconnecting.get()) scheduleReconnect()
+        }
+    }
+
+    fun ping() {
+        if (isConnected.get()) {
+            webSocket?.send("{\"type\":\"ping\"}")
+        } else if (!isReconnecting.get()) {
+            scheduleReconnect()
         }
     }
 
     fun disconnect() {
-        ws?.close(1000, "User disconnected")
-        isConnected = false
+        handler.removeCallbacksAndMessages(null)
+        webSocket?.close(1000, "User disconnected")
+        webSocket     = null
+        isConnected.set(false)
+        isReconnecting.set(false)
+        messageQueue.clear()
     }
 
-    private fun reconnect() {
+    private fun openSocket() {
         if (serverUrl.isBlank()) return
-        Log.d(TAG, "Reconnecting in 5s...")
-        Thread.sleep(5000)
-        connect(serverUrl)
+        val request = Request.Builder().url(serverUrl).build()
+        webSocket = client.newWebSocket(request, object : WebSocketListener() {
+
+            override fun onOpen(ws: WebSocket, response: Response) {
+                Log.d(TAG, "Connected to $serverUrl")
+                isConnected.set(true)
+                isReconnecting.set(false)
+                // Flush queued messages
+                while (messageQueue.isNotEmpty()) {
+                    ws.send(messageQueue.removeFirst())
+                }
+            }
+
+            override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
+                Log.w(TAG, "Connection failed: ${t.message}")
+                isConnected.set(false)
+                scheduleReconnect()
+            }
+
+            override fun onClosing(ws: WebSocket, code: Int, reason: String) {
+                ws.close(1000, null)
+                isConnected.set(false)
+                if (code != 1000) scheduleReconnect()
+            }
+        })
+    }
+
+    private fun scheduleReconnect() {
+        if (isReconnecting.getAndSet(true)) return
+        handler.postDelayed({
+            isReconnecting.set(false)
+            Log.d(TAG, "Reconnecting to $serverUrl...")
+            openSocket()
+        }, RECONNECT_MS)
     }
 }
