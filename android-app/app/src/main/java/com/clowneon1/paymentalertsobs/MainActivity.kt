@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.text.TextUtils
+import android.view.View
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: AppPrefs
     private lateinit var btnConnect: Button
     private lateinit var btnPermission: Button
+    private lateinit var btnBatteryOptimization: Button
     private lateinit var tvPermStatus: TextView
     private lateinit var tvNotifAccess: TextView
     private lateinit var tvBatteryStatus: TextView
@@ -48,14 +50,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bindViews() {
-        btnConnect      = findViewById(R.id.btnConnect)
-        btnPermission   = findViewById(R.id.btnPermission)
-        tvPermStatus    = findViewById(R.id.tvPermStatus)
-        tvNotifAccess   = findViewById(R.id.tvNotifAccess)
-        tvBatteryStatus = findViewById(R.id.tvBatteryStatus)
-        tvStatus        = findViewById(R.id.tvStatus)
-        val etUrl       = findViewById<EditText>(R.id.etServerUrl)
-        etUrl.setText(prefs.serverUrl.ifBlank { "http://192.168.1.100:3000" })
+        btnConnect            = findViewById(R.id.btnConnect)
+        btnPermission         = findViewById(R.id.btnPermission)
+        btnBatteryOptimization = findViewById(R.id.btnBatteryOptimization)
+        tvPermStatus          = findViewById(R.id.tvPermStatus)
+        tvNotifAccess         = findViewById(R.id.tvNotifAccess)
+        tvBatteryStatus       = findViewById(R.id.tvBatteryStatus)
+        tvStatus              = findViewById(R.id.tvStatus)
+        findViewById<EditText>(R.id.etServerUrl)
+            .setText(prefs.serverUrl.ifBlank { "http://192.168.1.100:3000" })
     }
 
     private fun requestPermissionsOnFirstLaunch() {
@@ -69,21 +72,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        btnPermission.setOnClickListener {
-            showNotificationAccessDialog()
-        }
-
-        findViewById<Button>(R.id.btnBatteryOptimization).setOnClickListener {
-            requestBatteryOptimizationExemption()
-        }
+        btnPermission.setOnClickListener { showNotificationAccessDialog() }
+        btnBatteryOptimization.setOnClickListener { requestBatteryOptimizationExemption() }
 
         btnConnect.setOnClickListener {
             if (!isNotificationAccessGranted()) {
                 showNotificationAccessDialog()
                 return@setOnClickListener
             }
-            val etUrl = findViewById<EditText>(R.id.etServerUrl)
-            val url   = etUrl.text.toString().trim()
+            val url = findViewById<EditText>(R.id.etServerUrl).text.toString().trim()
             if (url.isBlank()) { showToast("Enter server URL"); return@setOnClickListener }
 
             tvStatus.text = "⏳ Checking server..."
@@ -126,10 +123,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestBatteryOptimizationExemption() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
-        if (isBatteryOptimizationIgnored()) {
-            showToast("Battery optimization already disabled ✅")
-            return
-        }
         AlertDialog.Builder(this)
             .setTitle("Disable Battery Optimization")
             .setMessage(
@@ -160,21 +153,25 @@ class MainActivity : AppCompatActivity() {
             PackageManager.PERMISSION_GRANTED
         val batteryOk   = isBatteryOptimizationIgnored()
 
+        // Notification access row + button
         tvNotifAccess.text = if (notifAccess)
             "✅ Notification Access granted"
         else
             "❌ Notification Access required"
+        btnPermission.visibility = if (notifAccess) View.GONE else View.VISIBLE
 
-        tvPermStatus.text = if (postNotifOk)
-            "✅ POST_NOTIFICATIONS granted"
-        else
-            "❌ POST_NOTIFICATIONS required"
+        // POST_NOTIFICATIONS row (hide entirely once granted — no action button needed)
+        tvPermStatus.visibility = if (postNotifOk) View.GONE else View.VISIBLE
+        tvPermStatus.text = "❌ POST_NOTIFICATIONS required"
 
+        // Battery optimization row + button
         tvBatteryStatus.text = if (batteryOk)
-            "✅ Battery optimization disabled (recommended)"
+            "✅ Battery optimization disabled"
         else
             "⚠️ Battery optimization active — may interrupt background service"
+        btnBatteryOptimization.visibility = if (batteryOk) View.GONE else View.VISIBLE
 
+        // Connect button
         btnConnect.isEnabled = notifAccess
         btnConnect.alpha     = if (notifAccess) 1.0f else 0.5f
     }
