@@ -36,12 +36,18 @@ class AppSelectorActivity : AppCompatActivity() {
 
         tvServer.text = "🟢 Connected to ${prefs.serverUrl}"
 
-        allApps = getInstalledApps()
+        // Load apps with icons in background to avoid blocking UI
         val savedPkgs = prefs.selectedPackages
-
-        adapter = AppListAdapter(allApps.toMutableList(), savedPkgs)
+        adapter = AppListAdapter(mutableListOf(), savedPkgs)
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
+
+        Thread {
+            allApps = getInstalledApps()
+            runOnUiThread {
+                adapter.updateList(allApps)
+            }
+        }.start()
 
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
@@ -49,7 +55,8 @@ class AppSelectorActivity : AppCompatActivity() {
                 adapter.updateList(
                     if (q.isBlank()) allApps
                     else allApps.filter {
-                        it.appName.lowercase().contains(q) || it.packageName.lowercase().contains(q)
+                        it.appName.lowercase().contains(q) ||
+                        it.packageName.lowercase().contains(q)
                     }
                 )
             }
@@ -73,9 +80,24 @@ class AppSelectorActivity : AppCompatActivity() {
         }
 
         NotificationService.allowedPackages = savedPkgs
-
-        // Prompt battery optimization exemption on first run
         promptBatteryOptimization()
+    }
+
+    private fun getInstalledApps(): List<AppItem> {
+        val pm = packageManager
+        return pm.getInstalledApplications(PackageManager.GET_META_DATA)
+            .filter {
+                (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 ||
+                pm.getLaunchIntentForPackage(it.packageName) != null
+            }
+            .map { info ->
+                AppItem(
+                    packageName = info.packageName,
+                    appName     = pm.getApplicationLabel(info).toString(),
+                    icon        = try { pm.getApplicationIcon(info.packageName) } catch (e: Exception) { null }
+                )
+            }
+            .sortedBy { it.appName.lowercase() }
     }
 
     @SuppressLint("BatteryLife")
@@ -83,7 +105,6 @@ class AppSelectorActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
         val pm = getSystemService(POWER_SERVICE) as PowerManager
         if (pm.isIgnoringBatteryOptimizations(packageName)) return
-
         AlertDialog.Builder(this)
             .setTitle("Disable Battery Optimization")
             .setMessage(
@@ -101,15 +122,4 @@ class AppSelectorActivity : AppCompatActivity() {
             .setNegativeButton("Skip", null)
             .show()
     }
-
-    private fun getInstalledApps(): List<AppItem> {
-        val pm = packageManager
-        return pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            .filter { (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 || hasLaunchIntent(pm, it.packageName) }
-            .map { AppItem(packageName = it.packageName, appName = pm.getApplicationLabel(it).toString()) }
-            .sortedBy { it.appName.lowercase() }
-    }
-
-    private fun hasLaunchIntent(pm: PackageManager, pkg: String) =
-        pm.getLaunchIntentForPackage(pkg) != null
 }
