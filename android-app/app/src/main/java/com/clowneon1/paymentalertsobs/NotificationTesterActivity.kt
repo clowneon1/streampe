@@ -7,6 +7,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import org.json.JSONObject
 
 class NotificationTesterActivity : AppCompatActivity() {
 
@@ -15,15 +16,15 @@ class NotificationTesterActivity : AppCompatActivity() {
         private var notifId = 100
     }
 
-    data class Preset(val label: String, val title: String, val text: String)
+    data class Preset(val label: String, val title: String, val text: String, val pkg: String)
 
     private val presets = listOf(
-        Preset("GPay Payment",    "Google Pay",  "You received ₹500 from Rahul Kumar"),
-        Preset("PhonePe Credit",  "PhonePe",     "Money received! ₹1,200 credited to your account"),
-        Preset("Paytm Payment",   "Paytm",       "₹299 paid to Swiggy successfully"),
-        Preset("Bank Alert",      "HDFC Bank",   "A/c XX1234 credited ₹10,000 on 25-Jul-26"),
-        Preset("UPI Debit",       "BHIM UPI",    "Debited ₹750.00 to merchant VPA: store@upi"),
-        Preset("Custom",          "",            "")
+        Preset("GPay Payment",   "Google Pay",  "You received \u20b9500 from Rahul Kumar",        "com.google.android.apps.nbu.paisa.user"),
+        Preset("PhonePe Credit", "PhonePe",     "Money received! \u20b91,200 credited to your account", "com.phonepe.app"),
+        Preset("Paytm Payment",  "Paytm",       "\u20b9299 paid to Swiggy successfully",             "net.one97.paytm"),
+        Preset("Bank Alert",     "HDFC Bank",   "A/c XX1234 credited \u20b910,000 on 25-Jul-26",     "com.hdfc.bank"),
+        Preset("UPI Debit",      "BHIM UPI",    "Debited \u20b9750.00 to merchant VPA: store@upi",   "in.org.npci.upiapp"),
+        Preset("Custom",         "",            "",                                                   "")
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,14 +32,13 @@ class NotificationTesterActivity : AppCompatActivity() {
         setContentView(R.layout.activity_notification_tester)
         createNotificationChannel()
 
-        val spinner     = findViewById<Spinner>(R.id.spinnerPresets)
-        val etTitle     = findViewById<EditText>(R.id.etNotifTitle)
-        val etText      = findViewById<EditText>(R.id.etNotifText)
-        val btnFire     = findViewById<Button>(R.id.btnFireNotification)
-        val btnBack     = findViewById<Button>(R.id.btnBack)
-        val tvLog       = findViewById<TextView>(R.id.tvLog)
+        val spinner = findViewById<Spinner>(R.id.spinnerPresets)
+        val etTitle = findViewById<EditText>(R.id.etNotifTitle)
+        val etText  = findViewById<EditText>(R.id.etNotifText)
+        val btnFire = findViewById<Button>(R.id.btnFireNotification)
+        val btnBack = findViewById<Button>(R.id.btnBack)
+        val tvLog   = findViewById<TextView>(R.id.tvLog)
 
-        // Populate spinner
         val labels = presets.map { it.label }
         spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, labels)
 
@@ -62,6 +62,8 @@ class NotificationTesterActivity : AppCompatActivity() {
         }
 
         btnFire.setOnClickListener {
+            val pos   = spinner.selectedItemPosition
+            val preset = presets[pos]
             val title = etTitle.text.toString().trim()
             val text  = etText.text.toString().trim()
 
@@ -70,11 +72,26 @@ class NotificationTesterActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            // Fire a real Android notification so NotificationService can pick it up
             fireNotification(title, text)
 
-            val logLine = "[•] $title: $text\n"
+            // Also send directly via WebSocket with the correct spoofed package name
+            // This ensures the OBS overlay receives it even if the tester channel
+            // is not in the user's monitored app list
+            val pkg = if (preset.pkg.isNotBlank()) preset.pkg else packageName
+            val appName = if (preset.label != "Custom") preset.label else "Test"
+            val json = JSONObject().apply {
+                put("packageName", pkg)
+                put("appName",     appName)
+                put("title",       title)
+                put("text",        text)
+                put("timestamp",   System.currentTimeMillis())
+            }
+            WebSocketManager.send(json.toString())
+
+            val logLine = "[${preset.label}] $title: $text\n"
             tvLog.text = logLine + tvLog.text
-            Toast.makeText(this, "🔔 Notification fired!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "\uD83D\uDD14 Sent to OBS!", Toast.LENGTH_SHORT).show()
         }
 
         btnBack.setOnClickListener { finish() }
@@ -88,7 +105,6 @@ class NotificationTesterActivity : AppCompatActivity() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build()
-
         NotificationManagerCompat.from(this).notify(notifId++, notification)
     }
 

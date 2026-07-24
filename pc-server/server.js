@@ -28,20 +28,40 @@ wss.on('connection', (ws, req) => {
     androidClients.add(ws);
     console.log(`[+] Android connected. Clients: ${androidClients.size}`);
 
-    // Heartbeat to detect dead sockets
     ws.isAlive = true;
     ws.on('pong', () => { ws.isAlive = true; });
 
     ws.on('message', (data) => {
       try {
         const notification = JSON.parse(data.toString());
-        console.log(`[NOTIF] ${notification.appName}: ${notification.title} — ${notification.text}`);
-        const payload = JSON.stringify(notification);
+
+        // Guard: skip if required fields are missing or empty
+        const appName = notification.appName || notification.packageName || 'Unknown';
+        const title   = notification.title   || '';
+        const text    = notification.text    || '';
+
+        if (!title && !text) {
+          console.log('[NOTIF] Skipped — empty title and text');
+          return;
+        }
+
+        console.log(`[NOTIF] ${appName}: ${title} — ${text}`);
+
+        // Normalise before forwarding so overlay always gets clean fields
+        const clean = {
+          packageName: notification.packageName || '',
+          appName,
+          title,
+          text,
+          timestamp: notification.timestamp || Date.now(),
+        };
+
+        const payload = JSON.stringify(clean);
         obsClients.forEach((client) => {
           if (client.readyState === 1) client.send(payload);
         });
       } catch (e) {
-        console.error('Parse error:', e.message);
+        console.error('[NOTIF] Parse error:', e.message, '| Raw:', data.toString().slice(0, 120));
       }
     });
 
