@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Payment Alerts — Config</title>
+  <style>
+    :root {
+      --bg:      #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2:#222;
+      --border:  #2e2e2e;
+      --accent:  #00e676;
+      --text:    #e0e0e0;
+      --muted:   #888;
+      --radius:  8px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); color:var(--text); font-family:'Segoe UI',sans-serif; font-size:14px; display:flex; min-height:100vh; }
+
+    /* Sidebar */
+    .sidebar { width:220px; background:var(--surface); border-right:1px solid var(--border); padding:24px 0; flex-shrink:0; }
+    .sidebar h1 { font-size:13px; font-weight:700; color:var(--accent); padding:0 20px 20px; letter-spacing:.08em; text-transform:uppercase; }
+    .sidebar nav a { display:block; padding:10px 20px; color:var(--muted); text-decoration:none; border-left:3px solid transparent; font-size:13px; transition:all .15s; }
+    .sidebar nav a:hover, .sidebar nav a.active { color:var(--text); border-left-color:var(--accent); background:var(--surface2); }
+    .sidebar .status { padding:20px; margin-top:auto; border-top:1px solid var(--border); margin-top:20px; }
+    .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#555; margin-right:6px; }
+    .dot.on { background:var(--accent); box-shadow:0 0 6px var(--accent); }
+
+    /* Main */
+    .main { flex:1; padding:32px; overflow-y:auto; }
+    .main h2 { font-size:18px; font-weight:600; margin-bottom:4px; }
+    .main .sub { color:var(--muted); font-size:13px; margin-bottom:28px; }
+
+    .panel { display:none; }
+    .panel.active { display:block; }
+
+    /* Form */
+    .section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:20px; }
+    .section h3 { font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:16px; }
+    .field { margin-bottom:16px; }
+    .field label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .field input[type=text], .field input[type=number], .field select, .field textarea {
+      width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px;
+      color:var(--text); padding:9px 12px; font-size:13px; outline:none; font-family:inherit;
+      transition:border-color .15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color:var(--accent); }
+    .field textarea { resize:vertical; min-height:60px; }
+    .field input[type=color] { width:48px; height:36px; padding:2px; border-radius:6px; border:1px solid var(--border); background:var(--surface2); cursor:pointer; }
+    .color-row { display:flex; align-items:center; gap:10px; }
+    .color-row input[type=text] { flex:1; }
+    .row2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+
+    /* Variable pills */
+    .vars { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .var-pill { background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:3px 8px; font-size:11px; color:var(--accent); cursor:pointer; font-family:monospace; transition:background .12s; }
+    .var-pill:hover { background:var(--border); }
+
+    /* Preview */
+    .preview-wrap { background:#111; border:1px solid var(--border); border-radius:var(--radius); padding:24px; display:flex; align-items:flex-end; justify-content:flex-end; min-height:200px; position:relative; overflow:hidden; }
+    #preview-card {
+      width:380px; padding:14px 16px; border-radius:10px; border-left:4px solid #00ff88;
+      background:linear-gradient(135deg,#1a1a2e,#16213e); color:#fff;
+      display:flex; gap:12px; align-items:flex-start;
+      box-shadow:0 4px 20px rgba(0,255,136,.3);
+    }
+    #preview-card .icon { width:36px;height:36px;background:#00ff8822;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0; }
+    #preview-card .content { flex:1; overflow:hidden; }
+    #preview-card .l1 { font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px; }
+    #preview-card .l2 { font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    #preview-card .l3 { font-size:12px;color:#aaa;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+
+    /* Buttons */
+    .btn { padding:10px 20px; border-radius:6px; border:none; cursor:pointer; font-size:13px; font-weight:600; transition:all .15s; }
+    .btn-primary { background:var(--accent); color:#000; }
+    .btn-primary:hover { filter:brightness(1.1); }
+    .btn-secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+    .btn-secondary:hover { background:var(--border); }
+    .btn-danger { background:#c0392b22; color:#e74c3c; border:1px solid #e74c3c44; }
+    .actions { display:flex; gap:12px; margin-top:8px; }
+
+    .toast { position:fixed; bottom:24px; right:24px; background:var(--accent); color:#000; padding:10px 20px; border-radius:6px; font-weight:600; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:999; }
+    .toast.show { opacity:1; }
+
+    .badge { display:inline-block; padding:2px 7px; border-radius:4px; font-size:11px; font-weight:600; margin-left:6px; }
+    .badge-green { background:#00e67622; color:var(--accent); }
+    .badge-gray  { background:#33333388; color:var(--muted); }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <h1>&#x1F4B0; Payment Alerts</h1>
+  <nav>
+    <a href="#" class="active" data-panel="templates">&#x1F4DD; Templates</a>
+    <a href="#" data-panel="appearance">&#x1F3A8; Appearance</a>
+    <a href="#" data-panel="animation">&#x2728; Animation</a>
+    <a href="#" data-panel="filters">&#x1F50D; Filters</a>
+    <a href="#" data-panel="preview">&#x1F441; Preview</a>
+  </nav>
+  <div class="status">
+    <div style="margin-bottom:6px"><span class="dot" id="dotAndroid"></span><span style="font-size:12px">Android <span id="lblAndroid">—</span></span></div>
+    <div><span class="dot" id="dotObs"></span><span style="font-size:12px">OBS <span id="lblObs">—</span></span></div>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- Templates -->
+  <div class="panel active" id="panel-templates">
+    <h2>Templates</h2>
+    <p class="sub">Use <code>{variable}</code> placeholders. Click a pill to insert it.</p>
+
+    <div class="section">
+      <h3>Available Variables</h3>
+      <div class="vars" id="var-pills"></div>
+    </div>
+
+    <div class="section">
+      <h3>Display Lines</h3>
+      <div class="field">
+        <label>Line 1 — Top (small, accent coloured)</label>
+        <input type="text" id="lineTop" placeholder="{appName}" />
+      </div>
+      <div class="field">
+        <label>Line 2 — Middle (bold, main content)</label>
+        <input type="text" id="lineMiddle" placeholder="{title}" />
+      </div>
+      <div class="field">
+        <label>Line 3 — Bottom (muted, detail)</label>
+        <input type="text" id="lineBottom" placeholder="{text}" />
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="saveConfig()">Save Templates</button>
+    </div>
+  </div>
+
+  <!-- Appearance -->
+  <div class="panel" id="panel-appearance">
+    <h2>Appearance</h2>
+    <p class="sub">Customise colours, size and shape.</p>
+    <div class="section">
+      <h3>Colours</h3>
+      <div class="row3">
+        <div class="field"><label>Background 1</label><div class="color-row"><input type="color" id="bgColorPicker" /><input type="text" id="bgColor" /></div></div>
+        <div class="field"><label>Background 2</label><div class="color-row"><input type="color" id="bgColor2Picker" /><input type="text" id="bgColor2" /></div></div>
+        <div class="field"><label>Accent</label><div class="color-row"><input type="color" id="accentColorPicker" /><input type="text" id="accentColor" /></div></div>
+        <div class="field"><label>Text</label><div class="color-row"><input type="color" id="textColorPicker" /><input type="text" id="textColor" /></div></div>
+        <div class="field"><label>Muted Text</label><div class="color-row"><input type="color" id="mutedColorPicker" /><input type="text" id="mutedColor" /></div></div>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Size &amp; Shape</h3>
+      <div class="row3">
+        <div class="field"><label>Width (px)</label><input type="number" id="width" min="200" max="800" /></div>
+        <div class="field"><label>Font Size (px)</label><input type="number" id="fontSize" min="10" max="24" /></div>
+        <div class="field"><label>Border Radius (px)</label><input type="number" id="borderRadius" min="0" max="40" /></div>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Position</h3>
+      <div class="field">
+        <select id="position">
+          <option value="bottom-right">Bottom Right</option>
+          <option value="bottom-left">Bottom Left</option>
+          <option value="top-right">Top Right</option>
+          <option value="top-left">Top Left</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="saveConfig()">Save Appearance</button>
+    </div>
+  </div>
+
+  <!-- Animation -->
+  <div class="panel" id="panel-animation">
+    <h2>Animation</h2>
+    <p class="sub">Control how alerts enter and exit.</p>
+    <div class="section">
+      <div class="row2">
+        <div class="field"><label>Animate In</label>
+          <select id="animationIn">
+            <option value="slideRight">Slide from Right</option>
+            <option value="slideLeft">Slide from Left</option>
+            <option value="slideUp">Slide from Bottom</option>
+            <option value="fadeIn">Fade In</option>
+          </select>
+        </div>
+        <div class="field"><label>Animate Out</label>
+          <select id="animationOut">
+            <option value="slideRight">Slide to Right</option>
+            <option value="slideLeft">Slide to Left</option>
+            <option value="slideUp">Slide Up</option>
+            <option value="fadeIn">Fade Out</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Display Duration (ms)</label><input type="number" id="duration" min="1000" max="30000" step="500" /></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="saveConfig()">Save Animation</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="panel" id="panel-filters">
+    <h2>Filters</h2>
+    <p class="sub">Control which notifications appear on stream.</p>
+    <div class="section">
+      <h3>Payment Only Mode</h3>
+      <div class="field">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="paymentOnly" style="width:16px;height:16px" />
+          Only show notifications from payment apps
+        </label>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Payment App Package Names</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">One package name per line. These get the payment emoji and green accent.</p>
+      <div class="field">
+        <textarea id="paymentPackages" rows="8" style="font-family:monospace;font-size:12px"></textarea>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="saveConfig()">Save Filters</button>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="panel" id="panel-preview">
+    <h2>Live Preview</h2>
+    <p class="sub">Send a test notification to the OBS overlay right now.</p>
+    <div class="section">
+      <div class="preview-wrap">
+        <div id="preview-card">
+          <div class="icon">&#x1F4B0;</div>
+          <div class="content">
+            <div class="l1" id="prev-l1">Google Pay</div>
+            <div class="l2" id="prev-l2">Google Pay</div>
+            <div class="l3" id="prev-l3">You received &#x20B9;500 from Rahul Kumar</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Sample Data</h3>
+      <div class="row2">
+        <div class="field"><label>App Name</label><input type="text" id="sampleApp" value="Google Pay" /></div>
+        <div class="field"><label>Package</label><input type="text" id="samplePkg" value="com.google.android.apps.nbu.paisa.user" /></div>
+        <div class="field"><label>Title</label><input type="text" id="sampleTitle" value="Google Pay" /></div>
+        <div class="field"><label>Text</label><input type="text" id="sampleText" value="You received &#x20B9;500 from Rahul Kumar" /></div>
+        <div class="field"><label>Big Text</label><input type="text" id="sampleBigText" value="UPI Ref: 12345678 | &#x20B9;500" /></div>
+        <div class="field"><label>Sub Text</label><input type="text" id="sampleSubText" value="savings@okaxis" /></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="sendTestToOverlay()">&#x1F514; Send to OBS Overlay</button>
+      <button class="btn btn-secondary" onclick="updatePreview()">&#x1F504; Refresh Preview</button>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Variables reference ─────────────────────────────────────────
+  const VARIABLES = [
+    { key:'appName',     desc:'App name (e.g. Google Pay)' },
+    { key:'title',       desc:'Notification title' },
+    { key:'text',        desc:'Short notification text' },
+    { key:'bigText',     desc:'Expanded / full body text' },
+    { key:'subText',     desc:'Sub-line text (e.g. account name)' },
+    { key:'infoText',    desc:'Info text (right side)' },
+    { key:'summaryText', desc:'Group summary text' },
+    { key:'packageName', desc:'App package name' },
+    { key:'category',    desc:'Category (msg, email, promo...)' },
+    { key:'tickerText',  desc:'Ticker / status bar text' },
+    { key:'actions',     desc:'Action button labels (comma separated)' },
+    { key:'timestamp',   desc:'Unix timestamp (ms)' },
+  ];
+
+  let cfg = {};
+  let lastFocused = null;
+
+  // Track last focused template input
+  ['lineTop','lineMiddle','lineBottom'].forEach(id => {
+    document.getElementById(id).addEventListener('focus', () => lastFocused = id);
+  });
+
+  // Build variable pills
+  const pillContainer = document.getElementById('var-pills');
+  VARIABLES.forEach(v => {
+    const pill = document.createElement('span');
+    pill.className = 'var-pill';
+    pill.textContent = `{${v.key}}`;
+    pill.title = v.desc;
+    pill.onclick = () => insertVar(`{${v.key}}`);
+    pillContainer.appendChild(pill);
+  });
+
+  function insertVar(token) {
+    const id = lastFocused || 'lineBottom';
+    const el = document.getElementById(id);
+    const s = el.selectionStart, e = el.selectionEnd;
+    el.value = el.value.slice(0,s) + token + el.value.slice(e);
+    el.selectionStart = el.selectionEnd = s + token.length;
+    el.focus();
+    updatePreview();
+  }
+
+  // ── Sync color pickers ↔ text inputs ───────────────────────────
+  const COLOR_FIELDS = ['bgColor','bgColor2','accentColor','textColor','mutedColor'];
+  COLOR_FIELDS.forEach(id => {
+    const picker = document.getElementById(id + 'Picker');
+    const text   = document.getElementById(id);
+    if (!picker || !text) return;
+    picker.addEventListener('input', () => { text.value = picker.value; updatePreview(); });
+    text.addEventListener('input',   () => { picker.value = text.value; updatePreview(); });
+  });
+  ['lineTop','lineMiddle','lineBottom','animationIn','animationOut','position','width','fontSize','borderRadius','duration']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', updatePreview);
+    });
+
+  // ── Navigation ──────────────────────────────────────────────────
+  document.querySelectorAll('.sidebar nav a').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.sidebar nav a').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+      a.classList.add('active');
+      document.getElementById('panel-' + a.dataset.panel).classList.add('active');
+      if (a.dataset.panel === 'preview') updatePreview();
+    });
+  });
+
+  // ── Load config ─────────────────────────────────────────────────
+  function loadForm(c) {
+    cfg = c;
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+    const setCheck = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+    set('lineTop',      c.lineTop);
+    set('lineMiddle',   c.lineMiddle);
+    set('lineBottom',   c.lineBottom);
+    set('bgColor',      c.bgColor);      if(document.getElementById('bgColorPicker'))      document.getElementById('bgColorPicker').value      = c.bgColor || '#1a1a2e';
+    set('bgColor2',     c.bgColor2);     if(document.getElementById('bgColor2Picker'))     document.getElementById('bgColor2Picker').value     = c.bgColor2 || '#16213e';
+    set('accentColor',  c.accentColor);  if(document.getElementById('accentColorPicker'))  document.getElementById('accentColorPicker').value  = c.accentColor || '#00ff88';
+    set('textColor',    c.textColor);    if(document.getElementById('textColorPicker'))    document.getElementById('textColorPicker').value    = c.textColor || '#ffffff';
+    set('mutedColor',   c.mutedColor);   if(document.getElementById('mutedColorPicker'))   document.getElementById('mutedColorPicker').value   = c.mutedColor || '#aaaaaa';
+    set('width',        c.width);
+    set('fontSize',     c.fontSize);
+    set('borderRadius', c.borderRadius);
+    set('position',     c.position);
+    set('animationIn',  c.animationIn);
+    set('animationOut', c.animationOut);
+    set('duration',     c.duration);
+    setCheck('paymentOnly', c.paymentOnly);
+    const pkgEl = document.getElementById('paymentPackages');
+    if (pkgEl) pkgEl.value = (c.paymentPackages || []).join('\n');
+    updatePreview();
+  }
+
+  function collectForm() {
+    const v = id => document.getElementById(id)?.value.trim();
+    const n = id => parseInt(document.getElementById(id)?.value) || undefined;
+    const b = id => document.getElementById(id)?.checked;
+    return {
+      lineTop:      v('lineTop'),
+      lineMiddle:   v('lineMiddle'),
+      lineBottom:   v('lineBottom'),
+      bgColor:      v('bgColor'),
+      bgColor2:     v('bgColor2'),
+      accentColor:  v('accentColor'),
+      textColor:    v('textColor'),
+      mutedColor:   v('mutedColor'),
+      width:        n('width'),
+      fontSize:     n('fontSize'),
+      borderRadius: n('borderRadius'),
+      position:     v('position'),
+      animationIn:  v('animationIn'),
+      animationOut: v('animationOut'),
+      duration:     n('duration'),
+      paymentOnly:  b('paymentOnly'),
+      paymentPackages: (document.getElementById('paymentPackages')?.value || '')
+        .split('\n').map(s => s.trim()).filter(Boolean),
+    };
+  }
+
+  function saveConfig() {
+    const data = collectForm();
+    fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) })
+      .then(r => r.json())
+      .then(() => showToast('\u2705 Saved & pushed to overlay!'))
+      .catch(() => showToast('\u274c Save failed'));
+  }
+
+  // ── Preview ─────────────────────────────────────────────────────
+  const SAMPLE = () => ({
+    appName:     document.getElementById('sampleApp')?.value     || 'Google Pay',
+    packageName: document.getElementById('samplePkg')?.value     || 'com.google.android.apps.nbu.paisa.user',
+    title:       document.getElementById('sampleTitle')?.value   || 'Google Pay',
+    text:        document.getElementById('sampleText')?.value    || 'You received \u20b9500',
+    bigText:     document.getElementById('sampleBigText')?.value || 'UPI Ref: 12345678',
+    subText:     document.getElementById('sampleSubText')?.value || 'savings@okaxis',
+    infoText:    '',
+    summaryText: '',
+    category:    'msg',
+    actions:     ['View','Dismiss'],
+    timestamp:   Date.now(),
+  });
+
+  function renderTpl(tpl, data) {
+    return (tpl || '').replace(/\{(\w+)\}/g, (_, k) => {
+      const v = data[k];
+      return Array.isArray(v) ? v.join(', ') : (v ?? '');
+    });
+  }
+
+  function updatePreview() {
+    const f = collectForm();
+    const s = SAMPLE();
+    document.getElementById('prev-l1').textContent = renderTpl(f.lineTop,    s);
+    document.getElementById('prev-l2').textContent = renderTpl(f.lineMiddle, s);
+    document.getElementById('prev-l3').textContent = renderTpl(f.lineBottom, s);
+    const card = document.getElementById('preview-card');
+    card.style.background      = `linear-gradient(135deg,${f.bgColor||'#1a1a2e'},${f.bgColor2||'#16213e'})`;
+    card.style.borderLeftColor = f.accentColor || '#00ff88';
+    card.style.borderRadius    = (f.borderRadius||10) + 'px';
+    card.style.width           = (f.width||380) + 'px';
+    card.style.color           = f.textColor || '#fff';
+    card.querySelector('.l1').style.color = f.accentColor || '#00ff88';
+    card.querySelector('.l3').style.color = f.mutedColor  || '#aaa';
+    card.querySelector('.l2').style.fontSize = (f.fontSize||14) + 'px';
+  }
+
+  function sendTestToOverlay() {
+    fetch('/api/test').then(r => r.json()).then(d => {
+      showToast(`\uD83D\uDD14 Sent to ${d.sent} OBS client(s)`);
+    });
+  }
+
+  // ── Status dots ─────────────────────────────────────────────────
+  function pollStatus() {
+    fetch('/health').then(r => r.json()).then(d => {
+      const da = document.getElementById('dotAndroid');
+      const do_ = document.getElementById('dotObs');
+      const la = document.getElementById('lblAndroid');
+      const lo = document.getElementById('lblObs');
+      if (da) da.className = 'dot' + (d.androidClients > 0 ? ' on' : '');
+      if (do_) do_.className = 'dot' + (d.obsClients > 0 ? ' on' : '');
+      if (la) la.textContent = d.androidClients > 0 ? `${d.androidClients} connected` : 'disconnected';
+      if (lo) lo.textContent = d.obsClients > 0 ? `${d.obsClients} connected` : 'disconnected';
+    }).catch(() => {});
+  }
+  setInterval(pollStatus, 3000);
+  pollStatus();
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ── Init ────────────────────────────────────────────────────────
+  fetch('/api/config').then(r => r.json()).then(loadForm);
+</script>
+</body>
+</html>
