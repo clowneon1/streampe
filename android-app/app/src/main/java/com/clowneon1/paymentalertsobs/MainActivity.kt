@@ -28,15 +28,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvNotifAccess: TextView
     private lateinit var tvBatteryStatus: TextView
     private lateinit var tvStatus: TextView
+    private lateinit var etServerUrl: EditText
 
-    // Guards — prevent dialogs re-firing when onResume triggers after returning
-    // from Settings, which could wipe selected apps or spam the user.
     private var batteryDialogShownThisLaunch = false
 
     private val notifPermLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { _ ->
-        // Only refresh UI — do NOT re-trigger any dialogs or permission flows here.
         if (::tvPermStatus.isInitialized) updateUI()
     }
 
@@ -44,21 +42,53 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
 
+        // If we have a saved URL and the flag says connected, verify the server
+        // is actually reachable before skipping to AppSelectorActivity.
+        // Blindly skipping based on a stale prefs flag shows the app list while
+        // completely disconnected — which is the bug being fixed here.
         if (prefs.serverUrl.isNotBlank() && prefs.isConnected) {
-            goToAppSelector()
+            setContentView(R.layout.activity_main)
+            bindViews()
+            setupClickListeners()
+            updateUI()
+            requestPostNotificationPermissionSilently()
+            // Show reconnecting state immediately so user knows what's happening
+            etServerUrl.setText(prefs.serverUrl)
+            tvStatus.text = "\u23f3 Reconnecting to server..."
+            btnConnect.isEnabled = false
+            btnConnect.alpha = 0.5f
+            // Silently verify — reconnect if alive, fall back to home if not
+            HealthCheck.check(prefs.serverUrl) { success, message ->
+                runOnUiThread {
+                    if (success) {
+                        // Server is up — reconnect WebSocket and proceed
+                        val wsUrl = prefs.serverUrl
+                            .replace("http://", "ws://")
+                            .replace("https://", "wss://") + "/android"
+                        WebSocketManager.connectIfNeeded(wsUrl)
+                        val serviceIntent = Intent(this, NotificationForwarderService::class.java)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(serviceIntent)
+                        } else {
+                            startService(serviceIntent)
+                        }
+                        goToAppSelector()
+                    } else {
+                        // Server unreachable — clear connected flag, show home
+                        prefs.isConnected = false
+                        tvStatus.text = "\u274c Server offline: $message"
+                        btnConnect.isEnabled = isNotificationAccessGranted()
+                        btnConnect.alpha = if (isNotificationAccessGranted()) 1.0f else 0.5f
+                        updateUI()
+                    }
+                }
+            }
             return
         }
 
         setContentView(R.layout.activity_main)
         bindViews()
-
-        // Request POST_NOTIFICATIONS silently (system shows its own dialog).
-        // Do NOT auto-show the notification-access dialog — Android 13+ handles
-        // the NotificationListenerService grant prompt natively when the service
-        // is first bound. Showing our own dialog on top confuses users and can
-        // cause a re-creation loop that wipes saved app selections.
         requestPostNotificationPermissionSilently()
-
         setupClickListeners()
         updateUI()
     }
@@ -71,8 +101,8 @@ class MainActivity : AppCompatActivity() {
         tvNotifAccess          = findViewById(R.id.tvNotifAccess)
         tvBatteryStatus        = findViewById(R.id.tvBatteryStatus)
         tvStatus               = findViewById(R.id.tvStatus)
-        findViewById<EditText>(R.id.etServerUrl)
-            .setText(prefs.serverUrl.ifBlank { "http://192.168.1.100:3000" })
+        etServerUrl            = findViewById(R.id.etServerUrl)
+        etServerUrl.setText(prefs.serverUrl.ifBlank { "http://192.168.1.100:3000" })
     }
 
     private fun requestPostNotificationPermissionSilently() {
@@ -86,10 +116,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        // "Grant Permission" button — only visible when notification access is missing.
-        // User taps this intentionally; we explain and send them to Settings.
         btnPermission.setOnClickListener { showNotificationAccessDialog() }
-
         btnBatteryOptimization.setOnClickListener { showBatteryOptimizationDialog() }
 
         btnConnect.setOnClickListener {
@@ -97,7 +124,7 @@ class MainActivity : AppCompatActivity() {
                 showNotificationAccessDialog()
                 return@setOnClickListener
             }
-            val url = findViewById<EditText>(R.id.etServerUrl).text.toString().trim()
+            val url = etServerUrl.text.toString().trim()
             if (url.isBlank()) { showToast("Enter server URL"); return@setOnClickListener }
 
             tvStatus.text = "\u23f3 Checking server..."
@@ -108,6 +135,11 @@ class MainActivity : AppCompatActivity() {
                     if (success) {
                         prefs.serverUrl   = url
                         prefs.isConnected = true
+
+                        val wsUrl = url
+                            .replace("http://", "ws://")
+                            .replace("https://", "wss://") + "/android"
+                        WebSocketManager.connect(wsUrl)
 
                         val serviceIntent = Intent(this, NotificationForwarderService::class.java)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -183,7 +215,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Refresh status labels only — no dialogs, no permission requests.
         if (::tvPermStatus.isInitialized) updateUI()
     }
 
