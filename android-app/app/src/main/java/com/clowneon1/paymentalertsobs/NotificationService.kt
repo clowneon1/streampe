@@ -11,29 +11,22 @@ class NotificationService : NotificationListenerService() {
 
     companion object {
         private const val TAG = "PaymentAlertsOBS"
-
-        // To filter ONLY payment apps later, populate this list.
-        // Leave empty to forward ALL notifications.
-        val PAYMENT_PACKAGES: List<String> = listOf(
-            // "com.google.android.apps.nbu.paisa.user",  // GPay
-            // "net.one97.paytm",                          // Paytm
-            // "com.phonepe.app",                          // PhonePe
-            // "in.org.npci.upiapp",                       // BHIM
-        )
+        // Updated live from AppSelectorActivity when user saves
+        var allowedPackages: Set<String> = emptySet()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val pkg: String = sbn.packageName
 
-        // Skip our own app's notifications
+        // Skip our own notifications
         if (pkg == packageName) return
 
-        // If filter list is non-empty, only allow listed packages
-        if (PAYMENT_PACKAGES.isNotEmpty() && pkg !in PAYMENT_PACKAGES) return
+        // If user has selected specific apps, filter to those only
+        if (allowedPackages.isNotEmpty() && pkg !in allowedPackages) return
 
         val extras = sbn.notification.extras
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
-        val text  = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()  ?: ""
+        val text  = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
 
         if (title.isBlank() && text.isBlank()) return
 
@@ -55,7 +48,5 @@ class NotificationService : NotificationListenerService() {
         WebSocketManager.send(payload.toString())
     }
 
-    override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        // Optional: send removal event if needed
-    }
+    override fun onNotificationRemoved(sbn: StatusBarNotification) {}
 }

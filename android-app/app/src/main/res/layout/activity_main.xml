@@ -12,47 +12,65 @@
         android:text="💰 Payment Alerts for OBS"
         android:textSize="22sp"
         android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
+        android:layout_marginBottom="4dp" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Forwards phone notifications to your OBS stream overlay"
+        android:text="Enter your PC server address to get started"
         android:textSize="13sp"
         android:textColor="#888"
         android:gravity="center"
         android:layout_marginBottom="32dp" />
 
     <TextView
-        android:id="@+id/tvStatus"
+        android:id="@+id/tvPermStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Status: Checking..."
-        android:textSize="14sp"
-        android:padding="12dp"
+        android:text="Checking permission..."
+        android:textSize="13sp"
+        android:padding="10dp"
         android:background="#1a1a1a"
         android:textColor="#fff"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="8dp" />
 
     <Button
         android:id="@+id/btnPermission"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Grant Notification Access"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Server URL"
+        android:textSize="12sp"
+        android:textColor="#888"
+        android:layout_marginBottom="4dp" />
 
     <EditText
         android:id="@+id/etServerUrl"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="ws://192.168.1.x:3000/android"
+        android:hint="http://192.168.1.x:3000"
         android:inputType="text"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="8dp" />
 
     <Button
         android:id="@+id/btnConnect"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Connect to PC Server" />
+        android:text="Connect"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="13sp"
+        android:textColor="#ff6b6b"
+        android:gravity="center" />
 
 </LinearLayout>

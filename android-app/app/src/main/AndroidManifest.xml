@@ -5,7 +5,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Required on API 30+ to read app names of other packages -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application
@@ -16,16 +15,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PaymentAlertsOBS">
 
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
+        <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- NotificationListenerService - MUST be declared exactly like this -->
+        <activity android:name=".AppSelectorActivity" android:exported="false" />
+
         <service
             android:name=".NotificationService"
             android:label="Payment Alerts for OBS"
@@ -35,6 +33,11 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <service
+            android:name=".NotificationForwarderService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
 
     </application>
 </manifest>

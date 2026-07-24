@@ -4,35 +4,44 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import android.text.TextUtils
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
-    // ⚠️ Change this to your PC's local IP address
-    private val DEFAULT_WS_URL = "ws://192.168.1.100:3000/android"
+    private lateinit var prefs: AppPrefs
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        prefs = AppPrefs(this)
 
-        val urlInput      = findViewById<EditText>(R.id.etServerUrl)
-        val btnConnect    = findViewById<Button>(R.id.btnConnect)
-        val btnPermission = findViewById<Button>(R.id.btnPermission)
-        val tvStatus      = findViewById<TextView>(R.id.tvStatus)
+        // Route to correct screen
+        if (prefs.serverUrl.isNotBlank() && prefs.isConnected) {
+            goToAppSelector()
+        } else {
+            setContentView(R.layout.activity_main)
+            setupServerScreen()
+        }
+    }
 
-        urlInput.setText(DEFAULT_WS_URL)
-        updatePermissionStatus(tvStatus)
+    private fun setupServerScreen() {
+        val etUrl     = findViewById<EditText>(R.id.etServerUrl)
+        val btnGrant  = findViewById<Button>(R.id.btnPermission)
+        val btnConn   = findViewById<Button>(R.id.btnConnect)
+        val tvStatus  = findViewById<TextView>(R.id.tvStatus)
+        val tvPerm    = findViewById<TextView>(R.id.tvPermStatus)
 
-        btnPermission.setOnClickListener {
+        // Auto-fill saved URL
+        etUrl.setText(prefs.serverUrl.ifBlank { "http://192.168.1.100:3000" })
+
+        updatePermissionStatus(tvPerm)
+
+        btnGrant.setOnClickListener {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
 
-        btnConnect.setOnClickListener {
-            val url = urlInput.text.toString().trim()
+        btnConn.setOnClickListener {
+            val url = etUrl.text.toString().trim()
             if (url.isBlank()) {
                 Toast.makeText(this, "Enter server URL", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -41,22 +50,48 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please grant Notification Access first!", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
-            WebSocketManager.connect(url)
-            tvStatus.text = "Status: Connecting to $url..."
-            Toast.makeText(this, "Connecting...", Toast.LENGTH_SHORT).show()
+            tvStatus.text = "Checking server..."
+            btnConn.isEnabled = false
+
+            // Health check then connect
+            HealthCheck.check(url) { success, message ->
+                runOnUiThread {
+                    if (success) {
+                        prefs.serverUrl = url
+                        prefs.isConnected = true
+                        val wsUrl = url.replace("http://", "ws://").replace("https://", "wss://") + "/android"
+                        WebSocketManager.connect(wsUrl)
+                        // Start foreground service
+                        val svcIntent = Intent(this, NotificationForwarderService::class.java)
+                        startForegroundService(svcIntent)
+                        goToAppSelector()
+                    } else {
+                        tvStatus.text = "❌ $message"
+                        btnConn.isEnabled = true
+                    }
+                }
+            }
         }
+    }
+
+    private fun goToAppSelector() {
+        startActivity(Intent(this, AppSelectorActivity::class.java))
+        finish()
     }
 
     override fun onResume() {
         super.onResume()
-        updatePermissionStatus(findViewById(R.id.tvStatus))
+        if (::prefs.isInitialized) {
+            val tvPerm = findViewById<TextView?>(R.id.tvPermStatus)
+            tvPerm?.let { updatePermissionStatus(it) }
+        }
     }
 
-    private fun updatePermissionStatus(tvStatus: TextView) {
-        tvStatus.text = if (isNotificationAccessGranted())
-            "Status: Notification Access ✅ Granted"
+    private fun updatePermissionStatus(tv: TextView) {
+        tv.text = if (isNotificationAccessGranted())
+            "✅ Notification Access granted"
         else
-            "Status: ❌ Notification Access NOT granted — tap button above"
+            "❌ Notification Access NOT granted"
     }
 
     private fun isNotificationAccessGranted(): Boolean {
