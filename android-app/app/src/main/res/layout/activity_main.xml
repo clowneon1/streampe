@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="🔔 Notification Forwarder"
+        android:text="💰 Payment Alerts for OBS"
         android:textSize="22sp"
         android:textStyle="bold"
         android:layout_marginBottom="8dp" />
@@ -17,7 +17,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Forwards phone notifications to OBS overlay on PC"
+        android:text="Forwards phone notifications to your OBS stream overlay"
         android:textSize="13sp"
         android:textColor="#888"
         android:gravity="center"

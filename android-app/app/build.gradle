@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.clowneon1.notificationforwarder'
+    namespace 'com.clowneon1.paymentalertsobs'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.clowneon1.notificationforwarder"
+        applicationId "com.clowneon1.paymentalertsobs"
         minSdk 26
         targetSdk 34
         versionCode 1
@@ -34,5 +34,5 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
-    implementation 'com.squareup.okhttp3:okhttp:4.12.0'  // WebSocket client
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.clowneon1.notificationforwarder">
+    package="com.clowneon1.paymentalertsobs">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -9,10 +9,10 @@
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Notification Forwarder"
+        android:label="Payment Alerts for OBS"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.NotificationForwarder">
+        android:theme="@style/Theme.PaymentAlertsOBS">
 
         <activity
             android:name=".MainActivity"
@@ -26,7 +26,7 @@
         <!-- NotificationListenerService - MUST be declared exactly like this -->
         <service
             android:name=".NotificationService"
-            android:label="Notification Forwarder Service"
+            android:label="Payment Alerts for OBS"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
             android:exported="true">
             <intent-filter>
