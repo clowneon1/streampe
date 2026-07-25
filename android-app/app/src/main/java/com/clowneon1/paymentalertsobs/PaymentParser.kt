@@ -19,6 +19,7 @@ package com.clowneon1.paymentalertsobs
  *   G5. "You paid Rs.<AMT> to <NAME>"
  *
  * Amount is always normalised to "\u20B9<digits>" (e.g. "\u20B91.00", "\u20B9500").
+ * All input strings are lowercased and trimmed before any matching.
  */
 object PaymentParser {
 
@@ -30,13 +31,6 @@ object PaymentParser {
 
     // -- Amount normalisation -------------------------------------------------
 
-    /**
-     * Strips currency prefix tokens and returns "\u20B9<digits>".
-     * Handles: \u20B9500  Rs.500  Rs. 500  rs500  RS500  500  1.00  1,000.00
-     *
-     * Uses \\u20B9 (Unicode escape) in the regex string so it compiles safely
-     * on all platforms without "Unsupported escape sequence" errors.
-     */
     private fun normaliseAmount(raw: String): String {
         val stripped = raw.trim()
             .replace(Regex("^\\u20B9\\s*"), "")
@@ -78,12 +72,6 @@ object PaymentParser {
 
     // -- PhonePe amount pattern -----------------------------------------------
 
-    /**
-     * Extracts only the AMOUNT from a PhonePe "has sent" text.
-     * Sender is extracted separately by splitting on " has ".
-     *
-     * Matches: "has sent rs500", "has sent Rs. 1,000.00", "has sent \u20B9500"
-     */
     private val PHONEPE_AMOUNT = Regex(
         """has\s+sent\s+(?:\u20B9|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)""",
         RegexOption.IGNORE_CASE
@@ -121,16 +109,21 @@ object PaymentParser {
         appName: String
     ): ParsedPayment? {
 
-        val isAmazon  = packageName.contains("amazon", ignoreCase = true) ||
-                        appName.contains("amazon", ignoreCase = true)
-        val isPhonePe = packageName.contains("phonepe", ignoreCase = true) ||
-                        appName.contains("phonepe", ignoreCase = true)
+        // Normalise ALL inputs: lowercase + trim so case variations never break matching
+        val nTitle   = title.trim().lowercase()
+        val nText    = text.trim().lowercase()
+        val nBigText = bigText.trim().lowercase()
+        val nPkg     = packageName.trim().lowercase()
+        val nApp     = appName.trim().lowercase()
 
-        val body = bigText.ifBlank { text }
+        val isAmazon  = nPkg.contains("amazon") || nApp.contains("amazon")
+        val isPhonePe = nPkg.contains("phonepe") || nApp.contains("phonepe")
+
+        val body = nBigText.ifBlank { nText }
 
         // -- 1. Amazon Pay ----------------------------------------------------
         if (isAmazon) {
-            val amtMatch    = AMAZON_AMOUNT_IN_TITLE.find(title)
+            val amtMatch    = AMAZON_AMOUNT_IN_TITLE.find(nTitle)
             val senderMatch = AMAZON_SENDER_IN_TEXT.find(body)
             if (amtMatch != null && senderMatch != null) {
                 return ParsedPayment(
@@ -139,7 +132,7 @@ object PaymentParser {
                     sourceApp = "Amazon Pay"
                 )
             }
-            for (candidate in listOf(body, title).filter { it.isNotBlank() }) {
+            for (candidate in listOf(body, nTitle).filter { it.isNotBlank() }) {
                 AMOUNT_RECEIVED_FROM.find(candidate)?.let {
                     return ParsedPayment(
                         sender    = cleanSender(it.groupValues[2]),
@@ -151,16 +144,14 @@ object PaymentParser {
         }
 
         // -- 2. PhonePe -------------------------------------------------------
-        // Sender = everything before the first " has " in the text.
-        // Amount = extracted by PHONEPE_AMOUNT regex.
-        // We search text first (payment info always lives in EXTRA_TEXT).
+        // Sender = everything before the first " has " (already lowercase so indexOf is safe)
         if (isPhonePe) {
-            val candidates = listOf(text, bigText, title)
+            val candidates = listOf(nText, nBigText, nTitle)
                 .filter { it.isNotBlank() }
                 .distinct()
 
             for (candidate in candidates) {
-                val hasIdx = candidate.indexOf(" has ", ignoreCase = true)
+                val hasIdx   = candidate.indexOf(" has ")
                 val amtMatch = PHONEPE_AMOUNT.find(candidate)
                 if (hasIdx > 0 && amtMatch != null) {
                     val sender = candidate.substring(0, hasIdx).trim()
@@ -174,7 +165,7 @@ object PaymentParser {
         }
 
         // -- 3. Generic fallbacks (all apps) ----------------------------------
-        for (candidate in listOf(body, title).filter { it.isNotBlank() }) {
+        for (candidate in listOf(body, nTitle).filter { it.isNotBlank() }) {
 
             GENERIC_HAS_SENT.find(candidate)?.let {
                 return ParsedPayment(
