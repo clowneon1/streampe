@@ -30,38 +30,41 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStatus: TextView
     private lateinit var etServerUrl: EditText
 
-    private var batteryDialogShownThisLaunch = false
+    // Only guards the AUTO-show path (onCreate reconnect flow).
+    // Manual button taps ALWAYS show the dialog regardless of this flag.
+    private var batteryDialogAutoShownThisLaunch = false
 
     private val notifPermLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { _ ->
-        if (::tvPermStatus.isInitialized) updateUI()
+    ) { granted ->
+        updateUI()
+        // POST_NOTIFICATIONS and BIND_NOTIFICATION_LISTENER_SERVICE are two
+        // separate permissions. Granting the first (system dialog) does NOT
+        // grant the second. Automatically open the listener settings right
+        // after so the user completes both steps in one flow instead of having
+        // to find and tap the button themselves.
+        if (granted && !isNotificationAccessGranted()) {
+            showNotificationAccessDialog()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
 
-        // If we have a saved URL and the flag says connected, verify the server
-        // is actually reachable before skipping to AppSelectorActivity.
-        // Blindly skipping based on a stale prefs flag shows the app list while
-        // completely disconnected — which is the bug being fixed here.
         if (prefs.serverUrl.isNotBlank() && prefs.isConnected) {
             setContentView(R.layout.activity_main)
             bindViews()
             setupClickListeners()
             updateUI()
             requestPostNotificationPermissionSilently()
-            // Show reconnecting state immediately so user knows what's happening
             etServerUrl.setText(prefs.serverUrl)
             tvStatus.text = "\u23f3 Reconnecting to server..."
             btnConnect.isEnabled = false
             btnConnect.alpha = 0.5f
-            // Silently verify — reconnect if alive, fall back to home if not
             HealthCheck.check(prefs.serverUrl) { success, message ->
                 runOnUiThread {
                     if (success) {
-                        // Server is up — reconnect WebSocket and proceed
                         val wsUrl = prefs.serverUrl
                             .replace("http://", "ws://")
                             .replace("https://", "wss://") + "/android"
@@ -74,7 +77,6 @@ class MainActivity : AppCompatActivity() {
                         }
                         goToAppSelector()
                     } else {
-                        // Server unreachable — clear connected flag, show home
                         prefs.isConnected = false
                         tvStatus.text = "\u274c Server offline: $message"
                         btnConnect.isEnabled = isNotificationAccessGranted()
@@ -116,8 +118,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
+        // Manual tap — always open settings dialog, no guards
         btnPermission.setOnClickListener { showNotificationAccessDialog() }
-        btnBatteryOptimization.setOnClickListener { showBatteryOptimizationDialog() }
+
+        // Manual tap — always show battery dialog, reset auto-show guard first
+        // so the guard never blocks an intentional user action
+        btnBatteryOptimization.setOnClickListener {
+            batteryDialogAutoShownThisLaunch = false
+            showBatteryOptimizationDialog(fromUser = true)
+        }
 
         btnConnect.setOnClickListener {
             if (!isNotificationAccessGranted()) {
@@ -173,9 +182,13 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showBatteryOptimizationDialog() {
-        if (batteryDialogShownThisLaunch) return
-        batteryDialogShownThisLaunch = true
+    /**
+     * @param fromUser true  = manual button tap, always show
+     *                 false = automatic call from onCreate, respect the guard
+     */
+    private fun showBatteryOptimizationDialog(fromUser: Boolean = false) {
+        if (!fromUser && batteryDialogAutoShownThisLaunch) return
+        if (!fromUser) batteryDialogAutoShownThisLaunch = true
         MaterialAlertDialogBuilder(this)
             .setTitle("Disable Battery Optimization")
             .setMessage(
