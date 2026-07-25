@@ -90,6 +90,36 @@ const DEFAULT_SETTINGS = {
     supporters: {},
     customHTML: "",
     customCSS: ""
+  },
+  filter: {
+    // Empty array = allow all amounts. Add amounts like [1, 500, 1000] to restrict.
+    allowedAmounts: []
+  }
+};
+
+// ── Test notification templates ──────────────────────────────────────
+const TEST_TEMPLATES = {
+  amazonpay: {
+    type: 'payment_notification',
+    packageName: 'in.amazon.mShop.android.shopping',
+    appName: 'Amazon Pay',
+    sourceApp: 'Amazon Pay',
+    title: '1.00 received',
+    text: 'Money received from RAJSHRI MAJHI on amazon pay',
+    bigText: 'Money received from RAJSHRI MAJHI on amazon pay',
+    sender: 'RAJSHRI MAJHI',
+    amount: '₹1.00'
+  },
+  phonepe: {
+    type: 'payment_notification',
+    packageName: 'com.phonepe.app',
+    appName: 'PhonePe',
+    sourceApp: 'PhonePe',
+    title: 'PhonePe',
+    text: 'D SINGH has sent rs1 to your bank account',
+    bigText: 'D SINGH has sent rs1 to your bank account',
+    sender: 'D SINGH',
+    amount: '₹1'
   }
 };
 
@@ -127,7 +157,8 @@ function loadSettings() {
           ...DEFAULT_SETTINGS.leaderboard,
           ...(data.leaderboard || {}),
           supporters: { ...(DEFAULT_SETTINGS.leaderboard.supporters || {}), ...((data.leaderboard && data.leaderboard.supporters) || {}) }
-        }
+        },
+        filter: { ...DEFAULT_SETTINGS.filter, ...(data.filter || {}) }
       };
     } else if (fs.existsSync(LEGACY_CONFIG_FILE)) {
       console.log(`[Settings] Migrating legacy configuration from ${LEGACY_CONFIG_FILE}`);
@@ -203,21 +234,105 @@ function broadcastSettings(settings) {
   });
 }
 
-function processPaymentForGoalAndLeaderboard(notification) {
-  if (!notification) return;
-  const rawAmount = notification.amount || '';
-  const numericVal = parseFloat(String(rawAmount).replace(/[^0-9.]/g, '')) || 0;
-  const sender = (notification.sender || 'Anonymous User').trim();
+// ── Amount-based filter ──────────────────────────────────────────────
+function parseAmount(rawAmount) {
+  if (typeof rawAmount === 'number') return rawAmount;
+  if (typeof rawAmount === 'string') {
+    const match = rawAmount.match(/[\d.,]+/);
+    if (match) return parseFloat(match[0].replace(/,/g, '')) || 0;
+  }
+  return 0;
+}
 
-  if (numericVal > 0) {
-    alertSettings.goal.currentAmount = (alertSettings.goal.currentAmount || 0) + numericVal;
-    if (!alertSettings.leaderboard.supporters) alertSettings.leaderboard.supporters = {};
-    alertSettings.leaderboard.supporters[sender] = (alertSettings.leaderboard.supporters[sender] || 0) + numericVal;
+function isAmountAllowed(numAmount) {
+  const allowed = alertSettings.filter && Array.isArray(alertSettings.filter.allowedAmounts)
+    ? alertSettings.filter.allowedAmounts
+    : [];
+  // Empty list = allow all
+  if (allowed.length === 0) return true;
+  return allowed.some(a => Math.abs(parseFloat(a) - numAmount) < 0.01);
+}
+
+function processPaymentForGoalAndLeaderboard(notification) {
+  try {
+    const numAmount = parseAmount(notification.amount);
+
+    // Enforce amount filter before affecting goal/leaderboard
+    if (!isAmountAllowed(numAmount)) {
+      console.log(`[FILTER] Amount ₹${numAmount} not in allowed list — skipping goal/leaderboard update`);
+      return;
+    }
+
+    const effectiveAmount = numAmount > 0 ? numAmount : 500;
+
+    let senderName = (notification.sender || notification.title || 'Rahul Kumar').trim();
+    if (senderName.toLowerCase().includes('received') || senderName.toLowerCase().includes('sent')) {
+      senderName = senderName.split(/sent|received/i)[0].trim() || 'Rahul Kumar';
+    }
+
+    // 1. Accumulate Goal currentAmount
+    if (alertSettings.goal) {
+      const prevCurrent = parseFloat(alertSettings.goal.currentAmount) || 0;
+      alertSettings.goal.currentAmount = prevCurrent + effectiveAmount;
+    }
+
+    // 2. Accumulate Leaderboard supporter amount
+    if (alertSettings.leaderboard) {
+      if (!alertSettings.leaderboard.supporters) {
+        alertSettings.leaderboard.supporters = {};
+      }
+      const prevTotal = parseFloat(alertSettings.leaderboard.supporters[senderName]) || 0;
+      alertSettings.leaderboard.supporters[senderName] = prevTotal + effectiveAmount;
+    }
+
+    // 3. Save & Broadcast updated settings
     saveSettings(alertSettings);
     profilesStore.profiles[profilesStore.activeProfile] = alertSettings;
     saveProfilesStore(profilesStore);
     broadcastSettings(alertSettings);
+
+    console.log(`[PAYMENT] ₹${effectiveAmount} from "${senderName}" processed. Goal current: ₹${alertSettings.goal.currentAmount}`);
+  } catch (e) {
+    console.error('[PAYMENT] Error processing payment:', e.message);
   }
+}
+
+function sendTestNotification(customData = {}) {
+  // Resolve template: 'amazonpay' | 'phonepe' | anything else = custom
+  const templateKey = (customData.template || '').toLowerCase().replace(/[^a-z]/g, '');
+  let base = {};
+
+  if (templateKey === 'amazonpay') {
+    base = { ...TEST_TEMPLATES.amazonpay };
+  } else if (templateKey === 'phonepe') {
+    base = { ...TEST_TEMPLATES.phonepe };
+  } else {
+    // Custom — caller supplies all fields; fall back to PhonePe template for missing fields
+    base = { ...TEST_TEMPLATES.phonepe };
+  }
+
+  // Merge caller overrides on top (excluding 'template' key)
+  const { template: _t, ...overrides } = customData;
+  const sample = {
+    ...base,
+    ...overrides,
+    timestamp: Date.now()
+  };
+
+  processPaymentForGoalAndLeaderboard(sample);
+
+  const payload = JSON.stringify(sample);
+  const legacyPayload = JSON.stringify({ type: 'notification', ...sample });
+
+  let count = 0;
+  obsClients.forEach(ws => {
+    if (ws.readyState === 1) {
+      ws.send(payload);
+      ws.send(legacyPayload);
+      count++;
+    }
+  });
+  return count;
 }
 
 // ── Static & Overlay Routes ──────────────────────────────────────────
@@ -255,7 +370,8 @@ app.post('/api/settings', (req, res) => {
       ...alertSettings.leaderboard,
       ...(req.body.leaderboard || {}),
       supporters: req.body.leaderboard && req.body.leaderboard.supporters ? req.body.leaderboard.supporters : (alertSettings.leaderboard ? alertSettings.leaderboard.supporters : {})
-    }
+    },
+    filter: { ...DEFAULT_SETTINGS.filter, ...(alertSettings.filter || {}), ...(req.body.filter || {}) }
   };
 
   saveSettings(alertSettings);
@@ -326,80 +442,10 @@ app.post('/api/config', (req, res) => {
   res.json({ ok: true, config: alertSettings });
 });
 
-function processPaymentForGoalAndLeaderboard(notification) {
-  try {
-    let rawAmount = notification.amount;
-    let numAmount = 0;
-    if (typeof rawAmount === 'number') {
-      numAmount = rawAmount;
-    } else if (typeof rawAmount === 'string') {
-      const match = rawAmount.match(/[\d.,]+/);
-      if (match) {
-        numAmount = parseFloat(match[0].replace(/,/g, '')) || 0;
-      }
-    }
-
-    if (numAmount <= 0) numAmount = 500;
-
-    let senderName = (notification.sender || notification.title || 'Rahul Kumar').trim();
-    if (senderName.toLowerCase().includes('received') || senderName.toLowerCase().includes('sent')) {
-      senderName = senderName.split(/sent|received/i)[0].trim() || 'Rahul Kumar';
-    }
-
-    // 1. Accumulate Goal currentAmount
-    if (alertSettings.goal) {
-      const prevCurrent = parseFloat(alertSettings.goal.currentAmount) || 0;
-      alertSettings.goal.currentAmount = prevCurrent + numAmount;
-    }
-
-    // 2. Accumulate Leaderboard supporter amount
-    if (alertSettings.leaderboard) {
-      if (!alertSettings.leaderboard.supporters) {
-        alertSettings.leaderboard.supporters = {};
-      }
-      const prevTotal = parseFloat(alertSettings.leaderboard.supporters[senderName]) || 0;
-      alertSettings.leaderboard.supporters[senderName] = prevTotal + numAmount;
-    }
-
-    // 3. Save & Broadcast updated settings
-    saveSettings(alertSettings);
-    broadcastSettings(alertSettings);
-
-    console.log(`[SIMULATION] Payment ₹${numAmount} processed for "${senderName}". Goal current: ₹${alertSettings.goal.currentAmount}`);
-  } catch (e) {
-    console.error('[SIMULATION] Error processing payment:', e.message);
-  }
-}
-
-function sendTestNotification(customData = {}) {
-  const sample = {
-    type: 'payment_notification',
-    packageName: 'com.google.android.apps.nbu.paisa.user',
-    appName: customData.sourceApp || customData.appName || 'PhonePe',
-    title: customData.title || customData.sourceApp || 'PhonePe',
-    text: customData.text || `${customData.sender || 'Rahul Kumar'} sent ${customData.amount || '₹500'}`,
-    sender: customData.sender || 'Rahul Kumar',
-    amount: customData.amount || '₹500',
-    sourceApp: customData.sourceApp || 'PhonePe',
-    message: customData.message || 'Payment received',
-    timestamp: Date.now()
-  };
-
-  processPaymentForGoalAndLeaderboard(sample);
-
-  const payload = JSON.stringify(sample);
-  const legacyPayload = JSON.stringify({ type: 'notification', ...sample });
-
-  let count = 0;
-  obsClients.forEach(ws => {
-    if (ws.readyState === 1) {
-      ws.send(payload);
-      ws.send(legacyPayload);
-      count++;
-    }
-  });
-  return count;
-}
+// Expose test templates to the client UI
+app.get('/api/test-templates', (req, res) => {
+  res.json({ templates: TEST_TEMPLATES });
+});
 
 // Test alert endpoints
 app.get('/api/test', (req, res) => {
