@@ -33,7 +33,6 @@ class NotificationTesterActivity : AppCompatActivity() {
             pkg     = "in.amazon.mShop.android.shopping",
             appName = "Amazon Pay"
         ),
-        // PhonePe — Old format (pre-2023)
         Preset(
             label   = "PhonePe (old)",
             title   = "PhonePe",
@@ -41,34 +40,30 @@ class NotificationTesterActivity : AppCompatActivity() {
             pkg     = "com.phonepe.app",
             appName = "PhonePe"
         ),
-        // PhonePe — Mid format
         Preset(
             label   = "PhonePe (mid)",
             title   = "PhonePe",
-            text    = "D SINGH sent ₹500 to your account",
+            text    = "D SINGH sent \u20b9500 to your account",
             pkg     = "com.phonepe.app",
             appName = "PhonePe"
         ),
-        // PhonePe — New format (2024+)
         Preset(
             label   = "PhonePe (new)",
             title   = "PhonePe",
-            text    = "Received ₹500 from D SINGH",
+            text    = "Received \u20b9500 from D SINGH",
             pkg     = "com.phonepe.app",
             appName = "PhonePe"
         ),
-        // PhonePe — Title-split format
         Preset(
             label   = "PhonePe (title-split)",
-            title   = "₹500 received",
+            title   = "\u20b9500 received",
             text    = "From D SINGH",
             pkg     = "com.phonepe.app",
             appName = "PhonePe"
         ),
-        // PhonePe — Compact format (newer devices)
         Preset(
             label   = "PhonePe (compact)",
-            title   = "₹500 from D SINGH",
+            title   = "\u20b9500 from D SINGH",
             text    = "PhonePe UPI",
             pkg     = "com.phonepe.app",
             appName = "PhonePe"
@@ -82,7 +77,6 @@ class NotificationTesterActivity : AppCompatActivity() {
         )
     )
 
-    // Track last selected position so re-selecting same item resets fields
     private var lastSelectedPos = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -106,7 +100,6 @@ class NotificationTesterActivity : AppCompatActivity() {
             etTitle.setText(preset.title)
             etText.setText(preset.text)
             etPkg.setText(preset.pkg)
-            // All fields always editable; preset just pre-fills values
             etTitle.isEnabled = true
             etText.isEnabled  = true
             etPkg.isEnabled   = true
@@ -116,18 +109,13 @@ class NotificationTesterActivity : AppCompatActivity() {
             override fun onItemSelected(
                 parent: AdapterView<*>, view: android.view.View?, pos: Int, id: Long
             ) {
-                // Always apply preset — re-selecting same item resets fields to default
                 applyPreset(pos)
                 lastSelectedPos = pos
-                if (pos == presets.indexOfFirst { it.label == "Custom" }) {
-                    etTitle.requestFocus()
-                }
+                if (pos == presets.indexOfFirst { it.label == "Custom" }) etTitle.requestFocus()
             }
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
 
-        // Allow tapping the already-selected item to reset — Spinner doesn't
-        // fire onItemSelected when the same item is re-tapped, so intercept touch.
         spinner.setOnTouchListener { v, _ ->
             lastSelectedPos = spinner.selectedItemPosition
             v.performClick()
@@ -142,10 +130,7 @@ class NotificationTesterActivity : AppCompatActivity() {
             val pkgVal  = etPkg.text.toString().trim().ifBlank {
                 if (preset.pkg.isNotBlank()) preset.pkg else packageName
             }
-            val appName = when {
-                pos == presets.indexOfFirst { it.label == "Custom" } -> "Custom"
-                else -> preset.appName
-            }
+            val appName = if (pos == presets.indexOfFirst { it.label == "Custom" }) "Custom" else preset.appName
 
             if (title.isBlank() || text.isBlank()) {
                 Toast.makeText(this, "Title and text cannot be empty", Toast.LENGTH_SHORT).show()
@@ -155,14 +140,17 @@ class NotificationTesterActivity : AppCompatActivity() {
             fireNotification(title, text)
 
             val alertId = UUID.randomUUID().toString()
+
+            // Send raw fields only — server handles parsing sender/amount
             val json = JSONObject().apply {
                 put("alertId",     alertId)
+                put("source",      "tester")
                 put("packageName", pkgVal)
                 put("appName",     appName)
                 put("title",       title)
                 put("text",        text)
+                put("bigText",     text)   // tester has no bigText so mirror text
                 put("timestamp",   System.currentTimeMillis())
-                put("source",      "tester")
             }
 
             AlertLog.add(AlertLog.fromJson(json))
@@ -189,9 +177,7 @@ class NotificationTesterActivity : AppCompatActivity() {
 
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Notification Tester",
-            NotificationManager.IMPORTANCE_HIGH
+            CHANNEL_ID, "Notification Tester", NotificationManager.IMPORTANCE_HIGH
         ).apply { description = "Used to fire test notifications" }
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }

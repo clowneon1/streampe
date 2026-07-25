@@ -55,14 +55,9 @@ class NotificationService : NotificationListenerService() {
             ).toString()
         } catch (e: Exception) { pkg }
 
-        val parsed    = PaymentParser.parse(title, text, bigText, pkg, appName)
-        val sender    = parsed?.sender    ?: ""
-        val amount    = parsed?.amount    ?: ""
-        val sourceApp = parsed?.sourceApp ?: appName
-
-        // Stable unique ID for this notification event
         val alertId = UUID.randomUUID().toString()
 
+        // Send all raw notification fields — parsing happens on the server
         val payload = JSONObject().apply {
             put("alertId",     alertId)
             put("source",      "notification")
@@ -87,14 +82,11 @@ class NotificationService : NotificationListenerService() {
             put("groupKey",    sbn.groupKey     ?: "")
             put("tickerText",  notif.tickerText?.toString() ?: "")
             put("actions",     actionsArray)
-            put("sender",      sender)
-            put("amount",      amount)
-            put("sourceApp",   sourceApp)
         }
 
         AlertLog.add(AlertLog.fromJson(payload))
 
-        Log.d(TAG, "Forwarding [$sourceApp] alertId=$alertId sender=$sender amount=$amount")
+        Log.d(TAG, "Forwarding [$appName] alertId=$alertId title=$title text=$text")
         WebSocketManager.send(payload.toString())
     }
 
