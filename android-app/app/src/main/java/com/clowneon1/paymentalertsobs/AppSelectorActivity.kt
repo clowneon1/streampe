@@ -65,8 +65,10 @@ class AppSelectorActivity : AppCompatActivity() {
         btnSave.setOnClickListener {
             val selected = adapter.getSelectedPackages()
             prefs.selectedPackages = selected
+            // Push to both services immediately so the change takes
+            // effect without requiring a restart.
             NotificationService.allowedPackages = selected
-            Toast.makeText(this, "✅ Saved ${selected.size} app(s)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "\u2705 Saved ${selected.size} app(s)", Toast.LENGTH_SHORT).show()
         }
 
         btnDisconn.setOnClickListener {
@@ -81,6 +83,9 @@ class AppSelectorActivity : AppCompatActivity() {
             startActivity(Intent(this, NotificationTesterActivity::class.java))
         }
 
+        // Push saved selection into services immediately on activity open.
+        // This covers the case where the activity opens but the user
+        // hasn't tapped Save yet — still respects the last saved state.
         NotificationService.allowedPackages = savedPkgs
         promptBatteryOptimization()
     }

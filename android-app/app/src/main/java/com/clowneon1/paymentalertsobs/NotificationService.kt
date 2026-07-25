@@ -2,7 +2,6 @@ package com.clowneon1.paymentalertsobs
 
 import android.app.Notification
 import android.content.pm.PackageManager
-import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -13,33 +12,55 @@ class NotificationService : NotificationListenerService() {
 
     companion object {
         private const val TAG = "PaymentAlertsOBS"
-        var allowedPackages: Set<String> = emptySet()
+
+        /**
+         * null  = not yet loaded from prefs (service just started)
+         * empty = user saved with zero apps selected (forward nothing)
+         * non-empty = forward only these packages
+         *
+         * IMPORTANT: treat null the same as empty — never forward when
+         * the filter hasn't been loaded yet. This prevents the bug where
+         * every notification leaked through before AppSelectorActivity
+         * had a chance to set this value.
+         */
+        var allowedPackages: Set<String>? = null
+    }
+
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        // Load persisted selection from disk every time the service
+        // connects (first start, restart after kill, boot, etc.).
+        allowedPackages = AppPrefs(applicationContext).selectedPackages
+        Log.d(TAG, "Listener connected — allowedPackages loaded: ${allowedPackages?.size} entries")
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val pkg = sbn.packageName
         if (pkg == packageName) return
-        if (allowedPackages.isNotEmpty() && pkg !in allowedPackages) return
 
-        val notif   = sbn.notification
-        val extras  = notif.extras
+        // allowedPackages == null  → prefs not loaded yet, drop
+        // allowedPackages.isEmpty → user selected nothing, drop
+        // pkg not in set          → not selected, drop
+        val allowed = allowedPackages
+        if (allowed.isNullOrEmpty() || pkg !in allowed) return
 
-        val title      = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()        ?: ""
-        val text       = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()         ?: ""
-        val bigText    = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()     ?: text
-        val subText    = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()     ?: ""
-        val infoText   = extras.getCharSequence(Notification.EXTRA_INFO_TEXT)?.toString()    ?: ""
-        val summaryText= extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString() ?: ""
-        val titleBig   = extras.getCharSequence(Notification.EXTRA_TITLE_BIG)?.toString()    ?: title
+        val notif        = sbn.notification
+        val extras       = notif.extras
+
+        val title        = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()        ?: ""
+        val text         = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()         ?: ""
+        val bigText      = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()     ?: text
+        val subText      = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()     ?: ""
+        val infoText     = extras.getCharSequence(Notification.EXTRA_INFO_TEXT)?.toString()    ?: ""
+        val summaryText  = extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString() ?: ""
+        val titleBig     = extras.getCharSequence(Notification.EXTRA_TITLE_BIG)?.toString()    ?: title
 
         if (title.isBlank() && text.isBlank()) return
 
-        // Inbox-style lines
         val textLines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
         val linesArray = JSONArray()
         textLines?.forEach { linesArray.put(it?.toString() ?: "") }
 
-        // Action button labels
         val actionsArray = JSONArray()
         notif.actions?.forEach { actionsArray.put(it.title?.toString() ?: "") }
 
@@ -50,14 +71,12 @@ class NotificationService : NotificationListenerService() {
         } catch (e: Exception) { pkg }
 
         val payload = JSONObject().apply {
-            // Identity
+            put("source",      "notification")
             put("packageName", pkg)
             put("appName",     appName)
             put("timestamp",   sbn.postTime)
             put("notifId",     sbn.id)
             put("key",         sbn.key)
-
-            // Content
             put("title",       title)
             put("titleBig",    titleBig)
             put("text",        text)
@@ -66,8 +85,6 @@ class NotificationService : NotificationListenerService() {
             put("infoText",    infoText)
             put("summaryText", summaryText)
             put("textLines",   linesArray)
-
-            // Metadata
             put("category",    notif.category   ?: "")
             put("priority",    notif.priority)
             put("visibility",  notif.visibility)
@@ -75,8 +92,6 @@ class NotificationService : NotificationListenerService() {
             put("isClearable", sbn.isClearable)
             put("groupKey",    sbn.groupKey     ?: "")
             put("tickerText",  notif.tickerText?.toString() ?: "")
-
-            // Actions
             put("actions",     actionsArray)
         }
 
