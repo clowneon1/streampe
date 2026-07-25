@@ -17,19 +17,12 @@ class NotificationService : NotificationListenerService() {
          * null  = not yet loaded from prefs (service just started)
          * empty = user saved with zero apps selected (forward nothing)
          * non-empty = forward only these packages
-         *
-         * IMPORTANT: treat null the same as empty — never forward when
-         * the filter hasn't been loaded yet. This prevents the bug where
-         * every notification leaked through before AppSelectorActivity
-         * had a chance to set this value.
          */
         var allowedPackages: Set<String>? = null
     }
 
     override fun onListenerConnected() {
         super.onListenerConnected()
-        // Load persisted selection from disk every time the service
-        // connects (first start, restart after kill, boot, etc.).
         allowedPackages = AppPrefs(applicationContext).selectedPackages
         Log.d(TAG, "Listener connected — allowedPackages loaded: ${allowedPackages?.size} entries")
     }
@@ -38,22 +31,19 @@ class NotificationService : NotificationListenerService() {
         val pkg = sbn.packageName
         if (pkg == packageName) return
 
-        // allowedPackages == null  → prefs not loaded yet, drop
-        // allowedPackages.isEmpty → user selected nothing, drop
-        // pkg not in set          → not selected, drop
         val allowed = allowedPackages
         if (allowed.isNullOrEmpty() || pkg !in allowed) return
 
-        val notif        = sbn.notification
-        val extras       = notif.extras
+        val notif       = sbn.notification
+        val extras      = notif.extras
 
-        val title        = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()        ?: ""
-        val text         = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()         ?: ""
-        val bigText      = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()     ?: text
-        val subText      = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()     ?: ""
-        val infoText     = extras.getCharSequence(Notification.EXTRA_INFO_TEXT)?.toString()    ?: ""
-        val summaryText  = extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString() ?: ""
-        val titleBig     = extras.getCharSequence(Notification.EXTRA_TITLE_BIG)?.toString()    ?: title
+        val title       = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()        ?: ""
+        val text        = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()         ?: ""
+        val bigText     = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()     ?: text
+        val subText     = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()     ?: ""
+        val infoText    = extras.getCharSequence(Notification.EXTRA_INFO_TEXT)?.toString()    ?: ""
+        val summaryText = extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString() ?: ""
+        val titleBig    = extras.getCharSequence(Notification.EXTRA_TITLE_BIG)?.toString()    ?: title
 
         if (title.isBlank() && text.isBlank()) return
 
@@ -69,6 +59,16 @@ class NotificationService : NotificationListenerService() {
                 packageManager.getApplicationInfo(pkg, PackageManager.GET_META_DATA)
             ).toString()
         } catch (e: Exception) { pkg }
+
+        // ── Pattern detection ────────────────────────────────────────────────
+        // Use the most information-rich text field available.
+        val richText = bigText.ifBlank { text }
+        val parsed   = PaymentParser.parse(title, richText, pkg, appName)
+
+        val sender    = parsed?.sender    ?: title
+        val amount    = parsed?.amount    ?: ""
+        val sourceApp = parsed?.sourceApp ?: appName
+        // ─────────────────────────────────────────────────────────────────────
 
         val payload = JSONObject().apply {
             put("source",      "notification")
@@ -93,9 +93,13 @@ class NotificationService : NotificationListenerService() {
             put("groupKey",    sbn.groupKey     ?: "")
             put("tickerText",  notif.tickerText?.toString() ?: "")
             put("actions",     actionsArray)
+            // ── parsed payment fields (consumed by pc-server) ──
+            put("sender",    sender)
+            put("amount",    amount)
+            put("sourceApp", sourceApp)
         }
 
-        Log.d(TAG, "Forwarding: $payload")
+        Log.d(TAG, "Forwarding [$sourceApp] sender=$sender amount=$amount")
         WebSocketManager.send(payload.toString())
     }
 
