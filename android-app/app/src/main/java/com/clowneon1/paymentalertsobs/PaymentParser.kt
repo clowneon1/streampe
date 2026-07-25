@@ -3,29 +3,22 @@ package com.clowneon1.paymentalertsobs
 /**
  * Extracts (sender, amount, sourceApp) from UPI payment notification text.
  *
- * Supported apps / patterns (in priority order):
- *
  *  Amazon Pay
  *   A1. Title "1.00 received"  + body "Money received from <NAME> on amazon pay"
- *   A2. Body  "₹500 received from <NAME>"  (generic fallback for Amazon)
+ *   A2. Body  "Rs.500 received from <NAME>"
  *
- *  PhonePe  — "has sent" is the only format currently in production.
- *   P1. "<NAME> has sent Rs.<AMT> to your bank account"   (primary)
- *   Generic patterns serve as fallback for future format changes.
- *
- *  NOTE: For PhonePe, the payment text is ALWAYS in EXTRA_TEXT (not bigText).
- *  The parse() function passes raw text separately so PhonePe branch searches
- *  it first before falling through to bigText.
+ *  PhonePe
+ *   P1. "<NAME> has sent rs<AMT> to your bank account"
+ *       Sender = everything before the first " has " in the text string.
  *
  *  Generic fallbacks (any app):
- *   G1. "<NAME> has sent ₹<AMT> ..."
- *   G2. "₹<AMT> received from <NAME>"
- *   G3. "Payment of ₹<AMT> received from <NAME>"
- *   G4. "<NAME> sent ₹<AMT>"
- *   G5. "You paid ₹<AMT> to <NAME>"
+ *   G1. "<NAME> has sent Rs.<AMT>"
+ *   G2. "Rs.<AMT> received from <NAME>"
+ *   G3. "Payment of Rs.<AMT> received from <NAME>"
+ *   G4. "<NAME> sent Rs.<AMT>"
+ *   G5. "You paid Rs.<AMT> to <NAME>"
  *
- * Amount is always normalised to "₹<digits>" (e.g. "₹1.00", "₹500").
- * Sender names have trailing contextual phrases stripped.
+ * Amount is always normalised to "\u20B9<digits>" (e.g. "\u20B91.00", "\u20B9500").
  */
 object PaymentParser {
 
@@ -35,24 +28,24 @@ object PaymentParser {
         val sourceApp: String
     )
 
-    // ── Amount normalisation ──────────────────────────────────────────────────
+    // -- Amount normalisation -------------------------------------------------
 
     /**
-     * Strips currency prefix tokens and returns "₹<digits>".
-     * Handles: ₹500  Rs.500  Rs. 500  rs500  RS500  500  1.00  1,000.00
+     * Strips currency prefix tokens and returns "\u20B9<digits>".
+     * Handles: \u20B9500  Rs.500  Rs. 500  rs500  RS500  500  1.00  1,000.00
      *
-     * Strips whole tokens (₹ | Rs.? + optional space), NOT individual chars,
-     * so amounts like "1.00" are never corrupted.
+     * Uses \\u20B9 (Unicode escape) in the regex string so it compiles safely
+     * on all platforms without "Unsupported escape sequence" errors.
      */
     private fun normaliseAmount(raw: String): String {
         val stripped = raw.trim()
-            .replace(Regex("^₹\\s*"), "")
-            .replace(Regex("^[Rr][Ss]\.?\\s*"), "")
+            .replace(Regex("^\\u20B9\\s*"), "")
+            .replace(Regex("^[Rr][Ss]\\.?\\s*"), "")
             .trim()
-        return "₹$stripped"
+        return "\u20B9$stripped"
     }
 
-    // ── Sender name cleaning ──────────────────────────────────────────────────
+    // -- Sender name cleaning -------------------------------------------------
 
     private val STRIP_SUFFIXES = listOf(
         Regex("\\s+on\\s+amazon\\s+pay",                 RegexOption.IGNORE_CASE),
@@ -66,82 +59,60 @@ object PaymentParser {
         return s.trim()
     }
 
-    // ── Amazon Pay patterns ───────────────────────────────────────────────────
+    // -- Amazon Pay patterns --------------------------------------------------
 
-    /** Title: "1.00 received" or "₹1.00 received" or "Rs.1.00 received" */
     private val AMAZON_AMOUNT_IN_TITLE = Regex(
-        """(?:₹|[Rr][Ss]\.?\s*)?(\d[\d,.]*(?:\.\d{1,2})?)\s+received""",
+        """(?:\u20B9|[Rr][Ss]\.?\s*)?(\d[\d,.]*(?:\.\d{1,2})?)\s+received""",
         RegexOption.IGNORE_CASE
     )
 
-    /** Body: "Money received from RAJSHRI MAJHI on amazon pay" */
     private val AMAZON_SENDER_IN_TEXT = Regex(
         """money\s+rec(?:ei)?ved\s+from\s+(.+?)\s+on\s+amazon\s+pay""",
         RegexOption.IGNORE_CASE
     )
 
-    /** Generic: "₹500 received from <name>" */
     private val AMOUNT_RECEIVED_FROM = Regex(
-        """(?:₹|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)\s+received\s+from\s+(.+)""",
+        """(?:\u20B9|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)\s+received\s+from\s+(.+)""",
         RegexOption.IGNORE_CASE
     )
 
-    // ── PhonePe pattern ────────────────────────────────────────────────────────
+    // -- PhonePe amount pattern -----------------------------------------------
 
     /**
-     * P1 — "D SINGH has sent Rs. 500.00 to your bank account"
+     * Extracts only the AMOUNT from a PhonePe "has sent" text.
+     * Sender is extracted separately by splitting on " has ".
      *
-     * Sender = everything BEFORE " has" (greedy split on first " has ").
-     * This is deliberately NOT a lazy (.+?) capture — we split on the literal
-     * word " has " so the name is the entire prefix regardless of spaces or
-     * special characters in the name.
-     *
-     * Group 1 = sender name (before " has sent")
-     * Group 2 = amount digits
+     * Matches: "has sent rs500", "has sent Rs. 1,000.00", "has sent \u20B9500"
      */
-    private val PHONEPE_HAS_SENT = Regex(
-        """^(.+?)\s+has\s+sent\s+(?:₹|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)(?:\s+to\s+your(?:\s+bank)?\s+account)?""",
+    private val PHONEPE_AMOUNT = Regex(
+        """has\s+sent\s+(?:\u20B9|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)""",
         RegexOption.IGNORE_CASE
     )
 
-    // ── Generic fallback patterns ─────────────────────────────────────────────
+    // -- Generic fallback patterns --------------------------------------------
 
-    /** G1 — "<name> has sent ₹<amount> ..." */
     private val GENERIC_HAS_SENT = Regex(
-        """(.+?)\s+has\s+sent\s+(?:₹|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)""",
+        """(.+?)\s+has\s+sent\s+(?:\u20B9|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)""",
         RegexOption.IGNORE_CASE
     )
 
-    /** G3 — "Payment of ₹<amount> received from <name>" */
     private val PAYMENT_OF_RECEIVED = Regex(
-        """[Pp]ayment\s+of\s+(?:₹|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)\s+received\s+from\s+(.+)""",
+        """[Pp]ayment\s+of\s+(?:\u20B9|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)\s+received\s+from\s+(.+)""",
         RegexOption.IGNORE_CASE
     )
 
-    /** G4 — "<name> sent ₹<amount>" */
     private val GENERIC_NAME_SENT = Regex(
-        """^(.+?)\s+sent\s+(?:₹|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)""",
+        """^(.+?)\s+sent\s+(?:\u20B9|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)""",
         RegexOption.IGNORE_CASE
     )
 
-    /** G5 — "You paid ₹<amount> to <name>" */
     private val GENERIC_YOU_PAID = Regex(
-        """[Yy]ou\s+(?:have\s+)?paid\s+(?:₹|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)\s+to\s+(.+)""",
+        """[Yy]ou\s+(?:have\s+)?paid\s+(?:\u20B9|[Rr][Ss]\.?\s*)(\d[\d,.]*(?:\.\d{1,2})?)\s+to\s+(.+)""",
         RegexOption.IGNORE_CASE
     )
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
-    /**
-     * Parse a payment notification.
-     *
-     * @param title       Notification.EXTRA_TITLE
-     * @param text        Notification.EXTRA_TEXT   ← PhonePe payment info lives here
-     * @param bigText     Notification.EXTRA_BIG_TEXT (may be a summary/ticker, not payment text)
-     * @param packageName Package name of the source app
-     * @param appName     Human-readable app label
-     * @return [ParsedPayment] on success, null if no pattern matches.
-     */
     fun parse(
         title: String,
         text: String,
@@ -155,12 +126,9 @@ object PaymentParser {
         val isPhonePe = packageName.contains("phonepe", ignoreCase = true) ||
                         appName.contains("phonepe", ignoreCase = true)
 
-        // bigText is richer than text for Amazon, but for PhonePe it may be
-        // a summary string that does NOT contain the payment details.
-        // We keep a generic body for Amazon/generic and search text-first for PhonePe.
         val body = bigText.ifBlank { text }
 
-        // ── 1. Amazon Pay ─────────────────────────────────────────────────────
+        // -- 1. Amazon Pay ----------------------------------------------------
         if (isAmazon) {
             val amtMatch    = AMAZON_AMOUNT_IN_TITLE.find(title)
             val senderMatch = AMAZON_SENDER_IN_TEXT.find(body)
@@ -182,26 +150,30 @@ object PaymentParser {
             }
         }
 
-        // ── 2. PhonePe ────────────────────────────────────────────────────────
+        // -- 2. PhonePe -------------------------------------------------------
+        // Sender = everything before the first " has " in the text.
+        // Amount = extracted by PHONEPE_AMOUNT regex.
+        // We search text first (payment info always lives in EXTRA_TEXT).
         if (isPhonePe) {
-            // Search text FIRST (payment info is always in EXTRA_TEXT for PhonePe),
-            // then bigText, then title as last resort.
-            val phonePeCandidates = listOf(text, bigText, title)
+            val candidates = listOf(text, bigText, title)
                 .filter { it.isNotBlank() }
                 .distinct()
 
-            for (candidate in phonePeCandidates) {
-                PHONEPE_HAS_SENT.find(candidate)?.let {
+            for (candidate in candidates) {
+                val hasIdx = candidate.indexOf(" has ", ignoreCase = true)
+                val amtMatch = PHONEPE_AMOUNT.find(candidate)
+                if (hasIdx > 0 && amtMatch != null) {
+                    val sender = candidate.substring(0, hasIdx).trim()
                     return ParsedPayment(
-                        sender    = cleanSender(it.groupValues[1]),
-                        amount    = normaliseAmount(it.groupValues[2]),
+                        sender    = cleanSender(sender),
+                        amount    = normaliseAmount(amtMatch.groupValues[1]),
                         sourceApp = "PhonePe"
                     )
                 }
             }
         }
 
-        // ── 3. Generic fallbacks (all apps) ───────────────────────────────────
+        // -- 3. Generic fallbacks (all apps) ----------------------------------
         for (candidate in listOf(body, title).filter { it.isNotBlank() }) {
 
             GENERIC_HAS_SENT.find(candidate)?.let {
