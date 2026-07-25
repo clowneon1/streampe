@@ -3,99 +3,41 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#121212"
-    android:fitsSystemWindows="true">
+    android:background="?android:attr/windowBackground">
 
     <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="16dp"
-        android:background="#1a1a1a"
-        android:gravity="center_vertical">
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:elevation="4dp"
+        android:background="?attr/colorSurface">
 
-        <!-- Icon + title block -->
-        <LinearLayout
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/tvServerStatus"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Payment Alerts for OBS"
-                android:textSize="17sp"
-                android:textStyle="bold"
-                android:textColor="#ffffff"
-                android:singleLine="true"
-                android:ellipsize="end" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📱 Select apps to capture notifications from:"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
 
-            <TextView
-                android:id="@+id/tvServerStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Connected"
-                android:textSize="12sp"
-                android:textColor="#00e676"
-                android:layout_marginTop="2dp"
-                android:singleLine="true"
-                android:ellipsize="end" />
-
-        </LinearLayout>
-
-        <!-- Test button pinned to right of header -->
-        <Button
-            android:id="@+id/btnTest"
-            android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:text="Test"
-            android:textSize="12sp"
-            android:paddingHorizontal="14dp"
-            android:layout_marginStart="8dp"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+        <EditText
+            android:id="@+id/etSearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="🔍 Search apps..."
+            android:inputType="text"
+            android:layout_marginBottom="4dp" />
 
     </LinearLayout>
-
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#2a2a2a" />
-
-    <!-- Search -->
-    <EditText
-        android:id="@+id/etSearch"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Search apps..."
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="13dp"
-        android:background="#1a1a1a"
-        android:textColor="#ffffff"
-        android:textColorHint="#555555"
-        android:textSize="14sp"
-        android:inputType="text" />
-
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#2a2a2a" />
-
-    <!-- App list label -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Select apps to monitor:"
-        android:textSize="11sp"
-        android:textColor="#666666"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="10dp"
-        android:paddingBottom="6dp"
-        android:letterSpacing="0.05" />
 
     <!-- App list -->
     <androidx.recyclerview.widget.RecyclerView
@@ -104,39 +46,56 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:paddingBottom="4dp" />
+        android:padding="4dp" />
 
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#2a2a2a" />
-
-    <!-- Bottom buttons -->
+    <!-- Footer buttons -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="10dp"
-        android:background="#1a1a1a"
-        android:gravity="center">
-
-        <Button
-            android:id="@+id/btnDisconnect"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Disconnect"
-            android:layout_marginEnd="8dp"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:elevation="4dp"
+        android:background="?attr/colorSurface">
 
         <Button
             android:id="@+id/btnSave"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Save" />
+            android:text="💾 Save Selection"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="4dp">
+
+            <Button
+                android:id="@+id/btnTest"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🔔 Test"
+                android:layout_marginEnd="6dp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+            <Button
+                android:id="@+id/btnAlertLog"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="📋 Alert Log"
+                android:layout_marginStart="6dp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnDisconnect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⏏ Disconnect"
+            style="@style/Widget.MaterialComponents.Button.TextButton" />
 
     </LinearLayout>
 

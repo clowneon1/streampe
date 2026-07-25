@@ -7,17 +7,12 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.UUID
 
 class NotificationService : NotificationListenerService() {
 
     companion object {
         private const val TAG = "PaymentAlertsOBS"
-
-        /**
-         * null  = not yet loaded from prefs (service just started)
-         * empty = user saved with zero apps selected (forward nothing)
-         * non-empty = forward only these packages
-         */
         var allowedPackages: Set<String>? = null
     }
 
@@ -60,18 +55,16 @@ class NotificationService : NotificationListenerService() {
             ).toString()
         } catch (e: Exception) { pkg }
 
-        // ── Payment parsing ──────────────────────────────────────────────────
-        // Pass title, text, and bigText separately so PaymentParser can use
-        // the richer bigText body while still reading the title for amount cues
-        // (e.g. Amazon Pay puts amount in title, sender in body).
-        val parsed = PaymentParser.parse(title, text, bigText, pkg, appName)
-
+        val parsed    = PaymentParser.parse(title, text, bigText, pkg, appName)
         val sender    = parsed?.sender    ?: ""
         val amount    = parsed?.amount    ?: ""
         val sourceApp = parsed?.sourceApp ?: appName
-        // ─────────────────────────────────────────────────────────────────────
+
+        // Stable unique ID for this notification event
+        val alertId = UUID.randomUUID().toString()
 
         val payload = JSONObject().apply {
+            put("alertId",     alertId)
             put("source",      "notification")
             put("packageName", pkg)
             put("appName",     appName)
@@ -94,13 +87,14 @@ class NotificationService : NotificationListenerService() {
             put("groupKey",    sbn.groupKey     ?: "")
             put("tickerText",  notif.tickerText?.toString() ?: "")
             put("actions",     actionsArray)
-            // ── parsed payment fields (consumed by pc-server) ──
-            put("sender",    sender)
-            put("amount",    amount)
-            put("sourceApp", sourceApp)
+            put("sender",      sender)
+            put("amount",      amount)
+            put("sourceApp",   sourceApp)
         }
 
-        Log.d(TAG, "Forwarding [$sourceApp] sender=$sender amount=$amount")
+        AlertLog.add(AlertLog.fromJson(payload))
+
+        Log.d(TAG, "Forwarding [$sourceApp] alertId=$alertId sender=$sender amount=$amount")
         WebSocketManager.send(payload.toString())
     }
 

@@ -34,8 +34,9 @@ class AppSelectorActivity : AppCompatActivity() {
         val btnSave    = findViewById<Button>(R.id.btnSave)
         val btnDisconn = findViewById<Button>(R.id.btnDisconnect)
         val btnTest    = findViewById<Button>(R.id.btnTest)
+        val btnAlertLog = findViewById<Button>(R.id.btnAlertLog)
 
-        tvServer.text = "🟢 Connected to ${prefs.serverUrl}"
+        tvServer.text = "\uD83D\uDFE2 Connected to ${prefs.serverUrl}"
 
         val savedPkgs = prefs.selectedPackages
         adapter = AppListAdapter(mutableListOf(), savedPkgs)
@@ -65,8 +66,6 @@ class AppSelectorActivity : AppCompatActivity() {
         btnSave.setOnClickListener {
             val selected = adapter.getSelectedPackages()
             prefs.selectedPackages = selected
-            // Push to both services immediately so the change takes
-            // effect without requiring a restart.
             NotificationService.allowedPackages = selected
             Toast.makeText(this, "\u2705 Saved ${selected.size} app(s)", Toast.LENGTH_SHORT).show()
         }
@@ -83,9 +82,10 @@ class AppSelectorActivity : AppCompatActivity() {
             startActivity(Intent(this, NotificationTesterActivity::class.java))
         }
 
-        // Push saved selection into services immediately on activity open.
-        // This covers the case where the activity opens but the user
-        // hasn't tapped Save yet — still respects the last saved state.
+        btnAlertLog.setOnClickListener {
+            startActivity(Intent(this, AlertLogActivity::class.java))
+        }
+
         NotificationService.allowedPackages = savedPkgs
         promptBatteryOptimization()
     }

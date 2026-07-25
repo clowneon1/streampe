@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212">
+    android:background="?android:attr/windowBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -13,48 +13,42 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="&#x1F514; Notification Tester"
-            android:textSize="20sp"
+            android:text="🔔 Notification Tester"
+            android:textSize="22sp"
             android:textStyle="bold"
-            android:textColor="#ffffff"
-            android:layout_marginBottom="4dp"
-            android:layout_marginTop="12dp" />
+            android:layout_marginBottom="8dp" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Fire test notifications to verify forwarding to OBS"
+            android:text="Select a preset to pre-fill, then edit any field freely."
             android:textSize="13sp"
-            android:textColor="#888888"
-            android:layout_marginBottom="24dp" />
+            android:textColor="?android:attr/textColorSecondary"
+            android:layout_marginBottom="16dp" />
 
-        <!-- Template selector -->
+        <!-- Preset picker -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TEMPLATE"
-            android:textSize="11sp"
-            android:textColor="#666666"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="6dp" />
+            android:text="Template"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
 
         <Spinner
             android:id="@+id/spinnerPresets"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#1e1e1e"
-            android:padding="4dp"
-            android:layout_marginBottom="20dp" />
+            android:layout_marginBottom="16dp" />
 
         <!-- Title -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TITLE"
-            android:textSize="11sp"
-            android:textColor="#666666"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="6dp" />
+            android:text="Notification Title"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
 
         <EditText
             android:id="@+id/etNotifTitle"
@@ -62,71 +56,75 @@
             android:layout_height="wrap_content"
             android:hint="e.g. PhonePe"
             android:inputType="text"
-            android:background="#1e1e1e"
-            android:textColor="#ffffff"
-            android:textColorHint="#555555"
-            android:padding="14dp"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="12dp" />
 
-        <!-- Message -->
+        <!-- Text -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="MESSAGE"
-            android:textSize="11sp"
-            android:textColor="#666666"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="6dp" />
+            android:text="Notification Text"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
 
         <EditText
             android:id="@+id/etNotifText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="e.g. D SINGH has sent rs1 to your bank account"
+            android:hint="e.g. Rahul sent ₹500 to your account"
             android:inputType="textMultiLine"
             android:minLines="2"
-            android:background="#1e1e1e"
-            android:textColor="#ffffff"
-            android:textColorHint="#555555"
-            android:padding="14dp"
-            android:layout_marginBottom="24dp"
-            android:gravity="top" />
+            android:layout_marginBottom="12dp" />
 
+        <!-- Package -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Package Name (optional)"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <EditText
+            android:id="@+id/etNotifPkg"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="e.g. com.phonepe.app"
+            android:inputType="text"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Fire button -->
         <Button
             android:id="@+id/btnFireNotification"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="&#x1F514;  Fire Notification"
+            android:text="🔔 Fire &amp; Send to OBS"
             android:layout_marginBottom="12dp" />
 
         <Button
             android:id="@+id/btnBack"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Back"
-            android:layout_marginBottom="16dp"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            android:text="← Back"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_marginBottom="16dp" />
 
         <!-- Log -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="FIRED LOG"
-            android:textSize="11sp"
-            android:textColor="#666666"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="6dp" />
+            android:text="Recent Sends"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
 
         <TextView
             android:id="@+id/tvLog"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="No notifications fired yet"
             android:textSize="12sp"
-            android:textColor="#00ff88"
             android:fontFamily="monospace"
-            android:padding="12dp"
-            android:background="#0d1f0d" />
+            android:textColor="?android:attr/textColorSecondary" />
 
     </LinearLayout>
 </ScrollView>

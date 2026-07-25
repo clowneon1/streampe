@@ -199,6 +199,12 @@ function saveProfilesStore(store) {
 let profilesStore = loadProfilesStore();
 let alertSettings = profilesStore.profiles[profilesStore.activeProfile] || loadSettings();
 
+// ── Alert ID deduplication ──────────────────────────────────────────
+// Tracks alertIds that have already been applied to goal & leaderboard.
+// In-memory only — resets on server restart (intentional: restarts are rare
+// during a stream; persisting IDs would require a DB which is overkill).
+const processedAlertIds = new Set();
+
 function broadcastSettings(settings) {
   const payload = JSON.stringify({ type: 'SETTINGS_UPDATED', payload: settings, activeProfile: profilesStore.activeProfile });
   obsClients.forEach(client => {
@@ -226,12 +232,30 @@ function isAmountAllowed(numAmount) {
   return allowed.some(a => Math.abs(parseFloat(a) - numAmount) < 0.01);
 }
 
+/**
+ * Process a payment notification for goal and leaderboard.
+ *
+ * If the notification carries an alertId that has already been processed
+ * (e.g. a retrigger from the Android Alert Log), goal and leaderboard are
+ * intentionally skipped — but the alert will still be forwarded to the OBS
+ * overlay by the caller so the on-stream animation plays again.
+ */
 function processPaymentForGoalAndLeaderboard(notification) {
   try {
+    const alertId = notification.alertId || null;
+
+    // Dedup check — skip goal/leaderboard if this alertId was already counted
+    if (alertId && processedAlertIds.has(alertId)) {
+      console.log(`[DEDUP] alertId ${alertId} already processed — overlay only, skipping goal/leaderboard`);
+      return;
+    }
+
     const numAmount = parseAmount(notification.amount);
 
     if (!isAmountAllowed(numAmount)) {
       console.log(`[FILTER] Amount ₹${numAmount} not in allowed list — skipping goal/leaderboard update`);
+      // Still mark as processed so a retrigger of this filtered alert also skips
+      if (alertId) processedAlertIds.add(alertId);
       return;
     }
 
@@ -260,7 +284,10 @@ function processPaymentForGoalAndLeaderboard(notification) {
     saveProfilesStore(profilesStore);
     broadcastSettings(alertSettings);
 
-    console.log(`[PAYMENT] ₹${effectiveAmount} from "${senderName}" processed. Goal current: ₹${alertSettings.goal.currentAmount}`);
+    // Mark as processed after successful update
+    if (alertId) processedAlertIds.add(alertId);
+
+    console.log(`[PAYMENT] ₹${effectiveAmount} from "${senderName}" processed. alertId=${alertId} Goal current: ₹${alertSettings.goal.currentAmount}`);
   } catch (e) {
     console.error('[PAYMENT] Error processing payment:', e.message);
   }
@@ -381,7 +408,7 @@ app.get('/api/test', (req, res) => {
     title: 'PhonePe',
     text: 'D SINGH has sent rs1 to your bank account',
     sender: 'D SINGH',
-    amount: '₹1',
+    amount: '\u20b91',
     timestamp: Date.now()
   };
   let count = 0;
@@ -405,7 +432,7 @@ app.post('/api/test', (req, res) => {
     title: body.title || 'PhonePe',
     text: body.text || 'D SINGH has sent rs1 to your bank account',
     sender: body.sender || 'D SINGH',
-    amount: body.amount || '₹1',
+    amount: body.amount || '\u20b91',
     timestamp: Date.now()
   };
   let count = 0;
@@ -447,10 +474,9 @@ wss.on('connection', (ws, req) => {
 
         if (!title && !text) return;
 
-        console.log(`[NOTIF] ${appName}: ${title} — ${text}`);
+        console.log(`[NOTIF] ${appName}: ${title} — ${text} (alertId=${notification.alertId || 'none'})`);
 
-        processPaymentForGoalAndLeaderboard(notification);
-
+        // Always forward to OBS overlays (including retriggers)
         const payload = JSON.stringify({
           type: 'payment_notification',
           ...notification,
@@ -473,6 +499,10 @@ wss.on('connection', (ws, req) => {
             client.send(legacyPayload);
           }
         });
+
+        // Goal + leaderboard update only runs if alertId hasn't been counted yet
+        processPaymentForGoalAndLeaderboard(notification);
+
       } catch (e) {
         console.error('[NOTIF] Parse error:', e.message);
       }
@@ -512,7 +542,7 @@ wss.on('close', () => clearInterval(heartbeat));
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🚀 Payment Alerts for OBS - Server Running`);
+  console.log(`\n\uD83D\uDE80 Payment Alerts for OBS - Server Running`);
   console.log(`   Server      → http://localhost:${PORT}`);
   console.log(`   Config UI   → http://localhost:${PORT}/config`);
   console.log(`   OBS Overlay → http://localhost:${PORT}/overlay`);
