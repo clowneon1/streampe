@@ -23,26 +23,21 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: AppPrefs
     private lateinit var btnConnect: Button
     private lateinit var btnPermission: Button
+    private lateinit var btnAccessibility: Button
     private lateinit var btnBatteryOptimization: Button
     private lateinit var tvPermStatus: TextView
     private lateinit var tvNotifAccess: TextView
+    private lateinit var tvAccessibilityStatus: TextView
     private lateinit var tvBatteryStatus: TextView
     private lateinit var tvStatus: TextView
     private lateinit var etServerUrl: EditText
 
-    // Only guards the AUTO-show path (onCreate reconnect flow).
-    // Manual button taps ALWAYS show the dialog regardless of this flag.
     private var batteryDialogAutoShownThisLaunch = false
 
     private val notifPermLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         updateUI()
-        // POST_NOTIFICATIONS and BIND_NOTIFICATION_LISTENER_SERVICE are two
-        // separate permissions. Granting the first (system dialog) does NOT
-        // grant the second. Automatically open the listener settings right
-        // after so the user completes both steps in one flow instead of having
-        // to find and tap the button themselves.
         if (granted && !isNotificationAccessGranted()) {
             showNotificationAccessDialog()
         }
@@ -98,9 +93,11 @@ class MainActivity : AppCompatActivity() {
     private fun bindViews() {
         btnConnect             = findViewById(R.id.btnConnect)
         btnPermission          = findViewById(R.id.btnPermission)
+        btnAccessibility       = findViewById(R.id.btnAccessibility)
         btnBatteryOptimization = findViewById(R.id.btnBatteryOptimization)
         tvPermStatus           = findViewById(R.id.tvPermStatus)
         tvNotifAccess          = findViewById(R.id.tvNotifAccess)
+        tvAccessibilityStatus  = findViewById(R.id.tvAccessibilityStatus)
         tvBatteryStatus        = findViewById(R.id.tvBatteryStatus)
         tvStatus               = findViewById(R.id.tvStatus)
         etServerUrl            = findViewById(R.id.etServerUrl)
@@ -118,11 +115,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        // Manual tap — always open settings dialog, no guards
         btnPermission.setOnClickListener { showNotificationAccessDialog() }
 
-        // Manual tap — always show battery dialog, reset auto-show guard first
-        // so the guard never blocks an intentional user action
+        btnAccessibility.setOnClickListener { showAccessibilityDialog() }
+
         btnBatteryOptimization.setOnClickListener {
             batteryDialogAutoShownThisLaunch = false
             showBatteryOptimizationDialog(fromUser = true)
@@ -182,10 +178,25 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    /**
-     * @param fromUser true  = manual button tap, always show
-     *                 false = automatic call from onCreate, respect the guard
-     */
+    private fun showAccessibilityDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Accessibility Access — Android 15 Fix")
+            .setMessage(
+                "Android 15 hides payment amounts from notification listeners.\n\n" +
+                "Enabling Accessibility Access lets the app read the full notification " +
+                "text (including \u20b9 amounts) from the screen \u2014 exactly like a screen reader does." +
+                "\n\nOn the next screen:\n" +
+                "1. Find \u201cPayment Alerts for OBS\u201d\n" +
+                "2. Tap it and turn it ON\n" +
+                "3. Tap Allow on the confirmation dialog"
+            )
+            .setPositiveButton("Open Settings") { _, _ ->
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+            .setNegativeButton("Not Now", null)
+            .show()
+    }
+
     private fun showBatteryOptimizationDialog(fromUser: Boolean = false) {
         if (!fromUser && batteryDialogAutoShownThisLaunch) return
         if (!fromUser) batteryDialogAutoShownThisLaunch = true
@@ -232,17 +243,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateUI() {
-        val notifAccess = isNotificationAccessGranted()
-        val postNotifOk = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        val notifAccess    = isNotificationAccessGranted()
+        val a11yAccess     = isAccessibilityGranted()
+        val postNotifOk    = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
         val batteryOk = isBatteryOptimizationIgnored()
 
+        // Step 1 — Notification Access
         tvNotifAccess.text = if (notifAccess)
-            "\u2705 Notification Access granted"
+            "\u2705 Step 1: Notification Access granted"
         else
-            "\u274c Notification Access required"
+            "\u274c Step 1: Notification Access required"
         btnPermission.visibility = if (notifAccess) View.GONE else View.VISIBLE
+
+        // Step 2 — Accessibility Access (Android 15 fix)
+        tvAccessibilityStatus.text = if (a11yAccess)
+            "\u2705 Step 2: Accessibility Access granted (Android 15 fix active)"
+        else
+            "\u26a0\ufe0f Step 2: Accessibility Access — grant this to fix Android 15 redaction"
+        btnAccessibility.visibility = if (a11yAccess) View.GONE else View.VISIBLE
 
         tvPermStatus.visibility = if (postNotifOk) View.GONE else View.VISIBLE
 
@@ -252,6 +272,14 @@ class MainActivity : AppCompatActivity() {
 
         btnConnect.isEnabled = notifAccess
         btnConnect.alpha     = if (notifAccess) 1.0f else 0.5f
+    }
+
+    private fun isAccessibilityGranted(): Boolean {
+        val flat = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ) ?: return false
+        return flat.contains(packageName, ignoreCase = true)
     }
 
     private fun isBatteryOptimizationIgnored(): Boolean {

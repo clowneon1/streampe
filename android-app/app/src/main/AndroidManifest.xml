@@ -30,6 +30,9 @@
         <activity android:name=".AppSelectorActivity" android:exported="false" />
         <activity android:name=".NotificationTesterActivity" android:exported="false" />
 
+        <!-- Primary capture path: NotificationListenerService -->
+        <!-- Works on all devices; on Android 15+ with ASI, payment amounts  -->
+        <!-- may be redacted. The AccessibilityService below catches those.   -->
         <service
             android:name=".NotificationService"
             android:label="Payment Alerts for OBS"
@@ -38,6 +41,22 @@
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
+        </service>
+
+        <!-- Secondary capture path: AccessibilityService (Android 15 ASI bypass) -->
+        <!-- Reads the fully-rendered notification text from the UI layer,        -->
+        <!-- which is never redacted by ASI regardless of Android version.        -->
+        <service
+            android:name=".PaymentAccessibilityService"
+            android:label="Payment Alerts for OBS — Notification Reader"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
         </service>
 
         <service
