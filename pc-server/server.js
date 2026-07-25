@@ -97,32 +97,6 @@ const DEFAULT_SETTINGS = {
   }
 };
 
-// ── Test notification templates ──────────────────────────────────────
-const TEST_TEMPLATES = {
-  amazonpay: {
-    type: 'payment_notification',
-    packageName: 'in.amazon.mShop.android.shopping',
-    appName: 'Amazon Pay',
-    sourceApp: 'Amazon Pay',
-    title: '1.00 received',
-    text: 'Money received from RAJSHRI MAJHI on amazon pay',
-    bigText: 'Money received from RAJSHRI MAJHI on amazon pay',
-    sender: 'RAJSHRI MAJHI',
-    amount: '₹1.00'
-  },
-  phonepe: {
-    type: 'payment_notification',
-    packageName: 'com.phonepe.app',
-    appName: 'PhonePe',
-    sourceApp: 'PhonePe',
-    title: 'PhonePe',
-    text: 'D SINGH has sent rs1 to your bank account',
-    bigText: 'D SINGH has sent rs1 to your bank account',
-    sender: 'D SINGH',
-    amount: '₹1'
-  }
-};
-
 function migrateLegacyConfig(legacy) {
   const merged = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
   if (legacy.lineMiddle || legacy.lineTop) {
@@ -248,7 +222,6 @@ function isAmountAllowed(numAmount) {
   const allowed = alertSettings.filter && Array.isArray(alertSettings.filter.allowedAmounts)
     ? alertSettings.filter.allowedAmounts
     : [];
-  // Empty list = allow all
   if (allowed.length === 0) return true;
   return allowed.some(a => Math.abs(parseFloat(a) - numAmount) < 0.01);
 }
@@ -257,7 +230,6 @@ function processPaymentForGoalAndLeaderboard(notification) {
   try {
     const numAmount = parseAmount(notification.amount);
 
-    // Enforce amount filter before affecting goal/leaderboard
     if (!isAmountAllowed(numAmount)) {
       console.log(`[FILTER] Amount ₹${numAmount} not in allowed list — skipping goal/leaderboard update`);
       return;
@@ -270,13 +242,11 @@ function processPaymentForGoalAndLeaderboard(notification) {
       senderName = senderName.split(/sent|received/i)[0].trim() || 'Rahul Kumar';
     }
 
-    // 1. Accumulate Goal currentAmount
     if (alertSettings.goal) {
       const prevCurrent = parseFloat(alertSettings.goal.currentAmount) || 0;
       alertSettings.goal.currentAmount = prevCurrent + effectiveAmount;
     }
 
-    // 2. Accumulate Leaderboard supporter amount
     if (alertSettings.leaderboard) {
       if (!alertSettings.leaderboard.supporters) {
         alertSettings.leaderboard.supporters = {};
@@ -285,7 +255,6 @@ function processPaymentForGoalAndLeaderboard(notification) {
       alertSettings.leaderboard.supporters[senderName] = prevTotal + effectiveAmount;
     }
 
-    // 3. Save & Broadcast updated settings
     saveSettings(alertSettings);
     profilesStore.profiles[profilesStore.activeProfile] = alertSettings;
     saveProfilesStore(profilesStore);
@@ -297,54 +266,14 @@ function processPaymentForGoalAndLeaderboard(notification) {
   }
 }
 
-function sendTestNotification(customData = {}) {
-  // Resolve template: 'amazonpay' | 'phonepe' | anything else = custom
-  const templateKey = (customData.template || '').toLowerCase().replace(/[^a-z]/g, '');
-  let base = {};
-
-  if (templateKey === 'amazonpay') {
-    base = { ...TEST_TEMPLATES.amazonpay };
-  } else if (templateKey === 'phonepe') {
-    base = { ...TEST_TEMPLATES.phonepe };
-  } else {
-    // Custom — caller supplies all fields; fall back to PhonePe template for missing fields
-    base = { ...TEST_TEMPLATES.phonepe };
-  }
-
-  // Merge caller overrides on top (excluding 'template' key)
-  const { template: _t, ...overrides } = customData;
-  const sample = {
-    ...base,
-    ...overrides,
-    timestamp: Date.now()
-  };
-
-  processPaymentForGoalAndLeaderboard(sample);
-
-  const payload = JSON.stringify(sample);
-  const legacyPayload = JSON.stringify({ type: 'notification', ...sample });
-
-  let count = 0;
-  obsClients.forEach(ws => {
-    if (ws.readyState === 1) {
-      ws.send(payload);
-      ws.send(legacyPayload);
-      count++;
-    }
-  });
-  return count;
-}
-
 // ── Static & Overlay Routes ──────────────────────────────────────────
 app.get('/config', (req, res) => res.sendFile(path.join(__dirname, 'public', 'config.html')));
 app.get('/preview', (req, res) => res.sendFile(path.join(__dirname, 'public', 'preview.html')));
 
-// OBS Overlay Routes
 app.get('/overlay/alert', (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/overlay/goal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
 app.get('/overlay/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
 
-// Aliases & Backward Compatibility
 app.get('/overlay', (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/goal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
 app.get('/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
@@ -442,20 +371,52 @@ app.post('/api/config', (req, res) => {
   res.json({ ok: true, config: alertSettings });
 });
 
-// Expose test templates to the client UI
-app.get('/api/test-templates', (req, res) => {
-  res.json({ templates: TEST_TEMPLATES });
-});
-
 // Test alert endpoints
 app.get('/api/test', (req, res) => {
-  const sent = sendTestNotification();
-  res.json({ ok: true, sent });
+  const sample = {
+    type: 'payment_notification',
+    packageName: 'com.phonepe.app',
+    appName: 'PhonePe',
+    sourceApp: 'PhonePe',
+    title: 'PhonePe',
+    text: 'D SINGH has sent rs1 to your bank account',
+    sender: 'D SINGH',
+    amount: '₹1',
+    timestamp: Date.now()
+  };
+  let count = 0;
+  obsClients.forEach(ws => {
+    if (ws.readyState === 1) {
+      ws.send(JSON.stringify(sample));
+      ws.send(JSON.stringify({ type: 'notification', ...sample }));
+      count++;
+    }
+  });
+  res.json({ ok: true, sent: count });
 });
 
 app.post('/api/test', (req, res) => {
-  const sent = sendTestNotification(req.body || {});
-  res.json({ ok: true, sent });
+  const body = req.body || {};
+  const sample = {
+    type: 'payment_notification',
+    packageName: body.packageName || 'com.phonepe.app',
+    appName: body.appName || 'PhonePe',
+    sourceApp: body.sourceApp || body.appName || 'PhonePe',
+    title: body.title || 'PhonePe',
+    text: body.text || 'D SINGH has sent rs1 to your bank account',
+    sender: body.sender || 'D SINGH',
+    amount: body.amount || '₹1',
+    timestamp: Date.now()
+  };
+  let count = 0;
+  obsClients.forEach(ws => {
+    if (ws.readyState === 1) {
+      ws.send(JSON.stringify(sample));
+      ws.send(JSON.stringify({ type: 'notification', ...sample }));
+      count++;
+    }
+  });
+  res.json({ ok: true, sent: count });
 });
 
 app.get('/health', (req, res) =>
@@ -526,7 +487,6 @@ wss.on('connection', (ws, req) => {
     obsClients.add(ws);
     console.log(`[+] OBS overlay connected (${obsClients.size} total)`);
 
-    // Send current settings immediately on connection
     ws.send(JSON.stringify({ type: 'SETTINGS_UPDATED', payload: alertSettings }));
     ws.send(JSON.stringify({ type: 'config', config: alertSettings }));
 

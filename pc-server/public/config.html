@@ -38,6 +38,9 @@
         <button class="tab-btn" data-tab="leaderboard">
           <span class="icon">🏆</span> Top Leaderboard
         </button>
+        <button class="tab-btn" data-tab="filter">
+          <span class="icon">🔍</span> Alert Filter
+        </button>
       </nav>
 
       <!-- Profile Switcher Card -->
@@ -492,7 +495,6 @@
                 </div>
               </div>
 
-              <!-- Switch & Common Styling -->
               <div class="panel-header-with-switch" style="margin-bottom: 12px;">
                 <span style="font-weight: 600; font-size: 13px;">Enable Custom Goal Code</span>
                 <label class="switch-container">
@@ -501,7 +503,6 @@
                 </label>
               </div>
 
-              <!-- Code Editor Tabs Container -->
               <div class="code-editor-container">
                 <div class="code-tabs-header">
                   <div class="code-tabs">
@@ -514,13 +515,13 @@
 
                 <div class="code-tab-panel" data-code-panel="html" id="code-panel-goal-html">
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-goal-custom-html" class="form-control code-editor-input" placeholder="<!-- Custom Goal HTML -->&#10;<div class=&quot;goal-card&quot;>&#10;  <div class=&quot;goal-title&quot;>{{title}}</div>&#10;  <div>{{currentAmount}} / {{targetAmount}}</div>&#10;</div>"></textarea>
+                    <textarea id="input-goal-custom-html" class="form-control code-editor-input" placeholder="<!-- Custom Goal HTML -->"></textarea>
                   </div>
                 </div>
 
                 <div class="code-tab-panel" data-code-panel="css" id="code-panel-goal-css" style="display: none;">
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-goal-custom-css" class="form-control code-editor-input" placeholder="/* Custom Goal CSS */&#10;.goal-card { background: rgba(0,0,0,0.9); }"></textarea>
+                    <textarea id="input-goal-custom-css" class="form-control code-editor-input" placeholder="/* Custom Goal CSS */"></textarea>
                   </div>
                 </div>
 
@@ -657,7 +658,6 @@
                 </div>
               </div>
 
-              <!-- Switch -->
               <div class="panel-header-with-switch" style="margin-bottom: 12px;">
                 <span style="font-weight: 600; font-size: 13px;">Enable Custom Leaderboard Code</span>
                 <label class="switch-container">
@@ -666,7 +666,6 @@
                 </label>
               </div>
 
-              <!-- Code Editor Tabs Container -->
               <div class="code-editor-container">
                 <div class="code-tabs-header">
                   <div class="code-tabs">
@@ -679,7 +678,7 @@
 
                 <div class="code-tab-panel" data-code-panel="html" id="code-panel-lb-html">
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-lb-custom-html" class="form-control code-editor-input" placeholder="<!-- Custom Leaderboard HTML -->&#10;<div class=&quot;lb-card&quot;>&#10;  <div class=&quot;lb-title&quot;>{{title}}</div>&#10;</div>"></textarea>
+                    <textarea id="input-lb-custom-html" class="form-control code-editor-input" placeholder="<!-- Custom Leaderboard HTML -->"></textarea>
                   </div>
                 </div>
 
@@ -702,7 +701,7 @@
                     </div>
                   </div>
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-lb-custom-css" class="form-control code-editor-input" placeholder="/* Custom Leaderboard CSS */&#10;.lb-row { background: rgba(255,255,255,0.08); }"></textarea>
+                    <textarea id="input-lb-custom-css" class="form-control code-editor-input" placeholder="/* Custom Leaderboard CSS */"></textarea>
                   </div>
                 </div>
 
@@ -714,6 +713,34 @@
               </div>
             </div>
           </details>
+        </div>
+
+        <!-- Tab 7: Alert Filter -->
+        <div class="tab-content" id="tab-filter">
+          <div class="panel-header">
+            <h2 class="panel-title">Alert Filter</h2>
+            <p class="panel-desc">Only show OBS alerts for specific payment amounts. Leave the list empty to allow all amounts through.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="input-filter-new-amount">Add Amount to Allowlist (₹)</label>
+            <div class="input-with-button">
+              <input type="number" id="input-filter-new-amount" class="form-control" placeholder="e.g. 1, 100, 500" min="0" step="any" />
+              <button class="btn btn-secondary" type="button" id="btn-filter-add">➕ Add</button>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Press Add or hit Enter to add an amount. Only notifications matching one of these amounts will trigger an OBS alert.</p>
+          </div>
+
+          <div class="form-group" style="margin-top: 8px;">
+            <label>Allowed Amounts</label>
+            <div id="filter-amount-tags" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
+              <span id="filter-empty-hint" style="color: var(--text-muted); font-size: 12px; align-self: center;">No amounts added — all payments will trigger alerts</span>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 16px;">
+            <button class="btn btn-danger" type="button" id="btn-filter-clear">🗑️ Clear All Amounts</button>
+          </div>
         </div>
 
         <!-- Form Action Buttons Bar -->
@@ -753,5 +780,78 @@
   <script src="/js/template-engine.js"></script>
   <script src="/js/storage.js"></script>
   <script src="/js/config.js"></script>
+
+  <!-- Alert Filter Tab Logic -->
+  <script>
+    (function () {
+      let allowedAmounts = [];
+
+      function renderTags() {
+        const container = document.getElementById('filter-amount-tags');
+        const hint = document.getElementById('filter-empty-hint');
+        // remove existing tags
+        Array.from(container.querySelectorAll('.filter-tag')).forEach(el => el.remove());
+        if (allowedAmounts.length === 0) {
+          hint.style.display = 'inline';
+        } else {
+          hint.style.display = 'none';
+          allowedAmounts.forEach(function (amt) {
+            const tag = document.createElement('span');
+            tag.className = 'filter-tag';
+            tag.style.cssText = 'display:inline-flex;align-items:center;gap:6px;background:var(--accent,#00e5ff22);border:1px solid var(--accent,#00e5ff);color:var(--accent,#00e5ff);border-radius:20px;padding:3px 12px;font-size:13px;font-weight:600;';
+            tag.innerHTML = '₹' + amt + ' <button type="button" data-amt="' + amt + '" style="background:none;border:none;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0;">✕</button>';
+            tag.querySelector('button').addEventListener('click', function () {
+              allowedAmounts = allowedAmounts.filter(function (a) { return a !== amt; });
+              renderTags();
+            });
+            container.appendChild(tag);
+          });
+        }
+      }
+
+      function addAmount() {
+        const input = document.getElementById('input-filter-new-amount');
+        const val = parseFloat(input.value);
+        if (isNaN(val) || val < 0) { input.focus(); return; }
+        const rounded = Math.round(val * 100) / 100;
+        if (!allowedAmounts.includes(rounded)) {
+          allowedAmounts.push(rounded);
+          allowedAmounts.sort(function (a, b) { return a - b; });
+          renderTags();
+        }
+        input.value = '';
+        input.focus();
+      }
+
+      document.getElementById('btn-filter-add').addEventListener('click', addAmount);
+      document.getElementById('input-filter-new-amount').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); addAmount(); }
+      });
+
+      document.getElementById('btn-filter-clear').addEventListener('click', function () {
+        allowedAmounts = [];
+        renderTags();
+      });
+
+      // Load current filter from server on init
+      fetch('/api/settings').then(function (r) { return r.json(); }).then(function (data) {
+        const saved = (data.settings && data.settings.filter && data.settings.filter.allowedAmounts) || [];
+        allowedAmounts = saved.map(function (a) { return parseFloat(a); }).filter(function (a) { return !isNaN(a); });
+        allowedAmounts.sort(function (a, b) { return a - b; });
+        renderTags();
+      }).catch(function () {});
+
+      // Hook into the global Save Settings button to include filter data
+      document.getElementById('btn-save').addEventListener('click', function () {
+        fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filter: { allowedAmounts: allowedAmounts } })
+        }).catch(function () {});
+      }, true);
+
+      renderTags();
+    })();
+  </script>
 </body>
 </html>
