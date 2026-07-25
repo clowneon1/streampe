@@ -14,7 +14,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="💰 Payment Alerts for OBS"
+            android:text="&#x1F4B0; Payment Alerts for OBS"
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="#ffffff"
@@ -40,6 +40,7 @@
             android:letterSpacing="0.1"
             android:layout_marginBottom="8dp" />
 
+        <!-- Step 1: Notification Access -->
         <TextView
             android:id="@+id/tvNotifAccess"
             android:layout_width="match_parent"
@@ -51,6 +52,35 @@
             android:textColor="#ffffff"
             android:layout_marginBottom="4dp" />
 
+        <Button
+            android:id="@+id/btnPermission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Grant Notification Access"
+            android:layout_marginBottom="8dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+        <!-- Step 2: Accessibility Access (Android 15 fix) -->
+        <TextView
+            android:id="@+id/tvAccessibilityStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Checking..."
+            android:textSize="13sp"
+            android:padding="12dp"
+            android:background="#1e1e1e"
+            android:textColor="#ffffff"
+            android:layout_marginBottom="4dp" />
+
+        <Button
+            android:id="@+id/btnAccessibility"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Enable Accessibility Access"
+            android:layout_marginBottom="8dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+        <!-- POST_NOTIFICATIONS permission status (hidden when granted) -->
         <TextView
             android:id="@+id/tvPermStatus"
             android:layout_width="match_parent"
@@ -62,6 +92,7 @@
             android:textColor="#ffffff"
             android:layout_marginBottom="4dp" />
 
+        <!-- Battery optimization status -->
         <TextView
             android:id="@+id/tvBatteryStatus"
             android:layout_width="match_parent"
@@ -72,14 +103,6 @@
             android:background="#1e1e1e"
             android:textColor="#ffffff"
             android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnPermission"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Grant Notification Access"
-            android:layout_marginBottom="8dp"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
         <Button
             android:id="@+id/btnBatteryOptimization"
