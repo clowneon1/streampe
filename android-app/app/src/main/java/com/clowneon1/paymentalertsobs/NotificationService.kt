@@ -60,12 +60,13 @@ class NotificationService : NotificationListenerService() {
             ).toString()
         } catch (e: Exception) { pkg }
 
-        // ── Pattern detection ────────────────────────────────────────────────
-        // Use the most information-rich text field available.
-        val richText = bigText.ifBlank { text }
-        val parsed   = PaymentParser.parse(title, richText, pkg, appName)
+        // ── Payment parsing ──────────────────────────────────────────────────
+        // Pass title, text, and bigText separately so PaymentParser can use
+        // the richer bigText body while still reading the title for amount cues
+        // (e.g. Amazon Pay puts amount in title, sender in body).
+        val parsed = PaymentParser.parse(title, text, bigText, pkg, appName)
 
-        val sender    = parsed?.sender    ?: title
+        val sender    = parsed?.sender    ?: ""
         val amount    = parsed?.amount    ?: ""
         val sourceApp = parsed?.sourceApp ?: appName
         // ─────────────────────────────────────────────────────────────────────
