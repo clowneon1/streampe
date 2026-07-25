@@ -11,27 +11,48 @@ import java.util.*
 
 class AlertLogActivity : AppCompatActivity() {
 
+    private lateinit var recycler : RecyclerView
+    private lateinit var layoutEmpty : LinearLayout
+    private lateinit var tvCount : TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_alert_log)
 
-        val recycler = findViewById<RecyclerView>(R.id.recyclerAlertLog)
-        val tvEmpty  = findViewById<TextView>(R.id.tvAlertLogEmpty)
-        val btnBack  = findViewById<Button>(R.id.btnAlertLogBack)
+        recycler    = findViewById(R.id.recyclerAlertLog)
+        layoutEmpty = findViewById(R.id.layoutEmpty)
+        tvCount     = findViewById(R.id.tvLogCount)
 
-        val entries = AlertLog.entries
+        findViewById<ImageButton>(R.id.btnAlertLogBack).setOnClickListener { finish() }
 
-        if (entries.isEmpty()) {
-            tvEmpty.visibility  = View.VISIBLE
-            recycler.visibility = View.GONE
-        } else {
-            tvEmpty.visibility  = View.GONE
-            recycler.visibility = View.VISIBLE
-            recycler.layoutManager = LinearLayoutManager(this)
-            recycler.adapter = AlertLogAdapter(entries)
+        findViewById<Button>(R.id.btnClearLog).setOnClickListener {
+            AlertLog.clear()
+            refresh()
+            Toast.makeText(this, "Log cleared", Toast.LENGTH_SHORT).show()
         }
 
-        btnBack.setOnClickListener { finish() }
+        refresh()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refresh()
+    }
+
+    private fun refresh() {
+        val entries = AlertLog.entries.reversed()   // newest first
+        if (entries.isEmpty()) {
+            layoutEmpty.visibility = View.VISIBLE
+            recycler.visibility    = View.GONE
+            tvCount.visibility     = View.GONE
+        } else {
+            layoutEmpty.visibility = View.GONE
+            recycler.visibility    = View.VISIBLE
+            tvCount.visibility     = View.VISIBLE
+            tvCount.text           = entries.size.toString()
+            recycler.layoutManager = LinearLayoutManager(this)
+            recycler.adapter       = AlertLogAdapter(entries)
+        }
     }
 }
 
@@ -41,11 +62,15 @@ class AlertLogAdapter(private val items: List<AlertEntry>) :
     private val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
-        val tvTime    : TextView = view.findViewById(R.id.tvLogTime)
-        val tvApp     : TextView = view.findViewById(R.id.tvLogApp)
-        val tvTitle   : TextView = view.findViewById(R.id.tvLogTitle)
-        val tvText    : TextView = view.findViewById(R.id.tvLogText)
-        val btnRetrig : Button   = view.findViewById(R.id.btnRetrigger)
+        val tvTime      : TextView  = view.findViewById(R.id.tvLogTime)
+        val tvApp       : TextView  = view.findViewById(R.id.tvLogApp)
+        val tvTestBadge : TextView  = view.findViewById(R.id.tvTestBadge)
+        val layoutChips : LinearLayout = view.findViewById(R.id.layoutChips)
+        val tvSender    : TextView  = view.findViewById(R.id.tvLogSender)
+        val tvAmount    : TextView  = view.findViewById(R.id.tvLogAmount)
+        val tvTitle     : TextView  = view.findViewById(R.id.tvLogTitle)
+        val tvText      : TextView  = view.findViewById(R.id.tvLogText)
+        val btnRetrig   : Button    = view.findViewById(R.id.btnRetrigger)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
@@ -55,14 +80,28 @@ class AlertLogAdapter(private val items: List<AlertEntry>) :
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val entry = items[position]
+
         holder.tvTime.text  = sdf.format(Date(entry.timestamp))
         holder.tvApp.text   = entry.appName
         holder.tvTitle.text = entry.title
         holder.tvText.text  = entry.text
 
+        // TEST badge
+        val isTest = entry.appName.contains("test", ignoreCase = true) ||
+                     entry.source == "test"
+        holder.tvTestBadge.visibility = if (isTest) View.VISIBLE else View.GONE
+
+        // Sender + amount chips
+        val hasParsed = entry.sender.isNotBlank() || entry.amount.isNotBlank()
+        holder.layoutChips.visibility = if (hasParsed) View.VISIBLE else View.GONE
+        if (hasParsed) {
+            holder.tvSender.text = if (entry.sender.isNotBlank()) "\uD83D\uDC64 ${entry.sender}" else "Unknown"
+            holder.tvAmount.text = if (entry.amount.isNotBlank()) entry.amount else "--"
+        }
+
         holder.btnRetrig.setOnClickListener {
             WebSocketManager.send(entry.fullJson)
-            Toast.makeText(it.context, "\uD83D\uDD04 Retriggered to OBS!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(it.context, "\uD83D\uDD04 Retriggered!", Toast.LENGTH_SHORT).show()
         }
     }
 }
