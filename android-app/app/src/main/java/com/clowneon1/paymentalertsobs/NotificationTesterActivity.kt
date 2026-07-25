@@ -16,15 +16,30 @@ class NotificationTesterActivity : AppCompatActivity() {
         private var notifId = 100
     }
 
-    data class Preset(val label: String, val title: String, val text: String, val pkg: String)
+    data class Preset(val label: String, val title: String, val text: String, val pkg: String, val appName: String)
 
     private val presets = listOf(
-        Preset("GPay Payment",   "Google Pay",  "You received \u20b9500 from Rahul Kumar",        "com.google.android.apps.nbu.paisa.user"),
-        Preset("PhonePe Credit", "PhonePe",     "Money received! \u20b91,200 credited to your account", "com.phonepe.app"),
-        Preset("Paytm Payment",  "Paytm",       "\u20b9299 paid to Swiggy successfully",             "net.one97.paytm"),
-        Preset("Bank Alert",     "HDFC Bank",   "A/c XX1234 credited \u20b910,000 on 25-Jul-26",     "com.hdfc.bank"),
-        Preset("UPI Debit",      "BHIM UPI",    "Debited \u20b9750.00 to merchant VPA: store@upi",   "in.org.npci.upiapp"),
-        Preset("Custom",         "",            "",                                                   "")
+        Preset(
+            label   = "Amazon Pay",
+            title   = "1.00 received",
+            text    = "Money received from RAJSHRI MAJHI on amazon pay",
+            pkg     = "in.amazon.mShop.android.shopping",
+            appName = "Amazon Pay"
+        ),
+        Preset(
+            label   = "PhonePe",
+            title   = "PhonePe",
+            text    = "D SINGH has sent rs1 to your bank account",
+            pkg     = "com.phonepe.app",
+            appName = "PhonePe"
+        ),
+        Preset(
+            label   = "Custom",
+            title   = "",
+            text    = "",
+            pkg     = "",
+            appName = "Custom"
+        )
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,24 +77,20 @@ class NotificationTesterActivity : AppCompatActivity() {
         }
 
         btnFire.setOnClickListener {
-            val pos   = spinner.selectedItemPosition
+            val pos    = spinner.selectedItemPosition
             val preset = presets[pos]
-            val title = etTitle.text.toString().trim()
-            val text  = etText.text.toString().trim()
+            val title  = etTitle.text.toString().trim()
+            val text   = etText.text.toString().trim()
 
             if (title.isBlank() || text.isBlank()) {
                 Toast.makeText(this, "Title and text cannot be empty", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // Fire a real Android notification so NotificationService can pick it up
             fireNotification(title, text)
 
-            // Also send directly via WebSocket with the correct spoofed package name
-            // This ensures the OBS overlay receives it even if the tester channel
-            // is not in the user's monitored app list
-            val pkg = if (preset.pkg.isNotBlank()) preset.pkg else packageName
-            val appName = if (preset.label != "Custom") preset.label else "Test"
+            val pkg     = if (preset.pkg.isNotBlank()) preset.pkg else packageName
+            val appName = if (preset.label != "Custom") preset.appName else "Custom"
             val json = JSONObject().apply {
                 put("packageName", pkg)
                 put("appName",     appName)
