@@ -1,0 +1,221 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Outfit:wght@400;600;700&family=Poppins:wght@400;600;700&family=Roboto:wght@400;600;700&display=swap');
+
+:root {
+  --bg-color: #000000;
+  --bg-opacity: 60;
+  --accent-color: #00e5ff;
+  --text-color: #ffffff;
+  --border-radius: 12px;
+  --padding: 20px;
+  --position-x: 50;
+  --position-y: 90;
+  --width: 400px;
+  --font-size: 24px;
+  --font-family: 'Inter', sans-serif;
+  --anim-duration: 600ms;
+  --media-size: 100px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: transparent !important;
+  overflow: hidden;
+  font-family: var(--font-family);
+}
+
+#overlay-container {
+  position: absolute;
+  left: calc(var(--position-x) * 1%);
+  top: calc(var(--position-y) * 1%);
+  transform: translate(-50%, -50%);
+  margin-left: var(--margin-x, 0px);
+  margin-top: var(--margin-y, 0px);
+  width: var(--width);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.alert-box {
+  background-color: rgba(
+    var(--bg-r, 0),
+    var(--bg-g, 0),
+    var(--bg-b, 0),
+    calc(var(--bg-opacity) / 100)
+  );
+  border-left: var(--border-width, 5px) solid var(--accent-color);
+  border-radius: var(--border-radius);
+  padding: var(--padding);
+  color: var(--text-color);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 229, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: var(--text-align, center);
+  backdrop-filter: blur(8px);
+  will-change: transform, opacity;
+  width: 100%;
+  pointer-events: auto;
+}
+
+/* Media positioning variations */
+.alert-box.media-pos-top {
+  flex-direction: column;
+  align-items: center;
+}
+
+.alert-box.media-pos-left {
+  flex-direction: row;
+  text-align: left;
+  gap: 16px;
+  align-items: center;
+}
+
+.alert-box.media-pos-right {
+  flex-direction: row-reverse;
+  text-align: right;
+  gap: 16px;
+  align-items: center;
+}
+
+.alert-box.media-pos-bottom {
+  flex-direction: column-reverse;
+  align-items: center;
+}
+
+/* Media elements */
+.alert-media {
+  max-width: var(--media-size);
+  max-height: var(--media-size);
+  object-fit: contain;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.alert-box.media-pos-left .alert-media,
+.alert-box.media-pos-right .alert-media {
+  margin-bottom: 0;
+}
+
+.alert-box.media-pos-bottom .alert-media {
+  margin-bottom: 0;
+  margin-top: 12px;
+}
+
+/* Text Content */
+.alert-content {
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+}
+
+.alert-title {
+  font-size: var(--font-size);
+  font-weight: var(--font-weight, 700);
+  font-style: var(--font-style, normal);
+  text-transform: var(--text-transform, none);
+  color: var(--text-color);
+  line-height: 1.2;
+  margin-bottom: 6px;
+  word-wrap: break-word;
+}
+
+.alert-subtitle {
+  font-size: calc(var(--font-size) * 0.65);
+  font-weight: 400;
+  color: var(--accent-color);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  word-wrap: break-word;
+}
+
+/* Animations */
+.anim-enter-slide-up {
+  animation: slideUpIn var(--anim-duration) cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.anim-exit-slide-up {
+  animation: slideUpOut var(--anim-duration) ease-in forwards;
+}
+
+.anim-enter-slide-down {
+  animation: slideDownIn var(--anim-duration) cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.anim-exit-slide-down {
+  animation: slideDownOut var(--anim-duration) ease-in forwards;
+}
+
+.anim-enter-fade-in {
+  animation: fadeIn var(--anim-duration) ease-out forwards;
+}
+.anim-exit-fade-in {
+  animation: fadeOut var(--anim-duration) ease-in forwards;
+}
+
+.anim-enter-zoom-in {
+  animation: zoomIn var(--anim-duration) cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.anim-exit-zoom-in {
+  animation: zoomOut var(--anim-duration) ease-in forwards;
+}
+
+.anim-enter-bounce {
+  animation: bounceIn var(--anim-duration) cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+.anim-exit-bounce {
+  animation: bounceOut var(--anim-duration) ease-in forwards;
+}
+
+/* Keyframes */
+@keyframes slideUpIn {
+  from { opacity: 0; transform: translateY(80px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUpOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-80px); }
+}
+
+@keyframes slideDownIn {
+  from { opacity: 0; transform: translateY(-80px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideDownOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(80px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes zoomOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.4); }
+}
+
+@keyframes bounceIn {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes bounceOut {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.3); }
+}

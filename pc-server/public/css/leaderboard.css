@@ -1,0 +1,132 @@
+:root {
+  --lb-accent-color: #00e5ff;
+  --lb-font-family: 'Inter', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family: var(--lb-font-family);
+}
+
+#leaderboard-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  pointer-events: none;
+}
+
+.lb-card {
+  width: 100%;
+  max-width: 450px;
+  background: rgba(10, 14, 23, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 18px 22px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 229, 255, 0.15);
+  backdrop-filter: blur(12px);
+  pointer-events: auto;
+}
+
+.lb-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lb-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px 14px;
+  transition: all 0.3s ease;
+}
+
+.lb-row.rank-1 {
+  background: rgba(255, 215, 0, 0.12);
+  border-color: rgba(255, 215, 0, 0.4);
+}
+
+.lb-row.rank-2 {
+  background: rgba(192, 192, 192, 0.1);
+  border-color: rgba(192, 192, 192, 0.3);
+}
+
+.lb-row.rank-3 {
+  background: rgba(205, 127, 50, 0.1);
+  border-color: rgba(205, 127, 50, 0.3);
+}
+
+.lb-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lb-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.rank-1 .lb-badge { background: #ffd700; color: #000; box-shadow: 0 0 10px #ffd700; }
+.rank-2 .lb-badge { background: #c0c0c0; color: #000; }
+.rank-3 .lb-badge { background: #cd7f32; color: #fff; }
+
+.lb-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.lb-amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--lb-accent-color);
+  font-family: monospace;
+}
+
+.lb-empty {
+  text-align: center;
+  padding: 16px 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+}

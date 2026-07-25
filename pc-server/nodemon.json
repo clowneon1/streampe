@@ -1,0 +1,12 @@
+{
+  "watch": [
+    "server.js"
+  ],
+  "ignore": [
+    "config/**",
+    "public/**",
+    "*.json",
+    "widget-config.json"
+  ],
+  "ext": "js"
+}

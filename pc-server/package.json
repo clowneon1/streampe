@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
+    "dev": "nodemon --watch server.js server.js",
     "build": "pkg server.js --target node18-win-x64 --output dist/payment-alerts-server.exe --compress GZip",
     "install-service": "node service-install.js",
     "uninstall-service": "node service-uninstall.js"

@@ -2,158 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Payment Alerts Overlay</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:transparent; overflow:hidden; font-family:'Segoe UI',sans-serif; }
-
-    #alert-container {
-      position: fixed;
-      width: var(--widget-width, 380px);
-    }
-    #alert-container.pos-bottom-right { bottom:20px; right:20px; }
-    #alert-container.pos-bottom-left  { bottom:20px; left:20px;  }
-    #alert-container.pos-top-right    { top:20px;    right:20px; }
-    #alert-container.pos-top-left     { top:20px;    left:20px;  }
-
-    .alert-card {
-      background: linear-gradient(135deg, var(--bg1), var(--bg2));
-      border-left: 4px solid var(--accent);
-      border-radius: var(--radius, 10px);
-      padding: 14px 16px;
-      margin-top: 10px;
-      color: var(--text-color, #fff);
-      box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 30%, transparent);
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      will-change: transform, opacity;
-    }
-    .app-icon {
-      width:36px; height:36px;
-      background: color-mix(in srgb, var(--accent) 15%, transparent);
-      border-radius:8px;
-      display:flex; align-items:center; justify-content:center;
-      font-size:18px; flex-shrink:0;
-    }
-    .alert-content { flex:1; overflow:hidden; }
-    .line-top    { font-size:11px; color:var(--accent); text-transform:uppercase; letter-spacing:1px; margin-bottom:2px; }
-    .line-middle { font-size:var(--font-size,14px)px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .line-bottom { font-size:12px; color:var(--muted-color,#aaa); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-
-    /* Animations */
-    .anim-in-slideRight  { animation: slideInRight var(--dur-in,.4s) ease forwards; }
-    .anim-out-slideRight { animation: slideOutRight var(--dur-out,.5s) ease forwards; }
-    .anim-in-slideLeft   { animation: slideInLeft  var(--dur-in,.4s) ease forwards; }
-    .anim-out-slideLeft  { animation: slideOutLeft var(--dur-out,.5s) ease forwards; }
-    .anim-in-slideUp     { animation: slideInUp   var(--dur-in,.4s) ease forwards; }
-    .anim-out-slideUp    { animation: slideOutUp  var(--dur-out,.5s) ease forwards; }
-    .anim-in-fadeIn      { animation: fadeIn      var(--dur-in,.4s) ease forwards; }
-    .anim-out-fadeIn     { animation: fadeOut     var(--dur-out,.5s) ease forwards; }
-
-    @keyframes slideInRight  { from{transform:translateX(120%);opacity:0} to{transform:translateX(0);opacity:1} }
-    @keyframes slideOutRight { from{transform:translateX(0);opacity:1}   to{transform:translateX(120%);opacity:0} }
-    @keyframes slideInLeft   { from{transform:translateX(-120%);opacity:0} to{transform:translateX(0);opacity:1} }
-    @keyframes slideOutLeft  { from{transform:translateX(0);opacity:1}    to{transform:translateX(-120%);opacity:0} }
-    @keyframes slideInUp     { from{transform:translateY(60px);opacity:0}  to{transform:translateY(0);opacity:1} }
-    @keyframes slideOutUp    { from{transform:translateY(0);opacity:1}     to{transform:translateY(-60px);opacity:0} }
-    @keyframes fadeIn        { from{opacity:0} to{opacity:1} }
-    @keyframes fadeOut       { from{opacity:1} to{opacity:0} }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment Alert Overlay - OBS</title>
+  <link rel="stylesheet" href="/css/overlay.css" />
 </head>
 <body>
-  <div id="alert-container" class="pos-bottom-right"></div>
 
-  <script>
-    let cfg = {};
+  <div id="overlay-container"></div>
 
-    const PAYMENT_PACKAGES = new Set([
-      'com.google.android.apps.nbu.paisa.user','net.one97.paytm',
-      'com.phonepe.app','in.org.npci.upiapp','com.amazon.mShop.android.shopping',
-      'com.hdfc.bank','com.axisbank.mobile','com.sbi.lotusintouch',
-    ]);
-    const PAYMENT_EMOJIS = ['\uD83D\uDCB0','\uD83D\uDCB8','\uD83E\uDD11','\u2705'];
-
-    function applyConfig(c) {
-      cfg = c;
-      const root = document.documentElement;
-      root.style.setProperty('--widget-width',  (c.width || 380) + 'px');
-      root.style.setProperty('--bg1',           c.bgColor   || '#1a1a2e');
-      root.style.setProperty('--bg2',           c.bgColor2  || '#16213e');
-      root.style.setProperty('--accent',        c.accentColor || '#00ff88');
-      root.style.setProperty('--text-color',    c.textColor  || '#ffffff');
-      root.style.setProperty('--muted-color',   c.mutedColor || '#aaaaaa');
-      root.style.setProperty('--radius',        (c.borderRadius || 10) + 'px');
-      root.style.setProperty('--font-size',     (c.fontSize || 14));
-
-      const el = document.getElementById('alert-container');
-      el.className = 'pos-' + (c.position || 'bottom-right');
-    }
-
-    function renderTemplate(tpl, data) {
-      if (!tpl) return '';
-      return tpl.replace(/\{(\w+)\}/g, (_, key) => {
-        const val = data[key];
-        if (Array.isArray(val)) return val.join(', ');
-        return val !== undefined && val !== null && val !== '' ? String(val) : '';
-      });
-    }
-
-    function showAlert(notif) {
-      if (cfg.paymentOnly && !PAYMENT_PACKAGES.has(notif.packageName)) return;
-
-      const isPayment = (cfg.paymentPackages || []).includes(notif.packageName)
-                      || PAYMENT_PACKAGES.has(notif.packageName);
-
-      const container = document.getElementById('alert-container');
-      const card = document.createElement('div');
-      card.className = 'alert-card anim-in-' + (cfg.animationIn || 'slideRight');
-
-      const emoji = isPayment
-        ? PAYMENT_EMOJIS[Math.floor(Math.random() * PAYMENT_EMOJIS.length)]
-        : '\uD83D\uDD14';
-
-      const top    = renderTemplate(cfg.lineTop    || '{appName}', notif);
-      const middle = renderTemplate(cfg.lineMiddle || '{title}',   notif);
-      const bottom = renderTemplate(cfg.lineBottom || '{text}',    notif);
-
-      card.innerHTML = `
-        <div class="app-icon">${emoji}</div>
-        <div class="alert-content">
-          ${top    ? `<div class="line-top">${esc(top)}</div>`    : ''}
-          ${middle ? `<div class="line-middle">${esc(middle)}</div>` : ''}
-          ${bottom ? `<div class="line-bottom">${esc(bottom)}</div>` : ''}
-        </div>`;
-
-      container.appendChild(card);
-
-      const dur = cfg.duration || 5000;
-      setTimeout(() => {
-        card.classList.remove('anim-in-' + (cfg.animationIn || 'slideRight'));
-        card.classList.add('anim-out-' + (cfg.animationOut || 'slideRight'));
-        setTimeout(() => card.remove(), 600);
-      }, dur);
-    }
-
-    function esc(s) {
-      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    }
-
-    // WebSocket
-    let ws;
-    function connect() {
-      ws = new WebSocket(`ws://${location.hostname}:${location.port}`);
-      ws.onopen  = () => console.log('[overlay] connected');
-      ws.onclose = () => setTimeout(connect, 3000);
-      ws.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'config')       applyConfig(msg.config);
-        else if (msg.type === 'notification') showAlert(msg);
-      };
-    }
-
-    // Fetch config first, then connect
-    fetch('/api/config').then(r => r.json()).then(c => { applyConfig(c); connect(); });
-  </script>
+  <script src="/js/template-engine.js"></script>
+  <script src="/js/storage.js"></script>
+  <script src="/js/overlay.js"></script>
 </body>
 </html>

@@ -1,126 +1,427 @@
-const express    = require('express');
+const express = require('express');
 const { WebSocketServer } = require('ws');
-const http       = require('http');
-const path       = require('path');
-const fs         = require('fs');
+const http = require('http');
+const path = require('path');
+const fs = require('fs');
 
-const app    = express();
+const app = express();
 const server = http.createServer(app);
-const wss    = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server });
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const CONFIG_FILE = path.join(__dirname, 'widget-config.json');
+// Configuration Files
+const SETTINGS_DIR = path.join(__dirname, 'config');
+const SETTINGS_FILE = path.join(SETTINGS_DIR, 'settings.json');
+const LEGACY_CONFIG_FILE = path.join(__dirname, 'widget-config.json');
 
-const DEFAULT_CONFIG = {
-  // Layout
-  position:        'bottom-right',   // top-left | top-right | bottom-left | bottom-right
-  width:           380,
-  duration:        5000,
-
-  // Templates — use {variable} placeholders
-  lineTop:         '{appName}',
-  lineMiddle:      '{title}',
-  lineBottom:      '{text}',
-
-  // Styling
-  bgColor:         '#1a1a2e',
-  bgColor2:        '#16213e',
-  accentColor:     '#00ff88',
-  textColor:       '#ffffff',
-  mutedColor:      '#aaaaaa',
-  borderRadius:    10,
-  fontSize:        14,
-
-  // Animation
-  animationIn:     'slideRight',     // slideRight | slideLeft | slideUp | fadeIn
-  animationOut:    'slideRight',
-
-  // Filter
-  paymentOnly:     false,
-  paymentPackages: [
-    'com.google.android.apps.nbu.paisa.user',
-    'net.one97.paytm',
-    'com.phonepe.app',
-    'in.org.npci.upiapp',
-    'com.amazon.mShop.android.shopping',
-    'com.hdfc.bank',
-    'com.axisbank.mobile',
-    'com.sbi.lotusintouch',
-  ],
+const DEFAULT_SETTINGS = {
+  text: {
+    titleTemplate: "{{sender}} sent {{amount}}",
+    subtitleTemplate: "{{sourceApp}} payment received",
+    fontSize: 24,
+    fontFamily: "Inter",
+    fontBold: true,
+    fontItalic: false,
+    textTransform: "none",
+    textAlign: "center"
+  },
+  media: {
+    imageUrl: "",
+    gifUrl: "",
+    soundUrl: "",
+    soundVolume: 80,
+    position: "top",
+    size: 100
+  },
+  style: {
+    backgroundColor: "#000000",
+    backgroundOpacity: 60,
+    isTransparent: false,
+    accentColor: "#00e5ff",
+    textColor: "#ffffff",
+    borderRadius: 12,
+    borderWidth: 5,
+    padding: 20
+  },
+  animation: {
+    type: "slide-up",
+    duration: 600,
+    displayDuration: 5000
+  },
+  advanced: {
+    canvasWidth: 1920,
+    canvasHeight: 1080,
+    positionPreset: "bottom-center",
+    positionX: 50,
+    positionY: 90,
+    marginX: 0,
+    marginY: 0,
+    width: 400,
+    enableCustomCode: true,
+    customHTML: "",
+    customCSS: "",
+    customJS: ""
+  },
+  goal: {
+    enableGoal: true,
+    title: "Stream Goal",
+    startAmount: 0,
+    currentAmount: 0,
+    targetAmount: 5000,
+    endDate: "2026-12-31",
+    barHeight: 36,
+    barColor: "#1e2433",
+    fillColor: "#00e5ff",
+    textColor: "#ffffff",
+    fontFamily: "Inter",
+    customHTML: "",
+    customCSS: ""
+  },
+  leaderboard: {
+    enableLeaderboard: true,
+    title: "Top Supporters",
+    maxEntries: 5,
+    showAmounts: true,
+    accentColor: "#00e5ff",
+    fontFamily: "Inter",
+    supporters: {},
+    customHTML: "",
+    customCSS: ""
+  }
 };
 
-function loadConfig() {
+function migrateLegacyConfig(legacy) {
+  const merged = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  if (legacy.lineMiddle || legacy.lineTop) {
+    merged.text.titleTemplate = (legacy.lineMiddle || legacy.lineTop || '').replace(/\{/g, '{{').replace(/\}/g, '}}');
+  }
+  if (legacy.lineBottom) {
+    merged.text.subtitleTemplate = legacy.lineBottom.replace(/\{/g, '{{').replace(/\}/g, '}}');
+  }
+  if (legacy.fontSize) merged.text.fontSize = legacy.fontSize;
+  if (legacy.bgColor) merged.style.backgroundColor = legacy.bgColor;
+  if (legacy.accentColor) merged.style.accentColor = legacy.accentColor;
+  if (legacy.textColor) merged.style.textColor = legacy.textColor;
+  if (legacy.borderRadius) merged.style.borderRadius = legacy.borderRadius;
+  if (legacy.width) merged.advanced.width = legacy.width;
+  if (legacy.duration) merged.animation.displayDuration = legacy.duration;
+  return merged;
+}
+
+function loadSettings() {
   try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      return { ...DEFAULT_CONFIG, ...JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) };
+    if (fs.existsSync(SETTINGS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+      console.log(`[Settings] Loaded configuration from ${SETTINGS_FILE}`);
+      return {
+        text: { ...DEFAULT_SETTINGS.text, ...(data.text || {}) },
+        media: { ...DEFAULT_SETTINGS.media, ...(data.media || {}) },
+        style: { ...DEFAULT_SETTINGS.style, ...(data.style || {}) },
+        animation: { ...DEFAULT_SETTINGS.animation, ...(data.animation || {}) },
+        advanced: { ...DEFAULT_SETTINGS.advanced, ...(data.advanced || {}) },
+        goal: { ...DEFAULT_SETTINGS.goal, ...(data.goal || {}) },
+        leaderboard: {
+          ...DEFAULT_SETTINGS.leaderboard,
+          ...(data.leaderboard || {}),
+          supporters: { ...(DEFAULT_SETTINGS.leaderboard.supporters || {}), ...((data.leaderboard && data.leaderboard.supporters) || {}) }
+        }
+      };
+    } else if (fs.existsSync(LEGACY_CONFIG_FILE)) {
+      console.log(`[Settings] Migrating legacy configuration from ${LEGACY_CONFIG_FILE}`);
+      const legacy = JSON.parse(fs.readFileSync(LEGACY_CONFIG_FILE, 'utf8'));
+      const migrated = migrateLegacyConfig(legacy);
+      saveSettings(migrated);
+      return migrated;
     }
-  } catch (e) { console.error('Config load error:', e.message); }
-  return { ...DEFAULT_CONFIG };
+  } catch (e) {
+    console.error('[Settings] Load error:', e.message);
+  }
+  console.log('[Settings] No existing config found, initializing with defaults');
+  return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 }
 
-function saveConfig(cfg) {
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
+function saveSettings(settings) {
+  try {
+    if (!fs.existsSync(SETTINGS_DIR)) {
+      fs.mkdirSync(SETTINGS_DIR, { recursive: true });
+    }
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf8');
+    console.log(`[Settings] Saved configuration to ${SETTINGS_FILE}`);
+  } catch (e) {
+    console.error('[Settings] Save error:', e.message);
+  }
 }
 
-let widgetConfig = loadConfig();
+const PROFILES_FILE = path.join(SETTINGS_DIR, 'profiles.json');
 
-// ── REST: config API ────────────────────────────────────────────────
-app.get('/api/config', (req, res) => res.json(widgetConfig));
-
-app.post('/api/config', (req, res) => {
-  widgetConfig = { ...widgetConfig, ...req.body };
-  saveConfig(widgetConfig);
-  // Push new config live to all OBS overlays
-  obsClients.forEach(ws => {
-    if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'config', config: widgetConfig }));
-  });
-  res.json({ ok: true, config: widgetConfig });
-});
-
-app.get('/api/test', (req, res) => {
-  const sample = {
-    type:        'notification',
-    packageName: 'com.google.android.apps.nbu.paisa.user',
-    appName:     'Google Pay',
-    title:       'Google Pay',
-    text:        'You received \u20b9500 from Rahul Kumar',
-    bigText:     'You received \u20b9500 from Rahul Kumar\nUPI Ref: 123456789',
-    subText:     'savings@okaxis',
-    infoText:    '',
-    summaryText: '',
-    category:    'msg',
-    priority:    1,
-    isOngoing:   false,
-    isClearable: true,
-    actions:     ['View', 'Dismiss'],
-    timestamp:   Date.now(),
+function loadProfilesStore() {
+  try {
+    if (fs.existsSync(PROFILES_FILE)) {
+      const store = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf8'));
+      if (store.profiles && store.activeProfile && store.profiles[store.activeProfile]) {
+        return store;
+      }
+    }
+  } catch (e) {
+    console.error('[Profiles] Load error:', e.message);
+  }
+  const initialSettings = loadSettings();
+  const store = {
+    activeProfile: 'Default',
+    profiles: {
+      'Default': initialSettings
+    }
   };
-  obsClients.forEach(ws => {
-    if (ws.readyState === 1) ws.send(JSON.stringify(sample));
+  saveProfilesStore(store);
+  return store;
+}
+
+function saveProfilesStore(store) {
+  try {
+    if (!fs.existsSync(SETTINGS_DIR)) {
+      fs.mkdirSync(SETTINGS_DIR, { recursive: true });
+    }
+    fs.writeFileSync(PROFILES_FILE, JSON.stringify(store, null, 2), 'utf8');
+    console.log(`[Profiles] Saved profiles store to ${PROFILES_FILE}`);
+  } catch (e) {
+    console.error('[Profiles] Save error:', e.message);
+  }
+}
+
+let profilesStore = loadProfilesStore();
+let alertSettings = profilesStore.profiles[profilesStore.activeProfile] || loadSettings();
+
+function broadcastSettings(settings) {
+  const payload = JSON.stringify({ type: 'SETTINGS_UPDATED', payload: settings, activeProfile: profilesStore.activeProfile });
+  obsClients.forEach(client => {
+    if (client.readyState === 1) {
+      client.send(payload);
+    }
   });
-  res.json({ ok: true, sent: obsClients.size });
+}
+
+function processPaymentForGoalAndLeaderboard(notification) {
+  if (!notification) return;
+  const rawAmount = notification.amount || '';
+  const numericVal = parseFloat(String(rawAmount).replace(/[^0-9.]/g, '')) || 0;
+  const sender = (notification.sender || 'Anonymous User').trim();
+
+  if (numericVal > 0) {
+    alertSettings.goal.currentAmount = (alertSettings.goal.currentAmount || 0) + numericVal;
+    if (!alertSettings.leaderboard.supporters) alertSettings.leaderboard.supporters = {};
+    alertSettings.leaderboard.supporters[sender] = (alertSettings.leaderboard.supporters[sender] || 0) + numericVal;
+    saveSettings(alertSettings);
+    profilesStore.profiles[profilesStore.activeProfile] = alertSettings;
+    saveProfilesStore(profilesStore);
+    broadcastSettings(alertSettings);
+  }
+}
+
+// ── Static & Overlay Routes ──────────────────────────────────────────
+app.get('/config', (req, res) => res.sendFile(path.join(__dirname, 'public', 'config.html')));
+app.get('/preview', (req, res) => res.sendFile(path.join(__dirname, 'public', 'preview.html')));
+
+// OBS Overlay Routes
+app.get('/overlay/alert', (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
+app.get('/overlay/goal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
+app.get('/overlay/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
+
+// Aliases & Backward Compatibility
+app.get('/overlay', (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
+app.get('/goal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
+app.get('/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
+
+// ── REST APIs ───────────────────────────────────────────────────────
+app.get('/api/settings', (req, res) => {
+  res.json({
+    activeProfile: profilesStore.activeProfile,
+    profiles: Object.keys(profilesStore.profiles),
+    settings: alertSettings
+  });
 });
 
-// ── WebSocket ────────────────────────────────────────────────────────
-const obsClients     = new Set();
-const androidClients = new Set();
+app.post('/api/settings', (req, res) => {
+  alertSettings = {
+    text: { ...alertSettings.text, ...(req.body.text || {}) },
+    media: { ...alertSettings.media, ...(req.body.media || {}) },
+    style: { ...alertSettings.style, ...(req.body.style || {}) },
+    animation: { ...alertSettings.animation, ...(req.body.animation || {}) },
+    advanced: { ...alertSettings.advanced, ...(req.body.advanced || {}) },
+    goal: { ...alertSettings.goal, ...(req.body.goal || {}) },
+    leaderboard: {
+      ...alertSettings.leaderboard,
+      ...(req.body.leaderboard || {}),
+      supporters: req.body.leaderboard && req.body.leaderboard.supporters ? req.body.leaderboard.supporters : (alertSettings.leaderboard ? alertSettings.leaderboard.supporters : {})
+    }
+  };
+
+  saveSettings(alertSettings);
+  profilesStore.profiles[profilesStore.activeProfile] = alertSettings;
+  saveProfilesStore(profilesStore);
+  broadcastSettings(alertSettings);
+
+  res.json({ ok: true, activeProfile: profilesStore.activeProfile, settings: alertSettings });
+});
+
+// Profile Management APIs
+app.get('/api/profiles', (req, res) => {
+  res.json({
+    activeProfile: profilesStore.activeProfile,
+    profiles: profilesStore.profiles
+  });
+});
+
+app.post('/api/profiles/switch', (req, res) => {
+  const { name } = req.body;
+  if (!name || !profilesStore.profiles[name]) {
+    return res.status(400).json({ ok: false, error: 'Profile not found' });
+  }
+  profilesStore.activeProfile = name;
+  alertSettings = profilesStore.profiles[name];
+  saveSettings(alertSettings);
+  saveProfilesStore(profilesStore);
+  broadcastSettings(alertSettings);
+  res.json({ ok: true, activeProfile: name, settings: alertSettings });
+});
+
+app.post('/api/profiles/save', (req, res) => {
+  const { name, settings: newSettings } = req.body;
+  if (!name) return res.status(400).json({ ok: false, error: 'Profile name required' });
+  
+  if (newSettings) alertSettings = newSettings;
+  profilesStore.profiles[name] = alertSettings;
+  profilesStore.activeProfile = name;
+
+  saveSettings(alertSettings);
+  saveProfilesStore(profilesStore);
+  broadcastSettings(alertSettings);
+  res.json({ ok: true, activeProfile: name, settings: alertSettings, profiles: Object.keys(profilesStore.profiles) });
+});
+
+app.post('/api/profiles/delete', (req, res) => {
+  const { name } = req.body;
+  if (!name || name === 'Default') {
+    return res.status(400).json({ ok: false, error: 'Cannot delete Default profile' });
+  }
+  delete profilesStore.profiles[name];
+  if (profilesStore.activeProfile === name) {
+    profilesStore.activeProfile = 'Default';
+    alertSettings = profilesStore.profiles['Default'];
+    saveSettings(alertSettings);
+  }
+  saveProfilesStore(profilesStore);
+  broadcastSettings(alertSettings);
+  res.json({ ok: true, activeProfile: profilesStore.activeProfile, profiles: Object.keys(profilesStore.profiles) });
+});
+
+// Legacy API support
+app.get('/api/config', (req, res) => res.json(alertSettings));
+app.post('/api/config', (req, res) => {
+  alertSettings = { ...alertSettings, ...req.body };
+  saveSettings(alertSettings);
+  broadcastSettings(alertSettings);
+  res.json({ ok: true, config: alertSettings });
+});
+
+function processPaymentForGoalAndLeaderboard(notification) {
+  try {
+    let rawAmount = notification.amount;
+    let numAmount = 0;
+    if (typeof rawAmount === 'number') {
+      numAmount = rawAmount;
+    } else if (typeof rawAmount === 'string') {
+      const match = rawAmount.match(/[\d.,]+/);
+      if (match) {
+        numAmount = parseFloat(match[0].replace(/,/g, '')) || 0;
+      }
+    }
+
+    if (numAmount <= 0) numAmount = 500;
+
+    let senderName = (notification.sender || notification.title || 'Rahul Kumar').trim();
+    if (senderName.toLowerCase().includes('received') || senderName.toLowerCase().includes('sent')) {
+      senderName = senderName.split(/sent|received/i)[0].trim() || 'Rahul Kumar';
+    }
+
+    // 1. Accumulate Goal currentAmount
+    if (alertSettings.goal) {
+      const prevCurrent = parseFloat(alertSettings.goal.currentAmount) || 0;
+      alertSettings.goal.currentAmount = prevCurrent + numAmount;
+    }
+
+    // 2. Accumulate Leaderboard supporter amount
+    if (alertSettings.leaderboard) {
+      if (!alertSettings.leaderboard.supporters) {
+        alertSettings.leaderboard.supporters = {};
+      }
+      const prevTotal = parseFloat(alertSettings.leaderboard.supporters[senderName]) || 0;
+      alertSettings.leaderboard.supporters[senderName] = prevTotal + numAmount;
+    }
+
+    // 3. Save & Broadcast updated settings
+    saveSettings(alertSettings);
+    broadcastSettings(alertSettings);
+
+    console.log(`[SIMULATION] Payment ₹${numAmount} processed for "${senderName}". Goal current: ₹${alertSettings.goal.currentAmount}`);
+  } catch (e) {
+    console.error('[SIMULATION] Error processing payment:', e.message);
+  }
+}
+
+function sendTestNotification(customData = {}) {
+  const sample = {
+    type: 'payment_notification',
+    packageName: 'com.google.android.apps.nbu.paisa.user',
+    appName: customData.sourceApp || customData.appName || 'PhonePe',
+    title: customData.title || customData.sourceApp || 'PhonePe',
+    text: customData.text || `${customData.sender || 'Rahul Kumar'} sent ${customData.amount || '₹500'}`,
+    sender: customData.sender || 'Rahul Kumar',
+    amount: customData.amount || '₹500',
+    sourceApp: customData.sourceApp || 'PhonePe',
+    message: customData.message || 'Payment received',
+    timestamp: Date.now()
+  };
+
+  processPaymentForGoalAndLeaderboard(sample);
+
+  const payload = JSON.stringify(sample);
+  const legacyPayload = JSON.stringify({ type: 'notification', ...sample });
+
+  let count = 0;
+  obsClients.forEach(ws => {
+    if (ws.readyState === 1) {
+      ws.send(payload);
+      ws.send(legacyPayload);
+      count++;
+    }
+  });
+  return count;
+}
+
+// Test alert endpoints
+app.get('/api/test', (req, res) => {
+  const sent = sendTestNotification();
+  res.json({ ok: true, sent });
+});
+
+app.post('/api/test', (req, res) => {
+  const sent = sendTestNotification(req.body || {});
+  res.json({ ok: true, sent });
+});
 
 app.get('/health', (req, res) =>
   res.json({ status: 'ok', androidClients: androidClients.size, obsClients: obsClients.size })
 );
 
-app.get('/overlay', (req, res) =>
-  res.sendFile(path.join(__dirname, 'public', 'overlay.html'))
-);
-
-app.get('/config', (req, res) =>
-  res.sendFile(path.join(__dirname, 'public', 'config.html'))
-);
+// ── WebSocket Management ─────────────────────────────────────────────
+const obsClients = new Set();
+const androidClients = new Set();
 
 wss.on('connection', (ws, req) => {
-  const url        = req.url.split('?')[0];
+  const url = req.url ? req.url.split('?')[0] : '/';
   const clientType = url === '/android' ? 'android' : 'obs';
 
   if (clientType === 'android') {
@@ -133,40 +434,69 @@ wss.on('connection', (ws, req) => {
     ws.on('message', (data) => {
       try {
         const notification = JSON.parse(data.toString());
-        const appName = notification.appName || notification.packageName || 'Unknown';
-        const title   = notification.title   || '';
-        const text    = notification.text    || '';
+        const appName = notification.appName || notification.packageName || 'Payment App';
+        const title = notification.title || '';
+        const text = notification.text || '';
 
         if (!title && !text) return;
 
-        console.log(`[NOTIF] ${appName}: ${title} \u2014 ${text}`);
+        console.log(`[NOTIF] ${appName}: ${title} — ${text}`);
 
-        const payload = JSON.stringify({ type: 'notification', ...notification, appName, title, text });
+        processPaymentForGoalAndLeaderboard(notification);
+
+        const payload = JSON.stringify({
+          type: 'payment_notification',
+          ...notification,
+          appName,
+          title,
+          text
+        });
+
+        const legacyPayload = JSON.stringify({
+          type: 'notification',
+          ...notification,
+          appName,
+          title,
+          text
+        });
+
         obsClients.forEach(client => {
-          if (client.readyState === 1) client.send(payload);
+          if (client.readyState === 1) {
+            client.send(payload);
+            client.send(legacyPayload);
+          }
         });
       } catch (e) {
         console.error('[NOTIF] Parse error:', e.message);
       }
     });
 
-    ws.on('close', () => { androidClients.delete(ws); console.log(`[-] Android disconnected`); });
-
-    // Send config immediately on connect so overlay is always in sync
-    ws.send(JSON.stringify({ type: 'config', config: widgetConfig }));
+    ws.on('close', () => {
+      androidClients.delete(ws);
+      console.log(`[-] Android disconnected`);
+    });
 
   } else {
     obsClients.add(ws);
     console.log(`[+] OBS overlay connected (${obsClients.size} total)`);
-    // Send current config immediately
-    ws.send(JSON.stringify({ type: 'config', config: widgetConfig }));
-    ws.on('close', () => obsClients.delete(ws));
+
+    // Send current settings immediately on connection
+    ws.send(JSON.stringify({ type: 'SETTINGS_UPDATED', payload: alertSettings }));
+    ws.send(JSON.stringify({ type: 'config', config: alertSettings }));
+
+    ws.on('close', () => {
+      obsClients.delete(ws);
+      console.log(`[-] OBS overlay disconnected`);
+    });
   }
 });
 
 const heartbeat = setInterval(() => {
   androidClients.forEach(ws => {
-    if (ws.isAlive === false) { androidClients.delete(ws); return ws.terminate(); }
+    if (ws.isAlive === false) {
+      androidClients.delete(ws);
+      return ws.terminate();
+    }
     ws.isAlive = false;
     ws.ping();
   });
@@ -176,9 +506,10 @@ wss.on('close', () => clearInterval(heartbeat));
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n\uD83D\uDE80 Payment Alerts for OBS`);
-  console.log(`   Server      \u2192 http://localhost:${PORT}`);
-  console.log(`   OBS Overlay \u2192 http://localhost:${PORT}/overlay`);
-  console.log(`   Config UI   \u2192 http://localhost:${PORT}/config`);
-  console.log(`   Health      \u2192 http://localhost:${PORT}/health\n`);
+  console.log(`\n🚀 Payment Alerts for OBS - Server Running`);
+  console.log(`   Server      → http://localhost:${PORT}`);
+  console.log(`   Config UI   → http://localhost:${PORT}/config`);
+  console.log(`   OBS Overlay → http://localhost:${PORT}/overlay`);
+  console.log(`   Preview     → http://localhost:${PORT}/preview`);
+  console.log(`   Health      → http://localhost:${PORT}/health\n`);
 });
