@@ -12,7 +12,63 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Configuration Files
+// ── Debug Logger ─────────────────────────────────────────────────────
+// Writes timestamped lines to console AND to logs/events.log
+// The log file rolls over when it exceeds LOG_MAX_BYTES (default 5 MB).
+
+const LOG_DIR      = path.join(__dirname, 'logs');
+const LOG_FILE     = path.join(LOG_DIR, 'events.log');
+const LOG_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+
+if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+
+function rotateLogIfNeeded() {
+  try {
+    if (fs.existsSync(LOG_FILE) && fs.statSync(LOG_FILE).size > LOG_MAX_BYTES) {
+      const rotated = LOG_FILE.replace('.log', `_${Date.now()}.log`);
+      fs.renameSync(LOG_FILE, rotated);
+      console.log(`[LOG] Rotated log to ${rotated}`);
+    }
+  } catch (_) {}
+}
+
+function writeLog(level, tag, message, data) {
+  const ts   = new Date().toISOString();
+  const line = data !== undefined
+    ? `[${ts}] [${level}] [${tag}] ${message}\n${JSON.stringify(data, null, 2)}\n`
+    : `[${ts}] [${level}] [${tag}] ${message}\n`;
+
+  // Console — use colour coding
+  const colours = { INFO: '\x1b[36m', WARN: '\x1b[33m', ERROR: '\x1b[31m', EVENT: '\x1b[35m', DEDUP: '\x1b[90m' };
+  const reset   = '\x1b[0m';
+  const colour  = colours[level] || '';
+  if (data !== undefined) {
+    console.log(`${colour}[${level}]${reset} [${tag}] ${message}`);
+    console.log(JSON.stringify(data, null, 2));
+  } else {
+    console.log(`${colour}[${level}]${reset} [${tag}] ${message}`);
+  }
+
+  // File
+  rotateLogIfNeeded();
+  try {
+    fs.appendFileSync(LOG_FILE, line, 'utf8');
+  } catch (e) {
+    console.error('[LOG] Failed to write log file:', e.message);
+  }
+}
+
+const log = {
+  info  : (tag, msg, data) => writeLog('INFO',  tag, msg, data),
+  warn  : (tag, msg, data) => writeLog('WARN',  tag, msg, data),
+  error : (tag, msg, data) => writeLog('ERROR', tag, msg, data),
+  event : (tag, msg, data) => writeLog('EVENT', tag, msg, data),
+  dedup : (tag, msg, data) => writeLog('DEDUP', tag, msg, data),
+};
+
+log.info('Server', `Log file: ${LOG_FILE}`);
+
+// ── Configuration Files ───────────────────────────────────────────────
 const SETTINGS_DIR = path.join(__dirname, 'config');
 const SETTINGS_FILE = path.join(SETTINGS_DIR, 'settings.json');
 const LEGACY_CONFIG_FILE = path.join(__dirname, 'widget-config.json');
@@ -92,7 +148,6 @@ const DEFAULT_SETTINGS = {
     customCSS: ""
   },
   filter: {
-    // Empty array = allow all amounts. Add amounts like [1, 500, 1000] to restrict.
     allowedAmounts: []
   }
 };
@@ -119,7 +174,7 @@ function loadSettings() {
   try {
     if (fs.existsSync(SETTINGS_FILE)) {
       const data = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
-      console.log(`[Settings] Loaded configuration from ${SETTINGS_FILE}`);
+      log.info('Settings', `Loaded configuration from ${SETTINGS_FILE}`);
       return {
         text: { ...DEFAULT_SETTINGS.text, ...(data.text || {}) },
         media: { ...DEFAULT_SETTINGS.media, ...(data.media || {}) },
@@ -135,28 +190,26 @@ function loadSettings() {
         filter: { ...DEFAULT_SETTINGS.filter, ...(data.filter || {}) }
       };
     } else if (fs.existsSync(LEGACY_CONFIG_FILE)) {
-      console.log(`[Settings] Migrating legacy configuration from ${LEGACY_CONFIG_FILE}`);
+      log.info('Settings', `Migrating legacy configuration from ${LEGACY_CONFIG_FILE}`);
       const legacy = JSON.parse(fs.readFileSync(LEGACY_CONFIG_FILE, 'utf8'));
       const migrated = migrateLegacyConfig(legacy);
       saveSettings(migrated);
       return migrated;
     }
   } catch (e) {
-    console.error('[Settings] Load error:', e.message);
+    log.error('Settings', 'Load error: ' + e.message);
   }
-  console.log('[Settings] No existing config found, initializing with defaults');
+  log.info('Settings', 'No existing config found, initializing with defaults');
   return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 }
 
 function saveSettings(settings) {
   try {
-    if (!fs.existsSync(SETTINGS_DIR)) {
-      fs.mkdirSync(SETTINGS_DIR, { recursive: true });
-    }
+    if (!fs.existsSync(SETTINGS_DIR)) fs.mkdirSync(SETTINGS_DIR, { recursive: true });
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf8');
-    console.log(`[Settings] Saved configuration to ${SETTINGS_FILE}`);
+    log.info('Settings', `Saved configuration to ${SETTINGS_FILE}`);
   } catch (e) {
-    console.error('[Settings] Save error:', e.message);
+    log.error('Settings', 'Save error: ' + e.message);
   }
 }
 
@@ -171,50 +224,36 @@ function loadProfilesStore() {
       }
     }
   } catch (e) {
-    console.error('[Profiles] Load error:', e.message);
+    log.error('Profiles', 'Load error: ' + e.message);
   }
   const initialSettings = loadSettings();
-  const store = {
-    activeProfile: 'Default',
-    profiles: {
-      'Default': initialSettings
-    }
-  };
+  const store = { activeProfile: 'Default', profiles: { 'Default': initialSettings } };
   saveProfilesStore(store);
   return store;
 }
 
 function saveProfilesStore(store) {
   try {
-    if (!fs.existsSync(SETTINGS_DIR)) {
-      fs.mkdirSync(SETTINGS_DIR, { recursive: true });
-    }
+    if (!fs.existsSync(SETTINGS_DIR)) fs.mkdirSync(SETTINGS_DIR, { recursive: true });
     fs.writeFileSync(PROFILES_FILE, JSON.stringify(store, null, 2), 'utf8');
-    console.log(`[Profiles] Saved profiles store to ${PROFILES_FILE}`);
+    log.info('Profiles', `Saved profiles store to ${PROFILES_FILE}`);
   } catch (e) {
-    console.error('[Profiles] Save error:', e.message);
+    log.error('Profiles', 'Save error: ' + e.message);
   }
 }
 
-let profilesStore = loadProfilesStore();
-let alertSettings = profilesStore.profiles[profilesStore.activeProfile] || loadSettings();
+let profilesStore  = loadProfilesStore();
+let alertSettings  = profilesStore.profiles[profilesStore.activeProfile] || loadSettings();
 
-// ── Alert ID deduplication ──────────────────────────────────────────
-// Tracks alertIds that have already been applied to goal & leaderboard.
-// In-memory only — resets on server restart (intentional: restarts are rare
-// during a stream; persisting IDs would require a DB which is overkill).
+// ── Alert ID deduplication ────────────────────────────────────────────
 const processedAlertIds = new Set();
 
 function broadcastSettings(settings) {
   const payload = JSON.stringify({ type: 'SETTINGS_UPDATED', payload: settings, activeProfile: profilesStore.activeProfile });
-  obsClients.forEach(client => {
-    if (client.readyState === 1) {
-      client.send(payload);
-    }
-  });
+  obsClients.forEach(client => { if (client.readyState === 1) client.send(payload); });
 }
 
-// ── Amount-based filter ──────────────────────────────────────────────
+// ── Amount filter ─────────────────────────────────────────────────────
 function parseAmount(rawAmount) {
   if (typeof rawAmount === 'number') return rawAmount;
   if (typeof rawAmount === 'string') {
@@ -226,35 +265,24 @@ function parseAmount(rawAmount) {
 
 function isAmountAllowed(numAmount) {
   const allowed = alertSettings.filter && Array.isArray(alertSettings.filter.allowedAmounts)
-    ? alertSettings.filter.allowedAmounts
-    : [];
+    ? alertSettings.filter.allowedAmounts : [];
   if (allowed.length === 0) return true;
   return allowed.some(a => Math.abs(parseFloat(a) - numAmount) < 0.01);
 }
 
-/**
- * Process a payment notification for goal and leaderboard.
- *
- * If the notification carries an alertId that has already been processed
- * (e.g. a retrigger from the Android Alert Log), goal and leaderboard are
- * intentionally skipped — but the alert will still be forwarded to the OBS
- * overlay by the caller so the on-stream animation plays again.
- */
 function processPaymentForGoalAndLeaderboard(notification) {
   try {
     const alertId = notification.alertId || null;
 
-    // Dedup check — skip goal/leaderboard if this alertId was already counted
     if (alertId && processedAlertIds.has(alertId)) {
-      console.log(`[DEDUP] alertId ${alertId} already processed — overlay only, skipping goal/leaderboard`);
+      log.dedup('DEDUP', `alertId ${alertId} already processed — overlay only, skipping goal/leaderboard`);
       return;
     }
 
     const numAmount = parseAmount(notification.amount);
 
     if (!isAmountAllowed(numAmount)) {
-      console.log(`[FILTER] Amount ₹${numAmount} not in allowed list — skipping goal/leaderboard update`);
-      // Still mark as processed so a retrigger of this filtered alert also skips
+      log.warn('Filter', `Amount ₹${numAmount} not in allowed list — skipping goal/leaderboard update`);
       if (alertId) processedAlertIds.add(alertId);
       return;
     }
@@ -272,9 +300,7 @@ function processPaymentForGoalAndLeaderboard(notification) {
     }
 
     if (alertSettings.leaderboard) {
-      if (!alertSettings.leaderboard.supporters) {
-        alertSettings.leaderboard.supporters = {};
-      }
+      if (!alertSettings.leaderboard.supporters) alertSettings.leaderboard.supporters = {};
       const prevTotal = parseFloat(alertSettings.leaderboard.supporters[senderName]) || 0;
       alertSettings.leaderboard.supporters[senderName] = prevTotal + effectiveAmount;
     }
@@ -284,73 +310,60 @@ function processPaymentForGoalAndLeaderboard(notification) {
     saveProfilesStore(profilesStore);
     broadcastSettings(alertSettings);
 
-    // Mark as processed after successful update
     if (alertId) processedAlertIds.add(alertId);
 
-    console.log(`[PAYMENT] ₹${effectiveAmount} from "${senderName}" processed. alertId=${alertId} Goal current: ₹${alertSettings.goal.currentAmount}`);
+    log.info('Payment', `₹${effectiveAmount} from "${senderName}" processed. alertId=${alertId} | Goal: ₹${alertSettings.goal.currentAmount}`);
   } catch (e) {
-    console.error('[PAYMENT] Error processing payment:', e.message);
+    log.error('Payment', 'Error processing payment: ' + e.message);
   }
 }
 
-// ── Static & Overlay Routes ──────────────────────────────────────────
-app.get('/config', (req, res) => res.sendFile(path.join(__dirname, 'public', 'config.html')));
-app.get('/preview', (req, res) => res.sendFile(path.join(__dirname, 'public', 'preview.html')));
-
-app.get('/overlay/alert', (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
-app.get('/overlay/goal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
+// ── Static & Overlay Routes ───────────────────────────────────────────
+app.get('/config',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'config.html')));
+app.get('/preview',    (req, res) => res.sendFile(path.join(__dirname, 'public', 'preview.html')));
+app.get('/overlay/alert',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
+app.get('/overlay/goal',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
 app.get('/overlay/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
-
-app.get('/overlay', (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
-app.get('/goal', (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
+app.get('/overlay',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
+app.get('/goal',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
 app.get('/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
 
-// ── REST APIs ───────────────────────────────────────────────────────
+// ── REST APIs ─────────────────────────────────────────────────────────
 app.get('/api/settings', (req, res) => {
-  res.json({
-    activeProfile: profilesStore.activeProfile,
-    profiles: Object.keys(profilesStore.profiles),
-    settings: alertSettings
-  });
+  res.json({ activeProfile: profilesStore.activeProfile, profiles: Object.keys(profilesStore.profiles), settings: alertSettings });
 });
 
 app.post('/api/settings', (req, res) => {
   alertSettings = {
-    text: { ...alertSettings.text, ...(req.body.text || {}) },
-    media: { ...alertSettings.media, ...(req.body.media || {}) },
-    style: { ...alertSettings.style, ...(req.body.style || {}) },
-    animation: { ...alertSettings.animation, ...(req.body.animation || {}) },
-    advanced: { ...alertSettings.advanced, ...(req.body.advanced || {}) },
-    goal: { ...alertSettings.goal, ...(req.body.goal || {}) },
+    text:     { ...alertSettings.text,      ...(req.body.text      || {}) },
+    media:    { ...alertSettings.media,     ...(req.body.media     || {}) },
+    style:    { ...alertSettings.style,     ...(req.body.style     || {}) },
+    animation:{ ...alertSettings.animation, ...(req.body.animation || {}) },
+    advanced: { ...alertSettings.advanced,  ...(req.body.advanced  || {}) },
+    goal:     { ...alertSettings.goal,      ...(req.body.goal      || {}) },
     leaderboard: {
       ...alertSettings.leaderboard,
       ...(req.body.leaderboard || {}),
-      supporters: req.body.leaderboard && req.body.leaderboard.supporters ? req.body.leaderboard.supporters : (alertSettings.leaderboard ? alertSettings.leaderboard.supporters : {})
+      supporters: req.body.leaderboard && req.body.leaderboard.supporters
+        ? req.body.leaderboard.supporters
+        : (alertSettings.leaderboard ? alertSettings.leaderboard.supporters : {})
     },
     filter: { ...DEFAULT_SETTINGS.filter, ...(alertSettings.filter || {}), ...(req.body.filter || {}) }
   };
-
   saveSettings(alertSettings);
   profilesStore.profiles[profilesStore.activeProfile] = alertSettings;
   saveProfilesStore(profilesStore);
   broadcastSettings(alertSettings);
-
   res.json({ ok: true, activeProfile: profilesStore.activeProfile, settings: alertSettings });
 });
 
-// Profile Management APIs
 app.get('/api/profiles', (req, res) => {
-  res.json({
-    activeProfile: profilesStore.activeProfile,
-    profiles: profilesStore.profiles
-  });
+  res.json({ activeProfile: profilesStore.activeProfile, profiles: profilesStore.profiles });
 });
 
 app.post('/api/profiles/switch', (req, res) => {
   const { name } = req.body;
-  if (!name || !profilesStore.profiles[name]) {
-    return res.status(400).json({ ok: false, error: 'Profile not found' });
-  }
+  if (!name || !profilesStore.profiles[name]) return res.status(400).json({ ok: false, error: 'Profile not found' });
   profilesStore.activeProfile = name;
   alertSettings = profilesStore.profiles[name];
   saveSettings(alertSettings);
@@ -362,11 +375,9 @@ app.post('/api/profiles/switch', (req, res) => {
 app.post('/api/profiles/save', (req, res) => {
   const { name, settings: newSettings } = req.body;
   if (!name) return res.status(400).json({ ok: false, error: 'Profile name required' });
-  
   if (newSettings) alertSettings = newSettings;
   profilesStore.profiles[name] = alertSettings;
-  profilesStore.activeProfile = name;
-
+  profilesStore.activeProfile  = name;
   saveSettings(alertSettings);
   saveProfilesStore(profilesStore);
   broadcastSettings(alertSettings);
@@ -375,9 +386,7 @@ app.post('/api/profiles/save', (req, res) => {
 
 app.post('/api/profiles/delete', (req, res) => {
   const { name } = req.body;
-  if (!name || name === 'Default') {
-    return res.status(400).json({ ok: false, error: 'Cannot delete Default profile' });
-  }
+  if (!name || name === 'Default') return res.status(400).json({ ok: false, error: 'Cannot delete Default profile' });
   delete profilesStore.profiles[name];
   if (profilesStore.activeProfile === name) {
     profilesStore.activeProfile = 'Default';
@@ -389,8 +398,7 @@ app.post('/api/profiles/delete', (req, res) => {
   res.json({ ok: true, activeProfile: profilesStore.activeProfile, profiles: Object.keys(profilesStore.profiles) });
 });
 
-// Legacy API support
-app.get('/api/config', (req, res) => res.json(alertSettings));
+app.get('/api/config',  (req, res) => res.json(alertSettings));
 app.post('/api/config', (req, res) => {
   alertSettings = { ...alertSettings, ...req.body };
   saveSettings(alertSettings);
@@ -398,26 +406,27 @@ app.post('/api/config', (req, res) => {
   res.json({ ok: true, config: alertSettings });
 });
 
+// ── Log file download endpoint ────────────────────────────────────────
+app.get('/api/logs', (req, res) => {
+  if (fs.existsSync(LOG_FILE)) {
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Disposition', 'attachment; filename="events.log"');
+    res.sendFile(LOG_FILE);
+  } else {
+    res.json({ ok: false, error: 'No log file yet' });
+  }
+});
+
 // Test alert endpoints
 app.get('/api/test', (req, res) => {
   const sample = {
-    type: 'payment_notification',
-    packageName: 'com.phonepe.app',
-    appName: 'PhonePe',
-    sourceApp: 'PhonePe',
-    title: 'PhonePe',
-    text: 'D SINGH has sent rs1 to your bank account',
-    sender: 'D SINGH',
-    amount: '\u20b91',
-    timestamp: Date.now()
+    type: 'payment_notification', packageName: 'com.phonepe.app', appName: 'PhonePe',
+    sourceApp: 'PhonePe', title: 'PhonePe', text: 'D SINGH has sent rs1 to your bank account',
+    sender: 'D SINGH', amount: '\u20b91', timestamp: Date.now()
   };
   let count = 0;
   obsClients.forEach(ws => {
-    if (ws.readyState === 1) {
-      ws.send(JSON.stringify(sample));
-      ws.send(JSON.stringify({ type: 'notification', ...sample }));
-      count++;
-    }
+    if (ws.readyState === 1) { ws.send(JSON.stringify(sample)); ws.send(JSON.stringify({ type: 'notification', ...sample })); count++; }
   });
   res.json({ ok: true, sent: count });
 });
@@ -427,21 +436,17 @@ app.post('/api/test', (req, res) => {
   const sample = {
     type: 'payment_notification',
     packageName: body.packageName || 'com.phonepe.app',
-    appName: body.appName || 'PhonePe',
-    sourceApp: body.sourceApp || body.appName || 'PhonePe',
-    title: body.title || 'PhonePe',
-    text: body.text || 'D SINGH has sent rs1 to your bank account',
-    sender: body.sender || 'D SINGH',
-    amount: body.amount || '\u20b91',
-    timestamp: Date.now()
+    appName:     body.appName    || 'PhonePe',
+    sourceApp:   body.sourceApp  || body.appName || 'PhonePe',
+    title:       body.title      || 'PhonePe',
+    text:        body.text       || 'D SINGH has sent rs1 to your bank account',
+    sender:      body.sender     || 'D SINGH',
+    amount:      body.amount     || '\u20b91',
+    timestamp:   Date.now()
   };
   let count = 0;
   obsClients.forEach(ws => {
-    if (ws.readyState === 1) {
-      ws.send(JSON.stringify(sample));
-      ws.send(JSON.stringify({ type: 'notification', ...sample }));
-      count++;
-    }
+    if (ws.readyState === 1) { ws.send(JSON.stringify(sample)); ws.send(JSON.stringify({ type: 'notification', ...sample })); count++; }
   });
   res.json({ ok: true, sent: count });
 });
@@ -450,48 +455,41 @@ app.get('/health', (req, res) =>
   res.json({ status: 'ok', androidClients: androidClients.size, obsClients: obsClients.size })
 );
 
-// ── WebSocket Management ─────────────────────────────────────────────
-const obsClients = new Set();
+// ── WebSocket Management ──────────────────────────────────────────────
+const obsClients     = new Set();
 const androidClients = new Set();
 
 wss.on('connection', (ws, req) => {
-  const url = req.url ? req.url.split('?')[0] : '/';
+  const url        = req.url ? req.url.split('?')[0] : '/';
   const clientType = url === '/android' ? 'android' : 'obs';
 
   if (clientType === 'android') {
     androidClients.add(ws);
-    console.log(`[+] Android connected (${androidClients.size} total)`);
+    log.info('WS', `Android connected (${androidClients.size} total)`);
 
     ws.isAlive = true;
     ws.on('pong', () => { ws.isAlive = true; });
 
     ws.on('message', (data) => {
       try {
-        const notification = JSON.parse(data.toString());
-        const appName = notification.appName || notification.packageName || 'Payment App';
-        const title = notification.title || '';
-        const text = notification.text || '';
+        const raw          = data.toString();
+        const notification = JSON.parse(raw);
+        const appName      = notification.appName || notification.packageName || 'Payment App';
+        const title        = notification.title || '';
+        const text         = notification.text  || '';
 
         if (!title && !text) return;
 
-        console.log(`[NOTIF] ${appName}: ${title} — ${text} (alertId=${notification.alertId || 'none'})`);
+        // ── RAW EVENT LOG ── printed to console + written to file
+        log.event('RawEvent', `Incoming event from ${appName}`, {
+          _receivedAt : new Date().toISOString(),
+          rawString   : raw,
+          parsed      : notification
+        });
 
         // Always forward to OBS overlays (including retriggers)
-        const payload = JSON.stringify({
-          type: 'payment_notification',
-          ...notification,
-          appName,
-          title,
-          text
-        });
-
-        const legacyPayload = JSON.stringify({
-          type: 'notification',
-          ...notification,
-          appName,
-          title,
-          text
-        });
+        const payload = JSON.stringify({ type: 'payment_notification', ...notification, appName, title, text });
+        const legacyPayload = JSON.stringify({ type: 'notification', ...notification, appName, title, text });
 
         obsClients.forEach(client => {
           if (client.readyState === 1) {
@@ -500,39 +498,34 @@ wss.on('connection', (ws, req) => {
           }
         });
 
-        // Goal + leaderboard update only runs if alertId hasn't been counted yet
+        // Goal + leaderboard (deduped by alertId)
         processPaymentForGoalAndLeaderboard(notification);
 
       } catch (e) {
-        console.error('[NOTIF] Parse error:', e.message);
+        log.error('WS', 'Parse error: ' + e.message);
       }
     });
 
     ws.on('close', () => {
       androidClients.delete(ws);
-      console.log(`[-] Android disconnected`);
+      log.info('WS', 'Android disconnected');
     });
 
   } else {
     obsClients.add(ws);
-    console.log(`[+] OBS overlay connected (${obsClients.size} total)`);
-
+    log.info('WS', `OBS overlay connected (${obsClients.size} total)`);
     ws.send(JSON.stringify({ type: 'SETTINGS_UPDATED', payload: alertSettings }));
     ws.send(JSON.stringify({ type: 'config', config: alertSettings }));
-
     ws.on('close', () => {
       obsClients.delete(ws);
-      console.log(`[-] OBS overlay disconnected`);
+      log.info('WS', 'OBS overlay disconnected');
     });
   }
 });
 
 const heartbeat = setInterval(() => {
   androidClients.forEach(ws => {
-    if (ws.isAlive === false) {
-      androidClients.delete(ws);
-      return ws.terminate();
-    }
+    if (ws.isAlive === false) { androidClients.delete(ws); return ws.terminate(); }
     ws.isAlive = false;
     ws.ping();
   });
@@ -542,10 +535,12 @@ wss.on('close', () => clearInterval(heartbeat));
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n\uD83D\uDE80 Payment Alerts for OBS - Server Running`);
-  console.log(`   Server      → http://localhost:${PORT}`);
-  console.log(`   Config UI   → http://localhost:${PORT}/config`);
-  console.log(`   OBS Overlay → http://localhost:${PORT}/overlay`);
-  console.log(`   Preview     → http://localhost:${PORT}/preview`);
-  console.log(`   Health      → http://localhost:${PORT}/health\n`);
+  log.info('Server', `\n🚀 Payment Alerts for OBS - Server Running`);
+  log.info('Server', `   Server      → http://localhost:${PORT}`);
+  log.info('Server', `   Config UI   → http://localhost:${PORT}/config`);
+  log.info('Server', `   OBS Overlay → http://localhost:${PORT}/overlay`);
+  log.info('Server', `   Preview     → http://localhost:${PORT}/preview`);
+  log.info('Server', `   Health      → http://localhost:${PORT}/health`);
+  log.info('Server', `   Log file    → ${LOG_FILE}`);
+  log.info('Server', `   Download log→ http://localhost:${PORT}/api/logs\n`);
 });
