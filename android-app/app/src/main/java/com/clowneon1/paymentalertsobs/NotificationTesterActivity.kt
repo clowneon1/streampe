@@ -33,10 +33,43 @@ class NotificationTesterActivity : AppCompatActivity() {
             pkg     = "in.amazon.mShop.android.shopping",
             appName = "Amazon Pay"
         ),
+        // PhonePe — Old format (pre-2023)
         Preset(
-            label   = "PhonePe",
+            label   = "PhonePe (old)",
             title   = "PhonePe",
-            text    = "D SINGH has sent rs1 to your bank account",
+            text    = "D SINGH has sent Rs. 500.00 to your bank account",
+            pkg     = "com.phonepe.app",
+            appName = "PhonePe"
+        ),
+        // PhonePe — Mid format
+        Preset(
+            label   = "PhonePe (mid)",
+            title   = "PhonePe",
+            text    = "D SINGH sent ₹500 to your account",
+            pkg     = "com.phonepe.app",
+            appName = "PhonePe"
+        ),
+        // PhonePe — New format (2024+)
+        Preset(
+            label   = "PhonePe (new)",
+            title   = "PhonePe",
+            text    = "Received ₹500 from D SINGH",
+            pkg     = "com.phonepe.app",
+            appName = "PhonePe"
+        ),
+        // PhonePe — Title-split format
+        Preset(
+            label   = "PhonePe (title-split)",
+            title   = "₹500 received",
+            text    = "From D SINGH",
+            pkg     = "com.phonepe.app",
+            appName = "PhonePe"
+        ),
+        // PhonePe — Compact format (newer devices)
+        Preset(
+            label   = "PhonePe (compact)",
+            title   = "₹500 from D SINGH",
+            text    = "PhonePe UPI",
             pkg     = "com.phonepe.app",
             appName = "PhonePe"
         ),
