@@ -140,11 +140,24 @@
       playSound(settings.media.soundUrl);
     }
 
-    // Schedule exit animation and cleanup
+    // Schedule exit animation, cleanup, and sound cutoff
     const displayDur = parseInt(settings.animation.displayDuration) || 5000;
     const animDur = parseInt(settings.animation.duration) || 600;
 
     activeAlertTimeout = setTimeout(() => {
+      // Stop sound when alert begins to exit
+      if (activeAudio) {
+        try {
+          const fadeOut = setInterval(() => {
+            if (activeAudio && activeAudio.volume > 0.05) {
+              activeAudio.volume = Math.max(0, activeAudio.volume - 0.05);
+            } else {
+              if (activeAudio) { activeAudio.pause(); activeAudio = null; }
+              clearInterval(fadeOut);
+            }
+          }, 30);
+        } catch (e) { /* ignore */ }
+      }
       alertBox.classList.remove(`anim-enter-${animType}`);
       alertBox.classList.add(`anim-exit-${animType}`);
       setTimeout(() => {
@@ -212,6 +225,10 @@
     const initialSettings = await StorageHelper.loadServer();
     applySettings(initialSettings);
     connectWebSocket();
+    // Notify parent (config dashboard) that overlay is ready
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'OVERLAY_READY', overlay: 'alert' }, '*');
+    }
   });
 
   // Expose triggers for direct script call

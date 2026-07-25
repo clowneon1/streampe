@@ -471,6 +471,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ── Tab Switching ──────────────────────────────────────────
+  const TAB_PREVIEW_URLS = {
+    goal: '/overlay/goal',
+    leaderboard: '/overlay/leaderboard'
+  };
+  let lastPreviewTab = 'alert';
+
   function setupTabs() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -482,16 +488,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tabEl = document.getElementById(`tab-${targetTab}`);
         if (tabEl) tabEl.classList.add('active');
 
-        // Sync Live Preview iframe URL based on active section
-        if (elements.iframe) {
-          if (targetTab === 'goal') {
-            elements.iframe.src = '/overlay/goal';
-          } else if (targetTab === 'leaderboard') {
-            elements.iframe.src = '/overlay/leaderboard';
-          } else {
-            elements.iframe.src = '/overlay/alert';
+        if (!elements.iframe) return;
+
+        const previewUrl = TAB_PREVIEW_URLS[targetTab] || '/overlay/alert';
+        const comingBackToAlert = targetTab !== 'goal' && targetTab !== 'leaderboard';
+
+        if (elements.iframe.src !== location.origin + previewUrl) {
+          elements.iframe.src = previewUrl;
+
+          // When switching back to alert tab, re-trigger test alert after iframe loads
+          if (comingBackToAlert) {
+            const onLoad = () => {
+              elements.iframe.removeEventListener('load', onLoad);
+              // Give overlay time to connect, then send settings + test alert
+              setTimeout(() => {
+                syncLivePreview();
+                const sampleSupporters = [
+                  { sender: 'Rahul Kumar', amount: '₹500', sourceApp: 'PhonePe', message: 'Awesome stream! 🚀' },
+                  { sender: 'Priya Singh', amount: '₹1000', sourceApp: 'Google Pay', message: 'Keep it up! ❤️' },
+                  { sender: 'Amit Verma', amount: '₹250', sourceApp: 'Paytm', message: 'Chai paani ☕' },
+                ];
+                const sample = sampleSupporters[Math.floor(Math.random() * sampleSupporters.length)];
+                if (elements.iframe.contentWindow) {
+                  elements.iframe.contentWindow.postMessage({ type: 'TRIGGER_TEST_ALERT', data: { ...sample, timestamp: Date.now() } }, '*');
+                }
+              }, 300);
+            };
+            elements.iframe.addEventListener('load', onLoad);
           }
         }
+
+        lastPreviewTab = targetTab;
       });
     });
   }
