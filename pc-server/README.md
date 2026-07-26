@@ -12,7 +12,10 @@ The Node.js WebSocket & REST server + Windows Desktop Application providing real
 ```bash
 npm run app:start
 ```
-Launches the native Windows Application with the **Server Control Panel** UI (`Server URL`, `Start on Startup`, `Real-Time Server Logs`, `Start/Stop Server`).
+Launches the native Windows Application with the **Server Control Panel** UI.
+> [!IMPORTANT]
+> **Run as Administrator**: For automatic Firewall rule configuration and startup settings, it is recommended to run the terminal or IDE as Administrator.
+> **Network Access**: Always **Allow Access** when prompted by Windows Firewall to ensure mobile connectivity.
 
 ### 2. Run Headless Server
 ```bash

@@ -146,7 +146,17 @@ function createMainWindow() {
 
   // serverPort is guaranteed to be set before createMainWindow() is called
   // (app.whenReady resolves the port first). Use it directly — no hardcoded default.
-  mainWindow.loadURL(`http://127.0.0.1:${serverPort}/config`);
+  mainWindow.loadURL(`http://127.0.0.1:${serverPort}/config`).catch(err => {
+    console.error('[Electron Main] Failed to load dashboard URL:', err);
+  });
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.warn(`[Electron Main] Page failed to load: ${validatedURL} (${errorDescription})`);
+    // If it's a connection error, it confirms the server isn't responding
+    if (errorCode === -102 || errorCode === -105) {
+      console.error('[Electron Main] Server connection refused. The embedded server may have failed to start.');
+    }
+  });
 
   // Minimize to tray instead of closing when user clicks X
   mainWindow.on('close', (event) => {

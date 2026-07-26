@@ -68,6 +68,10 @@ android-app/*/google-services.json
 android-app/*/src/main/assets/dexopt/
 android-app/**/R.java
 android-app/**/*.class
+android-app/**/output-metadata.json
+android-app/**/*.apk
+android-app/**/*.aab
+android-app/**/release/
 
 # ProGuard
 android-app/*/proguard/
@@ -76,6 +80,7 @@ android-app/*/proguard/
 android-app/.kotlin/
 
 # ── IDE / OS metadata ─────────────────────────────────────────
+.artifacts/
 .DS_Store
 Thumbs.db
 .idea/

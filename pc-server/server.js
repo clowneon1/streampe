@@ -23,11 +23,26 @@ app.get('/', (req, res) => {
 });
 
 // ── Debug Logger ─────────────────────────────────────────────────────
-const LOG_DIR       = path.join(__dirname, 'logs');
+let writableBaseDir = __dirname;
+try {
+  // Detect if running inside Electron's main process
+  const { app: electronApp } = require('electron');
+  if (electronApp && typeof electronApp.getPath === 'function') {
+    writableBaseDir = electronApp.getPath('userData');
+  }
+} catch (e) {
+  // Not in Electron or require('electron') failed (standalone mode)
+}
+
+const LOG_DIR       = path.join(writableBaseDir, 'logs');
 const LOG_FILE      = path.join(LOG_DIR, 'events.log');
 const LOG_MAX_BYTES = 5 * 1024 * 1024;
 
-if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+} catch (e) {
+  console.error('[Server] Failed to create log directory:', e.message);
+}
 
 function rotateLogIfNeeded() {
   try {
@@ -235,7 +250,7 @@ const ConfigSchema    = require('./public/js/lib/config-schema');
 const ConfigMigration = require('./public/js/lib/config-migration');
 const TemplateMatcher = require('./public/js/lib/template-matcher');
 
-const SETTINGS_DIR = path.join(__dirname, 'config');
+const SETTINGS_DIR = path.join(writableBaseDir, 'config');
 const SETTINGS_FILE = path.join(SETTINGS_DIR, 'settings.json');
 const LEGACY_CONFIG_FILE = path.join(__dirname, 'widget-config.json');
 

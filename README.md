@@ -43,6 +43,8 @@ No coding required! Follow these simple steps to get started in minutes.
 
 ### 2. Launch the Application
 - Double-click **`Payment Alerts for OBS.exe`** to start the app.
+- **Run as Administrator**: If the app fails to start or network discovery isn't working, right-click the `.exe` and select **Run as Administrator**.
+- **Firewall Permission**: When the Windows Security Alert appears, make sure to check **both Private and Public networks** and click **Allow Access**. This is required for your phone to "see" your PC over Wi-Fi.
 - The app starts on **port 2907** by default. If port 2907 is already in use, it automatically picks a random available port.
 - The **Widget Customizer Dashboard** will open at `http://127.0.0.1:<PORT>/config` (port is shown in the **Mobile Connection IP** header inside the app).
 - The exact **Mobile Connection IP** (e.g., `192.168.1.100:2907`) is always displayed in the top header — copy this to connect your Android phone.
