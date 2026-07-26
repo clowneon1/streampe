@@ -163,87 +163,49 @@ function parsePayment(notification) {
 }
 
 // ── Configuration Files ───────────────────────────────────────────────
+const ConfigSchema    = require('./public/js/lib/config-schema');
+const ConfigMigration = require('./public/js/lib/config-migration');
+const TemplateMatcher = require('./public/js/lib/template-matcher');
+
 const SETTINGS_DIR = path.join(__dirname, 'config');
 const SETTINGS_FILE = path.join(SETTINGS_DIR, 'settings.json');
 const LEGACY_CONFIG_FILE = path.join(__dirname, 'widget-config.json');
-
-const DEFAULT_SETTINGS = {
-  text: {
-    titleTemplate: "{{sender}} sent {{amount}}",
-    subtitleTemplate: "{{sourceApp}} payment received",
-    fontSize: 24,
-    fontFamily: "Inter",
-    fontBold: true,
-    fontItalic: false,
-    textTransform: "none",
-    textAlign: "center"
-  },
-  media: { imageUrl: "", gifUrl: "", soundUrl: "", soundVolume: 80, position: "top", size: 100 },
-  style: {
-    backgroundColor: "#000000", backgroundOpacity: 60, isTransparent: false,
-    accentColor: "#00e5ff", textColor: "#ffffff", borderRadius: 12, borderWidth: 5, padding: 20
-  },
-  animation: { type: "slide-up", duration: 600, displayDuration: 5000 },
-  advanced: {
-    canvasWidth: 1920, canvasHeight: 1080, positionPreset: "bottom-center",
-    positionX: 50, positionY: 90, marginX: 0, marginY: 0, width: 400,
-    enableCustomCode: true, customHTML: "", customCSS: "", customJS: ""
-  },
-  goal: {
-    enableGoal: true, title: "Stream Goal", startAmount: 0, currentAmount: 0,
-    targetAmount: 5000, endDate: "2026-12-31", barHeight: 36, barColor: "#1e2433",
-    fillColor: "#00e5ff", textColor: "#ffffff", fontFamily: "Inter", customHTML: "", customCSS: ""
-  },
-  leaderboard: {
-    enableLeaderboard: true, title: "Top Supporters", maxEntries: 5, showAmounts: true,
-    accentColor: "#00e5ff", fontFamily: "Inter", supporters: {}, customHTML: "", customCSS: ""
-  },
-  filter: { allowedAmounts: [] }
-};
-
-function migrateLegacyConfig(legacy) {
-  const merged = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
-  if (legacy.lineMiddle || legacy.lineTop)
-    merged.text.titleTemplate = (legacy.lineMiddle || legacy.lineTop || '').replace(/\{/g, '{{').replace(/\}/g, '}}');
-  if (legacy.lineBottom)
-    merged.text.subtitleTemplate = legacy.lineBottom.replace(/\{/g, '{{').replace(/\}/g, '}}');
-  if (legacy.fontSize)     merged.text.fontSize             = legacy.fontSize;
-  if (legacy.bgColor)      merged.style.backgroundColor     = legacy.bgColor;
-  if (legacy.accentColor)  merged.style.accentColor         = legacy.accentColor;
-  if (legacy.textColor)    merged.style.textColor           = legacy.textColor;
-  if (legacy.borderRadius) merged.style.borderRadius        = legacy.borderRadius;
-  if (legacy.width)        merged.advanced.width            = legacy.width;
-  if (legacy.duration)     merged.animation.displayDuration = legacy.duration;
-  return merged;
-}
 
 function loadSettings() {
   try {
     if (fs.existsSync(SETTINGS_FILE)) {
       const data = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
       log.info('Settings', `Loaded from ${SETTINGS_FILE}`);
-      return {
-        text:        { ...DEFAULT_SETTINGS.text,        ...(data.text        || {}) },
-        media:       { ...DEFAULT_SETTINGS.media,       ...(data.media       || {}) },
-        style:       { ...DEFAULT_SETTINGS.style,       ...(data.style       || {}) },
-        animation:   { ...DEFAULT_SETTINGS.animation,   ...(data.animation   || {}) },
-        advanced:    { ...DEFAULT_SETTINGS.advanced,    ...(data.advanced    || {}) },
-        goal:        { ...DEFAULT_SETTINGS.goal,        ...(data.goal        || {}) },
-        leaderboard: {
-          ...DEFAULT_SETTINGS.leaderboard, ...(data.leaderboard || {}),
-          supporters: { ...((data.leaderboard && data.leaderboard.supporters) || {}) }
-        },
-        filter: { ...DEFAULT_SETTINGS.filter, ...(data.filter || {}) }
-      };
+      return ConfigMigration.migrate(data);
     } else if (fs.existsSync(LEGACY_CONFIG_FILE)) {
       log.info('Settings', `Migrating legacy config from ${LEGACY_CONFIG_FILE}`);
-      const migrated = migrateLegacyConfig(JSON.parse(fs.readFileSync(LEGACY_CONFIG_FILE, 'utf8')));
+      const migrated = ConfigMigration.migrate(JSON.parse(fs.readFileSync(LEGACY_CONFIG_FILE, 'utf8')));
       saveSettings(migrated);
       return migrated;
     }
   } catch (e) { log.error('Settings', 'Load error: ' + e.message); }
   log.info('Settings', 'No config found, using defaults');
-  return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  return ConfigSchema.createDefaultConfig();
+}
+
+/**
+ * Merge a partial settings payload (a single widget, a single tab, the whole
+ * config …) into the current config and re-normalize the result.
+ */
+function applySettingsPatch(current, patch) {
+  const body = patch && typeof patch === 'object' ? patch : {};
+  const widgetPatch = body.widgets && typeof body.widgets === 'object' ? body.widgets : {};
+  const merged = {
+    ...current,
+    ...body,
+    alertTemplates: Array.isArray(body.alertTemplates) ? body.alertTemplates : current.alertTemplates,
+    widgets: ConfigSchema.WIDGET_KINDS.reduce((acc, kind) => {
+      acc[kind] = { ...current.widgets[kind], ...(widgetPatch[kind] || {}) };
+      return acc;
+    }, {}),
+    filter: { ...current.filter, ...(body.filter || {}) }
+  };
+  return ConfigMigration.migrate(merged);
 }
 
 function saveSettings(settings) {
@@ -258,8 +220,13 @@ const PROFILES_FILE = path.join(SETTINGS_DIR, 'profiles.json');
 function loadProfilesStore() {
   try {
     if (fs.existsSync(PROFILES_FILE)) {
-      const store = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf8'));
-      if (store.profiles && store.activeProfile && store.profiles[store.activeProfile]) return store;
+      const raw = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf8'));
+      if (raw && raw.profiles && Object.keys(raw.profiles).length) {
+        // Old profiles are migrated to the current schema on load.
+        const store = ConfigMigration.migrateProfileStore(raw);
+        saveProfilesStore(store);
+        return store;
+      }
     }
   } catch (e) { log.error('Profiles', 'Load error: ' + e.message); }
   const store = { activeProfile: 'Default', profiles: { 'Default': loadSettings() } };
@@ -286,13 +253,21 @@ function broadcastSettings(settings) {
 }
 
 // ── Amount filter ─────────────────────────────────────────────────────
-function parseAmountNum(rawAmount) {
-  if (typeof rawAmount === 'number') return rawAmount;
-  if (typeof rawAmount === 'string') {
-    const m = rawAmount.match(/[\d.,]+/);
-    if (m) return parseFloat(m[0].replace(/,/g, '')) || 0;
-  }
-  return 0;
+const parseAmountNum = (rawAmount) => TemplateMatcher.parseAmount(rawAmount);
+
+/**
+ * Attach the alert template chosen for this payment so every overlay renders
+ * the same template the server picked (see TemplateMatcher for the rule).
+ */
+function decorateWithTemplate(event) {
+  const amount = parseAmountNum(event.amount);
+  const template = TemplateMatcher.select(alertSettings.alertTemplates, amount);
+  return {
+    ...event,
+    amountValue: amount,
+    alertTemplateId: template ? template.id : null,
+    alertTemplateName: template ? template.name : ''
+  };
 }
 
 function isAmountAllowed(num) {
@@ -322,14 +297,12 @@ function processPaymentForGoalAndLeaderboard(notification) {
     if (/received|sent/i.test(senderName))
       senderName = senderName.split(/sent|received/i)[0].trim() || 'Unknown';
 
-    if (alertSettings.goal) {
-      alertSettings.goal.currentAmount = (parseFloat(alertSettings.goal.currentAmount) || 0) + effectiveAmount;
-    }
-    if (alertSettings.leaderboard) {
-      if (!alertSettings.leaderboard.supporters) alertSettings.leaderboard.supporters = {};
-      alertSettings.leaderboard.supporters[senderName] =
-        (parseFloat(alertSettings.leaderboard.supporters[senderName]) || 0) + effectiveAmount;
-    }
+    const goalWidget = alertSettings.widgets.goal;
+    const leaderboardWidget = alertSettings.widgets.leaderboard;
+
+    goalWidget.currentAmount = (parseFloat(goalWidget.currentAmount) || 0) + effectiveAmount;
+    leaderboardWidget.supporters[senderName] =
+      (parseFloat(leaderboardWidget.supporters[senderName]) || 0) + effectiveAmount;
 
     saveSettings(alertSettings);
     profilesStore.profiles[profilesStore.activeProfile] = alertSettings;
@@ -337,7 +310,7 @@ function processPaymentForGoalAndLeaderboard(notification) {
     broadcastSettings(alertSettings);
     if (alertId) processedAlertIds.add(alertId);
 
-    log.info('Payment', `₹${effectiveAmount} from "${senderName}" | alertId=${alertId} | Goal: ₹${alertSettings.goal.currentAmount}`);
+    log.info('Payment', `₹${effectiveAmount} from "${senderName}" | alertId=${alertId} | Goal: ₹${goalWidget.currentAmount}`);
   } catch (e) {
     log.error('Payment', 'Error: ' + e.message);
   }
@@ -358,21 +331,7 @@ app.get('/api/settings', (req, res) => {
 });
 
 app.post('/api/settings', (req, res) => {
-  alertSettings = {
-    text:        { ...alertSettings.text,        ...(req.body.text        || {}) },
-    media:       { ...alertSettings.media,       ...(req.body.media       || {}) },
-    style:       { ...alertSettings.style,       ...(req.body.style       || {}) },
-    animation:   { ...alertSettings.animation,   ...(req.body.animation   || {}) },
-    advanced:    { ...alertSettings.advanced,    ...(req.body.advanced    || {}) },
-    goal:        { ...alertSettings.goal,        ...(req.body.goal        || {}) },
-    leaderboard: {
-      ...alertSettings.leaderboard, ...(req.body.leaderboard || {}),
-      supporters: req.body.leaderboard && req.body.leaderboard.supporters
-        ? req.body.leaderboard.supporters
-        : (alertSettings.leaderboard ? alertSettings.leaderboard.supporters : {})
-    },
-    filter: { ...DEFAULT_SETTINGS.filter, ...(alertSettings.filter || {}), ...(req.body.filter || {}) }
-  };
+  alertSettings = applySettingsPatch(alertSettings, req.body);
   saveSettings(alertSettings);
   profilesStore.profiles[profilesStore.activeProfile] = alertSettings;
   saveProfilesStore(profilesStore);
@@ -396,7 +355,7 @@ app.post('/api/profiles/switch', (req, res) => {
 app.post('/api/profiles/save', (req, res) => {
   const { name, settings: newSettings } = req.body;
   if (!name) return res.status(400).json({ ok: false, error: 'Profile name required' });
-  if (newSettings) alertSettings = newSettings;
+  if (newSettings) alertSettings = ConfigMigration.migrate(newSettings);
   profilesStore.profiles[name] = alertSettings;
   profilesStore.activeProfile  = name;
   saveSettings(alertSettings); saveProfilesStore(profilesStore); broadcastSettings(alertSettings);
@@ -408,6 +367,7 @@ app.post('/api/profiles/delete', (req, res) => {
   if (!name || name === 'Default') return res.status(400).json({ ok: false, error: 'Cannot delete Default profile' });
   delete profilesStore.profiles[name];
   if (profilesStore.activeProfile === name) {
+    if (!profilesStore.profiles['Default']) profilesStore.profiles['Default'] = ConfigSchema.createDefaultConfig();
     profilesStore.activeProfile = 'Default';
     alertSettings = profilesStore.profiles['Default'];
     saveSettings(alertSettings);
@@ -418,8 +378,11 @@ app.post('/api/profiles/delete', (req, res) => {
 
 app.get('/api/config',  (req, res) => res.json(alertSettings));
 app.post('/api/config', (req, res) => {
-  alertSettings = { ...alertSettings, ...req.body };
-  saveSettings(alertSettings); broadcastSettings(alertSettings);
+  alertSettings = applySettingsPatch(alertSettings, req.body);
+  saveSettings(alertSettings);
+  profilesStore.profiles[profilesStore.activeProfile] = alertSettings;
+  saveProfilesStore(profilesStore);
+  broadcastSettings(alertSettings);
   res.json({ ok: true, config: alertSettings });
 });
 
@@ -433,22 +396,36 @@ app.get('/api/logs', (req, res) => {
   }
 });
 
+/** Parse + template-decorate a synthetic notification and push it to every overlay. */
+function broadcastSample(sample) {
+  const parsed = parsePayment(sample);
+  const decorated = decorateWithTemplate({
+    ...sample,
+    sender   : parsed ? parsed.sender    : (sample.sender    || ''),
+    amount   : parsed ? parsed.amount    : (sample.amount    || ''),
+    sourceApp: parsed ? parsed.sourceApp : (sample.sourceApp || sample.appName)
+  });
+  const payload       = JSON.stringify({ type: 'payment_notification', ...decorated });
+  const legacyPayload = JSON.stringify({ type: 'notification',         ...decorated });
+  let count = 0;
+  obsClients.forEach(ws => {
+    if (ws.readyState === 1) { ws.send(payload); ws.send(legacyPayload); count++; }
+  });
+  return { count, templateId: decorated.alertTemplateId, templateName: decorated.alertTemplateName };
+}
+
 app.get('/api/test', (req, res) => {
-  const sample = {
+  const result = broadcastSample({
     type: 'payment_notification', packageName: 'com.phonepe.app', appName: 'PhonePe',
     title: 'PhonePe', text: 'D SINGH has sent Rs. 500.00 to your bank account',
     timestamp: Date.now()
-  };
-  let count = 0;
-  obsClients.forEach(ws => {
-    if (ws.readyState === 1) { ws.send(JSON.stringify(sample)); ws.send(JSON.stringify({ type: 'notification', ...sample })); count++; }
   });
-  res.json({ ok: true, sent: count });
+  res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId });
 });
 
 app.post('/api/test', (req, res) => {
   const body = req.body || {};
-  const sample = {
+  const result = broadcastSample({
     type: 'payment_notification',
     packageName: body.packageName || 'com.phonepe.app',
     appName:     body.appName    || 'PhonePe',
@@ -456,12 +433,8 @@ app.post('/api/test', (req, res) => {
     text:        body.text       || 'D SINGH has sent Rs. 500.00 to your bank account',
     bigText:     body.bigText    || body.text || 'D SINGH has sent Rs. 500.00 to your bank account',
     timestamp:   Date.now()
-  };
-  let count = 0;
-  obsClients.forEach(ws => {
-    if (ws.readyState === 1) { ws.send(JSON.stringify(sample)); ws.send(JSON.stringify({ type: 'notification', ...sample })); count++; }
   });
-  res.json({ ok: true, sent: count });
+  res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId });
 });
 
 app.get('/health', (req, res) =>
@@ -515,8 +488,10 @@ wss.on('connection', (ws, req) => {
         log.parse('Parser', `sender="${enriched.sender}" amount="${enriched.amount}" sourceApp="${enriched.sourceApp}"`);
 
         // ── Forward to OBS
-        const payload       = JSON.stringify({ type: 'payment_notification', ...enriched });
-        const legacyPayload = JSON.stringify({ type: 'notification',         ...enriched });
+        const decorated     = decorateWithTemplate(enriched);
+        log.parse('Template', `matched "${decorated.alertTemplateName}" (${decorated.alertTemplateId})`);
+        const payload       = JSON.stringify({ type: 'payment_notification', ...decorated });
+        const legacyPayload = JSON.stringify({ type: 'notification',         ...decorated });
 
         obsClients.forEach(client => {
           if (client.readyState === 1) { client.send(payload); client.send(legacyPayload); }

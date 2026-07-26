@@ -1,89 +1,34 @@
 /**
- * Storage Helper for Payment Alerts Settings
- * Manages localStorage, server REST endpoints, and JSON import/export
+ * Storage helper for payment alert settings.
+ *
+ * Persistence only — the schema itself lives in `lib/config-schema.js` and every
+ * value that enters (localStorage, server, imported file) is passed through
+ * `ConfigMigration.migrate`, so legacy files load as normalized v2 configs.
  */
-(function (global) {
+(function (root, factory) {
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = factory(require('./lib/config-schema'), require('./lib/config-migration'));
+  } else {
+    root.StorageHelper = factory(root.ConfigSchema, root.ConfigMigration);
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (ConfigSchema, ConfigMigration) {
+  'use strict';
+
   const LOCAL_STORAGE_KEY = 'streamlabs_alert_settings';
 
-  const DEFAULT_SETTINGS = {
-    activeWidget: "alert",
-    widgets: {
-      alert: {
-        text: { titleTemplate: "{{sender}} sent {{amount}}", subtitleTemplate: "{{sourceApp}} payment received", fontSize: 24, fontFamily: "Inter", fontBold: true, fontItalic: false, textTransform: "none", textAlign: "center" },
-        media: { imageUrl: "", gifUrl: "", soundUrl: "", soundVolume: 80, position: "top", size: 100 },
-        style: { backgroundColor: "#000000", backgroundOpacity: 60, isTransparent: false, accentColor: "#00e5ff", textColor: "#ffffff", borderRadius: 12, borderWidth: 5, padding: 20 },
-        animation: { type: "slide-up", duration: 600, displayDuration: 5000 },
-        advanced: { canvasWidth: 1920, canvasHeight: 1080, positionPreset: "bottom-center", positionX: 50, positionY: 90, marginX: 0, marginY: 0, width: 400, enableCustomCode: true, customHTML: "", customCSS: "", customJS: "" }
-      },
-      goal: {
-        enableGoal: true,
-        title: "Payment Goal",
-        startAmount: 0,
-        currentAmount: 0,
-        targetAmount: 5000,
-        endDate: "2026-12-31",
-        text: { titleTemplate: "Payment Goal", subtitleTemplate: "Target: ₹{{targetAmount}}", fontSize: 18, fontFamily: "Inter", fontBold: true, fontItalic: false, textTransform: "none", textAlign: "left" },
-        media: { imageUrl: "", gifUrl: "", soundUrl: "", soundVolume: 80, position: "top", size: 100 },
-        style: { backgroundColor: "#0a0e17", backgroundOpacity: 85, isTransparent: false, accentColor: "#00e5ff", textColor: "#ffffff", borderRadius: 14, borderWidth: 1, padding: 16, barHeight: 36, barColor: "#1e2433", fillColor: "#00e5ff" },
-        animation: { type: "fade-in", duration: 400, displayDuration: 5000 },
-        advanced: { canvasWidth: 1920, canvasHeight: 1080, positionPreset: "center", positionX: 50, positionY: 50, marginX: 0, marginY: 0, width: 600, enableCustomCode: true, customHTML: "", customCSS: "", customJS: "" }
-      },
-      leaderboard: {
-        enableLeaderboard: true,
-        title: "Top Supporters",
-        maxEntries: 5,
-        showAmounts: true,
-        supporters: {},
-        text: { titleTemplate: "Top Supporters", subtitleTemplate: "Leaderboard", fontSize: 15, fontFamily: "Inter", fontBold: true, fontItalic: false, textTransform: "none", textAlign: "left" },
-        media: { imageUrl: "", gifUrl: "", soundUrl: "", soundVolume: 80, position: "top", size: 100 },
-        style: { backgroundColor: "#0a0e17", backgroundOpacity: 88, isTransparent: false, accentColor: "#00e5ff", textColor: "#ffffff", borderRadius: 16, borderWidth: 1, padding: 18 },
-        animation: { type: "fade-in", duration: 400, displayDuration: 5000 },
-        advanced: { canvasWidth: 1920, canvasHeight: 1080, positionPreset: "center", positionX: 50, positionY: 50, marginX: 0, marginY: 0, width: 450, enableCustomCode: true, customHTML: "", customCSS: "", customJS: "" }
-      }
-    },
-    // Top-level fallbacks
-    text: { titleTemplate: "{{sender}} sent {{amount}}", subtitleTemplate: "{{sourceApp}} payment received", fontSize: 24, fontFamily: "Inter", fontBold: true, fontItalic: false, textTransform: "none", textAlign: "center" },
-    media: { imageUrl: "", gifUrl: "", soundUrl: "", soundVolume: 80, position: "top", size: 100 },
-    style: { backgroundColor: "#000000", backgroundOpacity: 60, isTransparent: false, accentColor: "#00e5ff", textColor: "#ffffff", borderRadius: 12, borderWidth: 5, padding: 20 },
-    animation: { type: "slide-up", duration: 600, displayDuration: 5000 },
-    advanced: { canvasWidth: 1920, canvasHeight: 1080, positionPreset: "bottom-center", positionX: 50, positionY: 90, marginX: 0, marginY: 0, width: 400, enableCustomCode: true, customHTML: "", customCSS: "", customJS: "" },
-    goal: { enableGoal: true, title: "Payment Goal", startAmount: 0, currentAmount: 0, targetAmount: 5000, endDate: "2026-12-31", barHeight: 36, barColor: "#1e2433", fillColor: "#00e5ff", textColor: "#ffffff", fontFamily: "Inter", customHTML: "", customCSS: "" },
-    leaderboard: { enableLeaderboard: true, title: "Top Supporters", maxEntries: 5, showAmounts: true, accentColor: "#00e5ff", fontFamily: "Inter", supporters: {}, customHTML: "", customCSS: "" }
-  };
-
   const StorageHelper = {
+    LOCAL_STORAGE_KEY,
+
     getDefaultSettings() {
-      return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+      return ConfigSchema.createDefaultConfig();
     },
 
+    /** Normalize + migrate any generation of config into a complete v2 config. */
     mergeWithDefaults(settings) {
-      const defaults = this.getDefaultSettings();
-      if (!settings || typeof settings !== 'object') return defaults;
-      const merged = {
-        ...defaults,
-        ...settings,
-        activeWidget: settings.activeWidget || defaults.activeWidget,
-        widgets: {
-          alert: { ...defaults.widgets.alert, ...(settings.widgets && settings.widgets.alert ? settings.widgets.alert : {}) },
-          goal: { ...defaults.widgets.goal, ...(settings.widgets && settings.widgets.goal ? settings.widgets.goal : {}), ...(settings.goal || {}) },
-          leaderboard: { ...defaults.widgets.leaderboard, ...(settings.widgets && settings.widgets.leaderboard ? settings.widgets.leaderboard : {}), ...(settings.leaderboard || {}) }
-        },
-        text: { ...defaults.text, ...(settings.text || {}) },
-        media: { ...defaults.media, ...(settings.media || {}) },
-        style: { ...defaults.style, ...(settings.style || {}) },
-        animation: { ...defaults.animation, ...(settings.animation || {}) },
-        advanced: { ...defaults.advanced, ...(settings.advanced || {}) },
-        goal: { ...defaults.goal, ...(settings.goal || {}) },
-        leaderboard: {
-          ...defaults.leaderboard,
-          ...(settings.leaderboard || {}),
-          supporters: { ...(defaults.leaderboard.supporters || {}), ...((settings.leaderboard && settings.leaderboard.supporters) || {}) }
-        }
-      };
-      return merged;
+      return ConfigMigration.migrate(settings);
     },
 
-    // ── Local Storage ───────────────────────────────────────────
+    // ── Local storage ───────────────────────────────────────────
     saveLocal(settings) {
       try {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settings));
@@ -116,8 +61,9 @@
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
         const data = await res.json();
         if (data.ok && data.settings) {
-          this.saveLocal(data.settings);
-          return data.settings;
+          const merged = this.mergeWithDefaults(data.settings);
+          this.saveLocal(merged);
+          return merged;
         }
         return settings;
       } catch (e) {
@@ -132,10 +78,7 @@
         const res = await fetch('/api/settings');
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
         const data = await res.json();
-        // API returns { activeProfile, profiles, settings } — extract the actual settings
-        const rawSettings = (data && data.settings) ? data.settings : data;
-        const merged = this.mergeWithDefaults(rawSettings);
-        // Preserve the active profile name in the merged settings
+        const merged = this.mergeWithDefaults(data && data.settings ? data.settings : data);
         if (data && data.activeProfile) merged._activeProfile = data.activeProfile;
         this.saveLocal(merged);
         return merged;
@@ -164,15 +107,11 @@
 
     importFromFile(file) {
       return new Promise((resolve, reject) => {
-        if (!file) {
-          return reject(new Error('No file provided'));
-        }
+        if (!file) return reject(new Error('No file provided'));
         const reader = new FileReader();
         reader.onload = (event) => {
           try {
-            const json = JSON.parse(event.target.result);
-            const validated = this.mergeWithDefaults(json);
-            resolve(validated);
+            resolve(this.mergeWithDefaults(JSON.parse(event.target.result)));
           } catch (err) {
             reject(new Error('Invalid JSON file format'));
           }
@@ -183,9 +122,5 @@
     }
   };
 
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = StorageHelper;
-  } else {
-    global.StorageHelper = StorageHelper;
-  }
-})(typeof window !== 'undefined' ? window : this);
+  return StorageHelper;
+});

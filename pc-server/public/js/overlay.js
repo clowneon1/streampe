@@ -1,78 +1,85 @@
 /**
- * Overlay Renderer Logic for Payment Alerts
+ * Alert overlay renderer.
+ *
+ * Every alert resolves its own template (image, sound, text style, animation,
+ * canvas, layout) via TemplateMatcher, layered on top of `widgets.alert`. The
+ * server tells us which template it picked (`alertTemplateId`) so the overlay
+ * and the server never disagree; without that hint we match on the amount
+ * ourselves using the same deterministic rule.
  */
 (function () {
-  let settings = StorageHelper.getDefaultSettings();
+  let config = StorageHelper.getDefaultSettings();
   let activeAlertTimeout = null;
   let activeAudio = null;
+  let activeVolume = 0.8;
 
   function hexToRgb(hex) {
     if (!hex) return { r: 0, g: 0, b: 0 };
-    let c = hex.replace('#', '');
+    let c = String(hex).replace('#', '');
     if (c.length === 3) c = c.split('').map(x => x + x).join('');
     const num = parseInt(c, 16);
     if (isNaN(num)) return { r: 0, g: 0, b: 0 };
     return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
   }
 
-  function applySettings(newSettings) {
-    if (!newSettings) return;
-    settings = StorageHelper.mergeWithDefaults(newSettings);
+  /** Push one resolved render config (widget base + template) into CSS variables. */
+  function applyRenderConfig(resolved) {
     const root = document.documentElement;
+    const style = resolved.style || {};
+    const layout = resolved.layout || {};
+    const animation = resolved.animation || {};
+    const image = resolved.image || {};
+    const sound = resolved.sound || {};
 
-    // Apply styles to CSS variables
-    const rgb = hexToRgb(settings.style.backgroundColor);
-    const opacity = settings.style.isTransparent ? 0 : (settings.style.backgroundOpacity !== undefined ? settings.style.backgroundOpacity : 60);
-    const borderWidth = settings.style.borderWidth !== undefined ? settings.style.borderWidth : 5;
-
+    const rgb = hexToRgb(style.backgroundColor);
     root.style.setProperty('--bg-r', rgb.r);
     root.style.setProperty('--bg-g', rgb.g);
     root.style.setProperty('--bg-b', rgb.b);
-    root.style.setProperty('--bg-opacity', opacity);
-    root.style.setProperty('--accent-color', settings.style.accentColor);
-    root.style.setProperty('--text-color', settings.style.textColor);
-    root.style.setProperty('--border-radius', (settings.style.borderRadius !== undefined ? settings.style.borderRadius : 12) + 'px');
-    root.style.setProperty('--border-width', borderWidth + 'px');
-    root.style.setProperty('--padding', (settings.style.padding || 20) + 'px');
-    root.style.setProperty('--position-x', settings.advanced.positionX !== undefined ? settings.advanced.positionX : 50);
-    root.style.setProperty('--position-y', settings.advanced.positionY !== undefined ? settings.advanced.positionY : 90);
-    root.style.setProperty('--width', (settings.advanced.width || 400) + 'px');
-    root.style.setProperty('--font-size', (settings.text.fontSize || 24) + 'px');
-    root.style.setProperty('--font-family', `'${settings.text.fontFamily || 'Inter'}', sans-serif`);
-    root.style.setProperty('--font-weight', settings.text.fontBold ? 'bold' : 'normal');
-    root.style.setProperty('--font-style', settings.text.fontItalic ? 'italic' : 'normal');
-    root.style.setProperty('--text-transform', settings.text.textTransform || 'none');
-    root.style.setProperty('--text-align', settings.text.textAlign || 'center');
-    root.style.setProperty('--margin-x', (settings.advanced.marginX || 0) + 'px');
-    root.style.setProperty('--margin-y', (settings.advanced.marginY || 0) + 'px');
-    root.style.setProperty('--anim-duration', (settings.animation.duration || 600) + 'ms');
-    root.style.setProperty('--media-size', (settings.media.size || 100) + 'px');
-    root.style.setProperty('--sound-volume', ((settings.media.soundVolume !== undefined ? settings.media.soundVolume : 80) / 100).toString());
+    root.style.setProperty('--bg-opacity', style.isTransparent ? 0 : style.backgroundOpacity);
+    root.style.setProperty('--accent-color', style.accentColor);
+    root.style.setProperty('--border-radius', style.borderRadius + 'px');
+    root.style.setProperty('--border-width', style.borderWidth + 'px');
+    root.style.setProperty('--padding', style.padding + 'px');
 
-    // Apply Custom CSS (if enabled)
+    root.style.setProperty('--position-x', layout.positionX);
+    root.style.setProperty('--position-y', layout.positionY);
+    root.style.setProperty('--margin-x', layout.marginX + 'px');
+    root.style.setProperty('--margin-y', layout.marginY + 'px');
+    root.style.setProperty('--width', layout.width + 'px');
+
+    root.style.setProperty('--anim-duration', animation.duration + 'ms');
+    root.style.setProperty('--media-size', (image.size || 100) + 'px');
+
+    WidgetStyle.applyCssVars(root, WidgetStyle.toCssVars(resolved.text));
+    WidgetStyle.applyCssVars(root, CanvasPresets.toCssVars(resolved.canvas));
+
+    activeVolume = Math.max(0, Math.min(1, (sound.soundVolume !== undefined ? sound.soundVolume : 80) / 100));
+    root.style.setProperty('--sound-volume', String(activeVolume));
+
     let customStyleEl = document.getElementById('custom-alert-css');
     if (!customStyleEl) {
       customStyleEl = document.createElement('style');
       customStyleEl.id = 'custom-alert-css';
       document.head.appendChild(customStyleEl);
     }
-    const isCodeEnabled = settings.advanced.enableCustomCode !== undefined ? settings.advanced.enableCustomCode : (settings.advanced.enableCustomCSS !== undefined ? settings.advanced.enableCustomCSS : true);
-    customStyleEl.textContent = isCodeEnabled ? (settings.advanced.customCSS || '') : '';
+    const code = resolved.code || {};
+    customStyleEl.textContent = code.enableCustomCode !== false ? (code.customCSS || '') : '';
+  }
+
+  /** Store a new config and preview the template currently selected in the UI. */
+  function applySettings(newSettings) {
+    if (!newSettings) return;
+    config = StorageHelper.mergeWithDefaults(newSettings);
+    applyRenderConfig(TemplateMatcher.resolve(config, 0, config.activeTemplateId));
   }
 
   function playSound(url) {
     if (!url) return;
     try {
-      if (activeAudio) {
-        activeAudio.pause();
-        activeAudio.currentTime = 0;
-      }
+      if (activeAudio) { activeAudio.pause(); activeAudio.currentTime = 0; }
       activeAudio = new Audio(url);
-      const vol = (settings.media && settings.media.soundVolume !== undefined ? settings.media.soundVolume : 80) / 100;
-      activeAudio.volume = Math.max(0, Math.min(1, vol));
-      activeAudio.play().catch(err => {
-        console.warn('[Overlay] Sound play blocked or failed:', err.message);
-      });
+      activeAudio.volume = activeVolume;
+      activeAudio.play().catch(err => console.warn('[Overlay] Sound play blocked or failed:', err.message));
     } catch (e) {
       console.warn('[Overlay] Sound initialization error:', e.message);
     }
@@ -82,37 +89,34 @@
     const container = document.getElementById('overlay-container');
     if (!container) return;
 
-    // Clear existing alert
+    const amount = TemplateMatcher.parseAmount(
+      notifData.amountValue !== undefined ? notifData.amountValue : notifData.amount
+    );
+    const resolved = TemplateMatcher.resolve(config, amount, notifData.alertTemplateId);
+    applyRenderConfig(resolved);
+
     container.innerHTML = '';
     if (activeAlertTimeout) clearTimeout(activeAlertTimeout);
 
     const alertBox = document.createElement('div');
-    const animType = settings.animation.type || 'slide-up';
-    const mediaPos = settings.media.position || 'top';
-
+    const animType = resolved.animation.type || 'slide-up';
+    const mediaPos = resolved.image.position || 'top';
     alertBox.className = `alert-box media-pos-${mediaPos} anim-enter-${animType}`;
 
-    // Media element (GIF priority, then Image)
-    const mediaUrl = settings.media.gifUrl || settings.media.imageUrl;
-    let mediaHtml = '';
-    if (mediaUrl) {
-      mediaHtml = `<img class="alert-media" src="${TemplateEngine.escapeHtml(mediaUrl)}" alt="Alert Media" />`;
-    }
+    const mediaUrl = resolved.image.gifUrl || resolved.image.imageUrl;
+    const mediaHtml = mediaUrl
+      ? `<img class="alert-media" src="${TemplateEngine.escapeHtml(mediaUrl)}" alt="Alert Media" />`
+      : '';
 
-    // Render templates
-    const titleText = TemplateEngine.render(settings.text.titleTemplate, notifData);
-    const subtitleText = TemplateEngine.render(settings.text.subtitleTemplate, notifData);
+    const titleText = TemplateEngine.render(resolved.text.titleTemplate, notifData);
+    const subtitleText = TemplateEngine.render(resolved.text.subtitleTemplate, notifData);
+    const code = resolved.code || {};
+    const isCodeEnabled = code.enableCustomCode !== false;
 
-    const isCodeEnabled = settings.advanced.enableCustomCode !== undefined ? settings.advanced.enableCustomCode : (settings.advanced.enableCustomCSS !== undefined ? settings.advanced.enableCustomCSS : true);
-
-    if (isCodeEnabled && settings.advanced && settings.advanced.customHTML && settings.advanced.customHTML.trim()) {
-      const renderData = {
-        ...notifData,
-        mediaHtml: mediaHtml,
-        title: titleText,
-        subtitle: subtitleText
-      };
-      alertBox.innerHTML = TemplateEngine.render(settings.advanced.customHTML, renderData);
+    if (isCodeEnabled && code.customHTML && code.customHTML.trim()) {
+      alertBox.innerHTML = TemplateEngine.render(code.customHTML, {
+        ...notifData, mediaHtml, title: titleText, subtitle: subtitleText
+      });
     } else {
       alertBox.innerHTML = `
         ${mediaHtml}
@@ -125,57 +129,44 @@
 
     container.appendChild(alertBox);
 
-    // Custom JS execution hook (if enabled)
-    if (isCodeEnabled && settings.advanced && settings.advanced.customJS && settings.advanced.customJS.trim()) {
+    if (isCodeEnabled && code.customJS && code.customJS.trim()) {
       try {
-        const userFn = new Function('notifData', 'alertBox', 'settings', settings.advanced.customJS);
-        userFn(notifData, alertBox, settings);
+        new Function('notifData', 'alertBox', 'settings', code.customJS)(notifData, alertBox, resolved);
       } catch (e) {
         console.warn('[Overlay] Custom JS execution error:', e.message);
       }
     }
 
-    // Play Sound
-    if (settings.media.soundUrl) {
-      playSound(settings.media.soundUrl);
-    }
+    if (resolved.sound.soundUrl) playSound(resolved.sound.soundUrl);
 
-    // Schedule exit animation, cleanup, and sound cutoff
-    const displayDur = parseInt(settings.animation.displayDuration) || 5000;
-    const animDur = parseInt(settings.animation.duration) || 600;
+    const displayDur = parseInt(resolved.animation.displayDuration, 10) || 5000;
+    const animDur = parseInt(resolved.animation.duration, 10) || 600;
 
     activeAlertTimeout = setTimeout(() => {
-      // Stop sound when alert begins to exit
       if (activeAudio) {
-        try {
-          const fadeOut = setInterval(() => {
-            if (activeAudio && activeAudio.volume > 0.05) {
-              activeAudio.volume = Math.max(0, activeAudio.volume - 0.05);
-            } else {
-              if (activeAudio) { activeAudio.pause(); activeAudio = null; }
-              clearInterval(fadeOut);
-            }
-          }, 30);
-        } catch (e) { /* ignore */ }
+        const fadeOut = setInterval(() => {
+          if (activeAudio && activeAudio.volume > 0.05) {
+            activeAudio.volume = Math.max(0, activeAudio.volume - 0.05);
+          } else {
+            if (activeAudio) { activeAudio.pause(); activeAudio = null; }
+            clearInterval(fadeOut);
+          }
+        }, 30);
       }
       alertBox.classList.remove(`anim-enter-${animType}`);
       alertBox.classList.add(`anim-exit-${animType}`);
       setTimeout(() => {
-        if (container.contains(alertBox)) {
-          container.removeChild(alertBox);
-        }
+        if (container.contains(alertBox)) container.removeChild(alertBox);
       }, animDur);
     }, displayDur);
   }
 
-  // ── WebSocket Client ───────────────────────────────────────
+  // ── WebSocket client ───────────────────────────────────────
   let ws = null;
   function connectWebSocket() {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${location.host}`;
-
     try {
-      ws = new WebSocket(wsUrl);
+      ws = new WebSocket(`${protocol}//${location.host}`);
       ws.onopen = () => console.log('[Overlay] Connected to WebSocket');
       ws.onclose = () => {
         console.warn('[Overlay] WebSocket disconnected, reconnecting in 3s...');
@@ -185,13 +176,9 @@
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
-          if (msg.type === 'SETTINGS_UPDATED') {
-            applySettings(msg.payload);
-          } else if (msg.type === 'config') {
-            applySettings(msg.config);
-          } else if (msg.type === 'payment_notification' || msg.type === 'notification') {
-            triggerAlert(msg);
-          }
+          if (msg.type === 'SETTINGS_UPDATED') applySettings(msg.payload);
+          else if (msg.type === 'config') applySettings(msg.config);
+          else if (msg.type === 'payment_notification' || msg.type === 'notification') triggerAlert(msg);
         } catch (e) {
           console.error('[Overlay] Message parse error:', e);
         }
@@ -201,39 +188,30 @@
     }
   }
 
-  // ── Window PostMessage Listener (Preview mode / iframe sync) ─
+  // ── PostMessage listener (preview iframe) ──────────────────
   window.addEventListener('message', (event) => {
     const data = event.data;
     if (!data) return;
-
     if (data.type === 'SETTINGS_UPDATED') {
       applySettings(data.payload);
     } else if (data.type === 'TRIGGER_TEST_ALERT') {
-      const sample = data.data || {
+      triggerAlert(data.data || {
         sender: 'Rahul Kumar',
         amount: '₹500',
         sourceApp: 'Google Pay',
         message: 'Coffee Payment Received',
         timestamp: Date.now()
-      };
-      triggerAlert(sample);
+      });
     }
   });
 
-  // Initialization
   document.addEventListener('DOMContentLoaded', async () => {
-    const initialSettings = await StorageHelper.loadServer();
-    applySettings(initialSettings);
+    applySettings(await StorageHelper.loadServer());
     connectWebSocket();
-    // Notify parent (config dashboard) that overlay is ready
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'OVERLAY_READY', overlay: 'alert' }, '*');
     }
   });
 
-  // Expose triggers for direct script call
-  window.OverlayRenderer = {
-    applySettings,
-    triggerAlert
-  };
+  window.OverlayRenderer = { applySettings, triggerAlert };
 })();

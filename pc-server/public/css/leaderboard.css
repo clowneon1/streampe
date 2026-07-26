@@ -1,6 +1,24 @@
 :root {
   --lb-accent-color: #00e5ff;
+  --lb-row-bg-color: #1a1e2b;
+  --lb-border-radius: 16px;
+  --lb-padding: 18px;
+  --lb-width: 450px;
+  --lb-position-x: 50;
+  --lb-position-y: 50;
+  --lb-margin-x: 0px;
+  --lb-margin-y: 0px;
   --lb-font-family: 'Inter', sans-serif;
+  --lb-font-size: 15px;
+  --lb-font-weight: 700;
+  --lb-font-style: normal;
+  --lb-text-color: #ffffff;
+  --lb-text-align: left;
+  --lb-text-transform: none;
+  --lb-letter-spacing: 0px;
+  --lb-line-height: 1.3;
+  --canvas-width: 1920px;
+  --canvas-height: 1080px;
 }
 
 * {
@@ -18,22 +36,27 @@ body, html {
 }
 
 #leaderboard-container {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  left: calc(var(--lb-position-x, 50) * 1%);
+  top: calc(var(--lb-position-y, 50) * 1%);
+  transform: translate(-50%, -50%);
+  margin-left: var(--lb-margin-x, 0px);
+  margin-top: var(--lb-margin-y, 0px);
+  width: var(--lb-width, 450px);
+  max-width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
   pointer-events: none;
 }
 
 .lb-card {
   width: 100%;
-  max-width: 450px;
+  max-width: var(--lb-width, 450px);
   background: rgba(10, 14, 23, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  padding: 18px 22px;
+  border-radius: var(--lb-border-radius, 16px);
+  padding: var(--lb-padding, 18px);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 229, 255, 0.15);
   backdrop-filter: blur(12px);
   pointer-events: auto;
@@ -49,10 +72,14 @@ body, html {
 }
 
 .lb-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: 0.5px;
+  font-size: calc(var(--lb-font-size, 15px) * 1.33);
+  font-weight: var(--lb-font-weight, 800);
+  font-style: var(--lb-font-style, normal);
+  color: var(--lb-text-color, #ffffff);
+  text-align: var(--lb-text-align, left);
+  text-transform: var(--lb-text-transform, none);
+  letter-spacing: var(--lb-letter-spacing, 0.5px);
+  line-height: var(--lb-line-height, 1.3);
 }
 
 .lb-list {
@@ -65,7 +92,7 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--lb-row-bg-color, rgba(255, 255, 255, 0.04));
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   padding: 8px 14px;
@@ -112,13 +139,14 @@ body, html {
 .rank-3 .lb-badge { background: #cd7f32; color: #fff; }
 
 .lb-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: #ffffff;
+  font-size: var(--lb-font-size, 15px);
+  font-weight: var(--lb-font-weight, 700);
+  font-style: var(--lb-font-style, normal);
+  color: var(--lb-text-color, #ffffff);
 }
 
 .lb-amount {
-  font-size: 15px;
+  font-size: var(--lb-font-size, 15px);
   font-weight: 700;
   color: var(--lb-accent-color);
   font-family: monospace;

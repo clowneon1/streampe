@@ -1,1135 +1,736 @@
 /**
- * Config Editor UI Controller
+ * Configuration dashboard controller.
+ *
+ * The form is a view over one v2 config object:
+ *   - the alert-facing tabs edit the *selected alert template*
+ *     (`alertTemplates[activeTemplateId]`),
+ *   - the "Alert Widget Base", "Payment Goal" and "Top Leaderboard" tabs edit
+ *     `widgets.alert` / `widgets.goal` / `widgets.leaderboard`.
+ *
+ * Text style and canvas controls follow one id convention per section, so a
+ * single pair of read/write helpers drives all four of them:
+ *   `<prefix>-font-family`, `<prefix>-font-size`, … , `<prefix>-canvas-preset`, …
+ * with prefixes `tpl` (template), `alert`, `goal`, `lb`.
  */
 document.addEventListener('DOMContentLoaded', async () => {
   'use strict';
 
-  let settings = StorageHelper.getDefaultSettings();
-  let activeTextInput = null;
-  let currentWidgetKey = 'alert';
+  const el = (id) => document.getElementById(id);
+  const TEXT_PREFIXES = { template: 'tpl', alert: 'alert', goal: 'goal', leaderboard: 'lb' };
 
-  // ── Cache DOM elements (safe — DOM is fully ready here) ──────
-  const elements = {
-    iframe: document.getElementById('preview-iframe'),
-    btnSave: document.getElementById('btn-save'),
-    btnTest: document.getElementById('btn-test'),
-    btnExport: document.getElementById('btn-export'),
-    btnImport: document.getElementById('btn-import'),
-    btnReset: document.getElementById('btn-reset'),
-    fileInput: document.getElementById('file-import-input'),
-    toast: document.getElementById('toast'),
+  let config = ConfigSchema.createDefaultConfig();
+  let suppressSync = false;
 
-    // Target Widget Selector
-    selectTargetWidget: document.getElementById('select-target-widget'),
-    widgetUrlDisplay: document.getElementById('widget-url-display'),
-
-    // Profile Controls
-    selectProfile: document.getElementById('select-profile'),
-    btnProfileNew: document.getElementById('btn-profile-new'),
-    btnProfileRename: document.getElementById('btn-profile-rename'),
-    btnProfileDelete: document.getElementById('btn-profile-delete'),
-    btnProfileExport: document.getElementById('btn-profile-export'),
-    btnProfileImport: document.getElementById('btn-profile-import'),
-    fileProfileInput: document.getElementById('file-import-profile-input'),
-
-    // Dedicated Goal & Leaderboard Export/Import
-    btnGoalExport: document.getElementById('btn-goal-export'),
-    btnGoalImport: document.getElementById('btn-goal-import'),
-    fileGoalInput: document.getElementById('file-import-goal-input'),
-    btnLbExport: document.getElementById('btn-lb-export'),
-    btnLbImport: document.getElementById('btn-lb-import'),
-    fileLbInput: document.getElementById('file-import-lb-input'),
-
-    // Text Tab
-    titleTemplate: document.getElementById('input-title-template'),
-    subtitleTemplate: document.getElementById('input-subtitle-template'),
-    fontSize: document.getElementById('input-font-size'),
-    fontFamily: document.getElementById('input-font-family'),
-    fontBold: document.getElementById('chk-font-bold'),
-    fontItalic: document.getElementById('chk-font-italic'),
-    textTransform: document.getElementById('select-text-transform'),
-    textAlign: document.getElementById('select-text-align'),
-
-    // Media Tab
-    imageUrl: document.getElementById('input-image-url'),
-    soundUrl: document.getElementById('input-sound-url'),
-    soundVolume: document.getElementById('input-sound-volume'),
-    btnTestSound: document.getElementById('btn-test-sound'),
-    mediaPosition: document.getElementById('select-media-position'),
-    mediaSize: document.getElementById('input-media-size'),
-
-    // Style Tab
-    bgColor: document.getElementById('input-bg-color'),
-    bgColorHex: document.getElementById('input-bg-color-hex'),
-    bgOpacity: document.getElementById('input-bg-opacity'),
-    chkTransparentBg: document.getElementById('chk-transparent-bg'),
-    accentColor: document.getElementById('input-accent-color'),
-    accentColorHex: document.getElementById('input-accent-color-hex'),
-    textColor: document.getElementById('input-text-color'),
-    textColorHex: document.getElementById('input-text-color-hex'),
-    borderWidth: document.getElementById('input-border-width'),
-    borderRadius: document.getElementById('input-border-radius'),
-    padding: document.getElementById('input-padding'),
-
-    // Animation Tab
-    animType: document.getElementById('select-anim-type'),
-    animDuration: document.getElementById('input-anim-duration'),
-    displayDuration: document.getElementById('input-display-duration'),
-
-    // Advanced Tab
-    canvasPreset: document.getElementById('select-canvas-preset'),
-    canvasWidth: document.getElementById('input-canvas-width'),
-    canvasHeight: document.getElementById('input-canvas-height'),
-    positionPreset: document.getElementById('select-position-preset'),
-    positionX: document.getElementById('input-position-x'),
-    positionY: document.getElementById('input-position-y'),
-    marginX: document.getElementById('input-margin-x'),
-    marginY: document.getElementById('input-margin-y'),
-    width: document.getElementById('input-width'),
-    chkEnableCustomCode: document.getElementById('chk-enable-custom-code'),
-    customHTML: document.getElementById('input-custom-html'),
-    customCSS: document.getElementById('input-custom-css'),
-    customJS: document.getElementById('input-custom-js'),
-    btnResetAlertCode: document.getElementById('btn-reset-alert-code'),
-
-    // Goal Tab
-    chkEnableGoal: document.getElementById('chk-enable-goal'),
-    goalTitle: document.getElementById('input-goal-title'),
-    goalTarget: document.getElementById('input-goal-target'),
-    goalCurrent: document.getElementById('input-goal-current'),
-    goalStart: document.getElementById('input-goal-start'),
-    goalEndDate: document.getElementById('input-goal-end-date'),
-    goalFillColor: document.getElementById('input-goal-fill-color'),
-    goalFillColorHex: document.getElementById('input-goal-fill-color-hex'),
-    goalBarColor: document.getElementById('input-goal-bar-color'),
-    goalBarColorHex: document.getElementById('input-goal-bar-color-hex'),
-    goalBarHeight: document.getElementById('input-goal-bar-height'),
-    goalFont: document.getElementById('select-goal-font'),
-    chkGoalTransparentBg: document.getElementById('chk-goal-transparent-bg'),
-    chkEnableGoalCustomCode: document.getElementById('chk-enable-goal-custom-code'),
-    goalCustomHTML: document.getElementById('input-goal-custom-html'),
-    goalCustomCSS: document.getElementById('input-goal-custom-css'),
-    goalCustomJS: document.getElementById('input-goal-custom-js'),
-    btnGoalTestAdd: document.getElementById('btn-goal-test-add'),
-    btnGoalReset: document.getElementById('btn-goal-reset'),
-    btnResetGoalCode: document.getElementById('btn-reset-goal-code'),
-
-    // Leaderboard Tab
-    chkEnableLb: document.getElementById('chk-enable-lb'),
-    lbTitle: document.getElementById('input-lb-title'),
-    lbMax: document.getElementById('select-lb-max'),
-    lbAccentColor: document.getElementById('input-lb-accent-color'),
-    lbAccentColorHex: document.getElementById('input-lb-accent-color-hex'),
-    lbFont: document.getElementById('select-lb-font'),
-    lbRowBgColor: document.getElementById('input-lb-row-bg-color'),
-    lbRowBgColorHex: document.getElementById('input-lb-row-bg-color-hex'),
-    chkLbShowAmounts: document.getElementById('chk-lb-show-amounts'),
-    chkLbTransparentBg: document.getElementById('chk-lb-transparent-bg'),
-    chkEnableLbCustomCode: document.getElementById('chk-enable-lb-custom-code'),
-    lbCustomHTML: document.getElementById('input-lb-custom-html'),
-    lbCustomCSS: document.getElementById('input-lb-custom-css'),
-    lbCustomJS: document.getElementById('input-lb-custom-js'),
-    lbTableBody: document.getElementById('lb-table-body'),
-    btnLbClearAll: document.getElementById('btn-lb-clear-all'),
-    btnResetLbCode: document.getElementById('btn-reset-lb-code')
-  };
-
-  const DEFAULT_CUSTOM_HTML = `{{mediaHtml}}\n<div class="alert-content">\n  <div class="alert-title">{{sender}} sent {{amount}}</div>\n  <div class="alert-subtitle">{{sourceApp}} payment received</div>\n</div>`;
-  const DEFAULT_CUSTOM_CSS = `/* Custom Overlay CSS Reference */\n/* .alert-box { border-left: none !important; } */\n/* .alert-title { font-weight: bold; text-transform: uppercase; } */\n/* .alert-subtitle { color: var(--accent-color); } */\n/* .alert-media { max-width: 150px; } */`;
-  const DEFAULT_CUSTOM_JS = `// Custom JavaScript executed on alert trigger\n// Available parameters: notifData, alertBox, settings\nconsole.log('[Alert Triggered]', notifData.sender, notifData.amount);`;
-
-  const DEFAULT_GOAL_HTML = `<div class="goal-card">\n  <div class="goal-header">\n    <div class="goal-title">{{title}}</div>\n    {{#endDate}}<div class="goal-end-date">Ends: {{endDate}}</div>{{/endDate}}\n  </div>\n  <div class="goal-bar-wrapper">\n    <div class="goal-bar-fill" style="width: {{percent}};"></div>\n    <div class="goal-bar-text">\n      <span>{{currentAmount}} ({{percent}})</span>\n      <span>{{targetAmount}}</span>\n    </div>\n  </div>\n</div>`;
-  const DEFAULT_GOAL_CSS = `/* Custom Goal CSS */\n/* .goal-card { background: rgba(10, 14, 23, 0.95) !important; } */\n/* .goal-bar-fill { background: linear-gradient(90deg, #00e5ff, #7ce3ff) !important; } */`;
-  const DEFAULT_GOAL_JS = `// Custom Payment Goal JavaScript Hook\nconsole.log('[Goal Widget Sync]');`;
-
-  const DEFAULT_LB_HTML = `<div class="lb-card">\n  <div class="lb-header">\n    <span style="font-size: 22px;">🏆</span>\n    <div class="lb-title">{{title}}</div>\n  </div>\n  <div class="lb-list">\n    <!-- Supporters rows dynamically loaded -->\n  </div>\n</div>`;
-  const DEFAULT_LB_CSS = `/* Top Supporters Leaderboard Custom CSS */\n/* .lb-card { border-color: rgba(0, 229, 255, 0.4) !important; } */\n/* .lb-row.rank-1 { background: rgba(255, 215, 0, 0.15) !important; } */`;
-  const DEFAULT_LB_JS = `// Custom Leaderboard JavaScript Hook\nconsole.log('[Leaderboard Widget Sync]');`;
+  const iframe = el('preview-iframe');
 
   function showToast(message) {
-    elements.toast.textContent = message;
-    elements.toast.classList.add('show');
-    setTimeout(() => {
-      elements.toast.classList.remove('show');
-    }, 3000);
+    const toast = el('toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2400);
   }
 
-
-
-  function readFormValues() {
-    const currentWidgetData = {
-      text: {
-        titleTemplate: elements.titleTemplate.value,
-        subtitleTemplate: elements.subtitleTemplate.value,
-        fontSize: parseInt(elements.fontSize.value) || 24,
-        fontFamily: elements.fontFamily.value,
-        fontBold: elements.fontBold ? elements.fontBold.checked : true,
-        fontItalic: elements.fontItalic ? elements.fontItalic.checked : false,
-        textTransform: elements.textTransform ? elements.textTransform.value : 'none',
-        textAlign: elements.textAlign ? elements.textAlign.value : 'center'
-      },
-      media: {
-        imageUrl: elements.imageUrl.value.trim(),
-        soundUrl: elements.soundUrl.value.trim(),
-        soundVolume: elements.soundVolume ? (!isNaN(parseInt(elements.soundVolume.value)) ? parseInt(elements.soundVolume.value) : 80) : 80,
-        position: elements.mediaPosition.value,
-        size: parseInt(elements.mediaSize.value) || 100
-      },
-      style: {
-        backgroundColor: elements.bgColor.value,
-        backgroundOpacity: parseInt(elements.bgOpacity.value) || 60,
-        isTransparent: elements.chkTransparentBg.checked,
-        accentColor: elements.accentColor.value,
-        textColor: elements.textColor.value,
-        borderRadius: parseInt(elements.borderRadius.value) !== undefined ? parseInt(elements.borderRadius.value) : 12,
-        borderWidth: parseInt(elements.borderWidth.value) !== undefined ? parseInt(elements.borderWidth.value) : 5,
-        padding: parseInt(elements.padding.value) || 20,
-        barHeight: elements.goalBarHeight ? parseInt(elements.goalBarHeight.value) || 36 : 36,
-        barColor: elements.goalBarColor ? elements.goalBarColor.value : '#1e2433',
-        fillColor: elements.goalFillColor ? elements.goalFillColor.value : '#00e5ff'
-      },
-      animation: {
-        type: elements.animType.value,
-        duration: parseInt(elements.animDuration.value) || 600,
-        displayDuration: parseInt(elements.displayDuration.value) || 5000
-      },
-      advanced: {
-        canvasWidth: elements.canvasWidth ? (parseInt(elements.canvasWidth.value) || 1920) : 1920,
-        canvasHeight: elements.canvasHeight ? (parseInt(elements.canvasHeight.value) || 1080) : 1080,
-        positionPreset: elements.positionPreset ? elements.positionPreset.value : 'center',
-        positionX: elements.positionX ? (parseInt(elements.positionX.value) || 50) : 50,
-        positionY: elements.positionY ? (parseInt(elements.positionY.value) || 50) : 50,
-        marginX: elements.marginX ? (parseInt(elements.marginX.value) || 0) : 0,
-        marginY: elements.marginY ? (parseInt(elements.marginY.value) || 0) : 0,
-        width: elements.width ? (parseInt(elements.width.value) || 400) : 400,
-        enableCustomCode: elements.chkEnableCustomCode ? elements.chkEnableCustomCode.checked : true,
-        customHTML: elements.customHTML ? elements.customHTML.value : '',
-        customCSS: elements.customCSS ? elements.customCSS.value : '',
-        customJS: elements.customJS ? elements.customJS.value : ''
-      }
-    };
-
-    if (!settings.widgets) settings.widgets = {};
-    settings.widgets[currentWidgetKey] = {
-      ...(settings.widgets[currentWidgetKey] || {}),
-      ...currentWidgetData
-    };
-
-    // Keep top-level compatibility for active widget
-    settings.text = currentWidgetData.text;
-    settings.media = currentWidgetData.media;
-    settings.style = currentWidgetData.style;
-    settings.animation = currentWidgetData.animation;
-    settings.advanced = currentWidgetData.advanced;
-
-    settings.goal = {
-      enableGoal: elements.chkEnableGoal ? elements.chkEnableGoal.checked : true,
-      title: elements.goalTitle ? elements.goalTitle.value : 'Payment Goal',
-      startAmount: elements.goalStart ? parseFloat(elements.goalStart.value) || 0 : 0,
-      currentAmount: elements.goalCurrent ? parseFloat(elements.goalCurrent.value) || 0 : 0,
-      targetAmount: elements.goalTarget ? parseFloat(elements.goalTarget.value) || 5000 : 5000,
-      endDate: elements.goalEndDate ? elements.goalEndDate.value : '',
-      barHeight: elements.goalBarHeight ? parseInt(elements.goalBarHeight.value) || 36 : 36,
-      barColor: elements.goalBarColor ? elements.goalBarColor.value : '#1e2433',
-      fillColor: elements.goalFillColor ? elements.goalFillColor.value : '#00e5ff',
-      textColor: elements.textColor.value,
-      fontFamily: elements.fontFamily.value,
-      isTransparent: elements.chkGoalTransparentBg ? elements.chkGoalTransparentBg.checked : false,
-      enableCustomCode: elements.chkEnableGoalCustomCode ? elements.chkEnableGoalCustomCode.checked : true,
-      customHTML: elements.goalCustomHTML ? elements.goalCustomHTML.value : (elements.customHTML ? elements.customHTML.value : ''),
-      customCSS: elements.goalCustomCSS ? elements.goalCustomCSS.value : (elements.customCSS ? elements.customCSS.value : ''),
-      customJS: elements.goalCustomJS ? elements.goalCustomJS.value : (elements.customJS ? elements.customJS.value : '')
-    };
-
-    settings.leaderboard = {
-      enableLeaderboard: elements.chkEnableLb ? elements.chkEnableLb.checked : true,
-      title: elements.lbTitle ? elements.lbTitle.value : 'Top Supporters',
-      maxEntries: elements.lbMax ? parseInt(elements.lbMax.value) || 5 : 5,
-      showAmounts: elements.chkLbShowAmounts ? elements.chkLbShowAmounts.checked : true,
-      accentColor: elements.lbAccentColor ? elements.lbAccentColor.value : '#00e5ff',
-      rowBgColor: elements.lbRowBgColor ? elements.lbRowBgColor.value : '#1a1e2b',
-      fontFamily: elements.fontFamily.value,
-      supporters: settings.leaderboard ? settings.leaderboard.supporters || {} : {},
-      isTransparent: elements.chkLbTransparentBg ? elements.chkLbTransparentBg.checked : false,
-      enableCustomCode: elements.chkEnableLbCustomCode ? elements.chkEnableLbCustomCode.checked : true,
-      customHTML: elements.lbCustomHTML ? elements.lbCustomHTML.value : (elements.customHTML ? elements.customHTML.value : ''),
-      customCSS: elements.lbCustomCSS ? elements.lbCustomCSS.value : (elements.customCSS ? elements.customCSS.value : ''),
-      customJS: elements.lbCustomJS ? elements.lbCustomJS.value : (elements.customJS ? elements.customJS.value : '')
-    };
-
-    settings.activeWidget = currentWidgetKey;
-    return settings;
+  // ── Generic field helpers ────────────────────────────────────
+  const val = (id, fallback) => {
+    const node = el(id);
+    return node ? node.value : fallback;
+  };
+  const numVal = (id, fallback) => {
+    const parsed = parseFloat(val(id, ''));
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const checked = (id, fallback) => {
+    const node = el(id);
+    return node ? node.checked : fallback;
+  };
+  function setVal(id, value) {
+    const node = el(id);
+    if (node && value !== undefined && value !== null) node.value = value;
+  }
+  function setChecked(id, value) {
+    const node = el(id);
+    if (node) node.checked = !!value;
   }
 
-  function renderSupportersTable() {
-    if (!elements.lbTableBody) return;
-    const supporters = settings.leaderboard ? settings.leaderboard.supporters || {} : {};
-    const sorted = Object.keys(supporters)
-      .map(name => ({ name, amount: parseFloat(supporters[name]) || 0 }))
-      .filter(item => item.amount > 0)
-      .sort((a, b) => b.amount - a.amount);
+  function readTextStyle(prefix, base) {
+    return WidgetStyle.normalizeText({
+      titleTemplate: base.titleTemplate,
+      subtitleTemplate: base.subtitleTemplate,
+      fontFamily: val(`${prefix}-font-family`, base.fontFamily),
+      fontSize: numVal(`${prefix}-font-size`, base.fontSize),
+      fontWeight: numVal(`${prefix}-font-weight`, base.fontWeight),
+      fontStyle: val(`${prefix}-font-style`, base.fontStyle),
+      color: val(`${prefix}-text-color`, base.color),
+      textAlign: val(`${prefix}-text-align`, base.textAlign),
+      textTransform: val(`${prefix}-text-transform`, base.textTransform),
+      letterSpacing: numVal(`${prefix}-letter-spacing`, base.letterSpacing),
+      lineHeight: numVal(`${prefix}-line-height`, base.lineHeight)
+    }, base);
+  }
 
-    if (sorted.length === 0) {
-      elements.lbTableBody.innerHTML = `<tr><td colspan="3" style="padding: 10px; text-align: center; color: var(--text-muted);">No supporters recorded yet.</td></tr>`;
-      return;
-    }
+  /**
+   * Set a <select> value, adding the option first when it is missing. Saved
+   * configs may name a font the dropdown does not list; without this the
+   * select would fall back to "" and silently drop the font on the next save.
+   */
+  function setSelectVal(id, value) {
+    const node = el(id);
+    if (!node || value === undefined || value === null || value === '') return;
+    const known = Array.prototype.some.call(node.options, o => o.value === String(value));
+    if (!known) node.add(new Option(String(value), String(value)));
+    node.value = value;
+  }
 
-    elements.lbTableBody.innerHTML = sorted.map(item => `
-      <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-        <td style="padding: 6px; font-weight: 600;">${TemplateEngine.escapeHtml(item.name)}</td>
-        <td style="padding: 6px; color: var(--accent); font-weight: 700;">₹${item.amount.toLocaleString('en-IN')}</td>
-        <td style="padding: 6px; text-align: right;">
-          <button class="snippet-btn btn-delete-supporter" data-name="${TemplateEngine.escapeHtml(item.name)}" style="padding: 2px 6px; font-size: 10px;">🗑️ Delete</button>
-        </td>
-      </tr>
-    `).join('');
+  function writeTextStyle(prefix, text) {
+    setSelectVal(`${prefix}-font-family`, text.fontFamily);
+    setVal(`${prefix}-font-size`, text.fontSize);
+    setVal(`${prefix}-font-weight`, text.fontWeight);
+    setVal(`${prefix}-font-style`, text.fontStyle);
+    setVal(`${prefix}-text-color`, text.color);
+    setVal(`${prefix}-text-color-hex`, text.color);
+    setVal(`${prefix}-text-align`, text.textAlign);
+    setVal(`${prefix}-text-transform`, text.textTransform);
+    setVal(`${prefix}-letter-spacing`, text.letterSpacing);
+    setVal(`${prefix}-line-height`, text.lineHeight);
+  }
 
-    elements.lbTableBody.querySelectorAll('.btn-delete-supporter').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const name = btn.dataset.name;
-        if (name && settings.leaderboard && settings.leaderboard.supporters) {
-          delete settings.leaderboard.supporters[name];
-          renderSupportersTable();
-          syncLivePreview();
-        }
-      });
+  function readCanvas(prefix, base) {
+    return CanvasPresets.resolve({
+      preset: val(`${prefix}-canvas-preset`, base.preset),
+      width: numVal(`${prefix}-canvas-width`, base.width),
+      height: numVal(`${prefix}-canvas-height`, base.height)
     });
   }
 
-  function populateForm(s) {
-    settings = StorageHelper.mergeWithDefaults(s);
-    if (elements.selectTargetWidget) {
-      currentWidgetKey = elements.selectTargetWidget.value || settings.activeWidget || 'alert';
+  function writeCanvas(prefix, canvas) {
+    const resolved = CanvasPresets.resolve(canvas);
+    setSelectVal(`${prefix}-canvas-preset`, resolved.preset);
+    setVal(`${prefix}-canvas-width`, resolved.width);
+    setVal(`${prefix}-canvas-height`, resolved.height);
+    const isCustom = resolved.preset === CanvasPresets.CUSTOM;
+    [`${prefix}-canvas-width`, `${prefix}-canvas-height`].forEach(id => {
+      const node = el(id);
+      if (node) node.disabled = !isCustom;
+    });
+  }
+
+  // ── Amount filters ───────────────────────────────────────────
+  function filterRowHtml(filter) {
+    const opts = TemplateMatcher.FILTER_TYPES
+      .map(t => `<option value="${t}"${t === filter.type ? ' selected' : ''}>${t}</option>`).join('');
+    return `
+      <div class="amount-filter-row" data-type="${filter.type}">
+        <select class="form-control filter-type">${opts}</select>
+        <input type="number" class="form-control filter-value" step="any" placeholder="Amount" value="${filter.value}" />
+        <input type="number" class="form-control filter-min" step="any" placeholder="Min" value="${filter.min}" />
+        <input type="number" class="form-control filter-max" step="any" placeholder="Max" value="${filter.max}" />
+        <button type="button" class="btn btn-danger filter-remove" title="Remove filter">&#10005;</button>
+      </div>`;
+  }
+
+  /** Only the inputs that a filter type actually uses stay visible. */
+  function updateFilterRowVisibility(row) {
+    const type = row.querySelector('.filter-type').value;
+    row.dataset.type = type;
+    const show = {
+      any: [],
+      exact: ['.filter-value'],
+      min: ['.filter-min'],
+      max: ['.filter-max'],
+      range: ['.filter-min', '.filter-max']
+    }[type] || [];
+    ['.filter-value', '.filter-min', '.filter-max'].forEach(sel => {
+      row.querySelector(sel).style.display = show.indexOf(sel) === -1 ? 'none' : '';
+    });
+  }
+
+  function renderAmountFilters(filters) {
+    const list = el('amount-filter-list');
+    if (!list) return;
+    list.innerHTML = filters.length
+      ? filters.map(filterRowHtml).join('')
+      : '<p class="panel-desc">No filters &mdash; this template matches every amount.</p>';
+    list.querySelectorAll('.amount-filter-row').forEach(updateFilterRowVisibility);
+  }
+
+  function readAmountFilters() {
+    const list = el('amount-filter-list');
+    if (!list) return [];
+    return Array.from(list.querySelectorAll('.amount-filter-row')).map(row => TemplateMatcher.normalizeFilter({
+      type: row.querySelector('.filter-type').value,
+      value: row.querySelector('.filter-value').value,
+      min: row.querySelector('.filter-min').value,
+      max: row.querySelector('.filter-max').value
+    }));
+  }
+
+  // ── Template manager ─────────────────────────────────────────
+  function currentTemplate() {
+    return config.alertTemplates.find(t => t.id === config.activeTemplateId) || config.alertTemplates[0];
+  }
+
+  function renderTemplateList() {
+    const select = el('select-template');
+    if (!select) return;
+    select.innerHTML = config.alertTemplates.map(t => {
+      const flags = [t.isDefault ? '⭐ fallback' : '', t.enabled ? '' : 'disabled']
+        .filter(Boolean).join(', ');
+      const label = TemplateEngine.escapeHtml(t.name) + (flags ? ` (${flags})` : '');
+      return `<option value="${TemplateEngine.escapeHtml(t.id)}"${t.id === config.activeTemplateId ? ' selected' : ''}>${label}</option>`;
+    }).join('');
+
+    const summary = el('template-summary');
+    if (summary) {
+      const t = currentTemplate();
+      summary.textContent = t
+        ? `${config.alertTemplates.length} template(s). "${t.name}" matches: ${describeFilters(t)}.`
+        : '';
+    }
+  }
+
+  function describeFilters(template) {
+    const filters = TemplateMatcher.filtersOf(template);
+    return filters.map(f => {
+      if (f.type === 'exact') return `= ₹${f.value}`;
+      if (f.type === 'min') return `≥ ₹${f.min || f.value}`;
+      if (f.type === 'max') return `≤ ₹${f.max || f.value}`;
+      if (f.type === 'range') return `₹${f.min}–₹${f.max}`;
+      return 'any amount';
+    }).join(' or ');
+  }
+
+  // ── Form → config ────────────────────────────────────────────
+  function readFormValues() {
+    const template = currentTemplate();
+    const base = ConfigSchema.WIDGET_DEFAULTS.alert;
+
+    if (template) {
+      template.enabled = checked('chk-template-enabled', template.enabled);
+      template.priority = numVal('input-template-priority', template.priority);
+      template.amountFilters = readAmountFilters();
+      template.text = Object.assign(readTextStyle(TEXT_PREFIXES.template, base.text), {
+        titleTemplate: val('input-title-template', template.text.titleTemplate),
+        subtitleTemplate: val('input-subtitle-template', template.text.subtitleTemplate)
+      });
+      template.canvas = readCanvas(TEXT_PREFIXES.template, template.canvas);
+      template.image = {
+        imageUrl: val('input-image-url', ''),
+        gifUrl: template.image.gifUrl,
+        position: val('select-media-position', template.image.position),
+        size: numVal('input-media-size', template.image.size)
+      };
+      template.sound = {
+        soundUrl: val('input-sound-url', ''),
+        soundVolume: numVal('input-sound-volume', template.sound.soundVolume)
+      };
+      template.style = Object.assign({}, template.style, {
+        backgroundColor: val('input-bg-color', template.style.backgroundColor),
+        backgroundOpacity: numVal('input-bg-opacity', template.style.backgroundOpacity),
+        isTransparent: checked('chk-transparent-bg', template.style.isTransparent),
+        accentColor: val('input-accent-color', template.style.accentColor),
+        borderRadius: numVal('input-border-radius', template.style.borderRadius),
+        borderWidth: numVal('input-border-width', template.style.borderWidth),
+        padding: numVal('input-padding', template.style.padding)
+      });
+      template.animation = {
+        type: val('select-anim-type', template.animation.type),
+        duration: numVal('input-anim-duration', template.animation.duration),
+        displayDuration: numVal('input-display-duration', template.animation.displayDuration)
+      };
+      template.layout = Object.assign({}, template.layout, {
+        positionPreset: val('tpl-position-preset', template.layout.positionPreset),
+        width: numVal('tpl-layout-width', template.layout.width)
+      });
+      template.code = {
+        enableCustomCode: checked('chk-enable-custom-code', true),
+        customHTML: val('input-custom-html', ''),
+        customCSS: val('input-custom-css', ''),
+        customJS: val('input-custom-js', '')
+      };
     }
 
-    const widgetData = (settings.widgets && settings.widgets[currentWidgetKey]) ? settings.widgets[currentWidgetKey] : settings;
-    const textData = widgetData.text || settings.text;
-    const mediaData = widgetData.media || settings.media;
-    const styleData = widgetData.style || settings.style;
-    const animData = widgetData.animation || settings.animation;
-    const advData = widgetData.advanced || settings.advanced;
+    const alertWidget = config.widgets.alert;
+    alertWidget.enabled = checked('chk-enable-alert', alertWidget.enabled);
+    alertWidget.text = readTextStyle(TEXT_PREFIXES.alert, alertWidget.text);
+    alertWidget.canvas = readCanvas(TEXT_PREFIXES.alert, alertWidget.canvas);
 
-    // Text Tab
-    elements.titleTemplate.value = textData.titleTemplate || '';
-    elements.subtitleTemplate.value = textData.subtitleTemplate || '';
-    elements.fontSize.value = textData.fontSize || 24;
-    elements.fontFamily.value = textData.fontFamily || 'Inter';
-    if (elements.fontBold) elements.fontBold.checked = textData.fontBold !== undefined ? !!textData.fontBold : true;
-    if (elements.fontItalic) elements.fontItalic.checked = !!textData.fontItalic;
-    if (elements.textTransform) elements.textTransform.value = textData.textTransform || 'none';
-    if (elements.textAlign) elements.textAlign.value = textData.textAlign || 'center';
+    const goal = config.widgets.goal;
+    goal.enabled = checked('chk-enable-goal', goal.enabled);
+    goal.title = val('input-goal-title', goal.title);
+    goal.targetAmount = numVal('input-goal-target', goal.targetAmount);
+    goal.currentAmount = numVal('input-goal-current', goal.currentAmount);
+    goal.startAmount = numVal('input-goal-start', goal.startAmount);
+    goal.endDate = val('input-goal-end-date', goal.endDate);
+    goal.text = Object.assign(readTextStyle(TEXT_PREFIXES.goal, goal.text), {
+      titleTemplate: val('input-goal-title', goal.text.titleTemplate)
+    });
+    goal.canvas = readCanvas(TEXT_PREFIXES.goal, goal.canvas);
+    goal.style = Object.assign({}, goal.style, {
+      fillColor: val('input-goal-fill-color', goal.style.fillColor),
+      barColor: val('input-goal-bar-color', goal.style.barColor),
+      barHeight: numVal('input-goal-bar-height', goal.style.barHeight),
+      isTransparent: checked('chk-goal-transparent-bg', goal.style.isTransparent)
+    });
+    goal.code = {
+      enableCustomCode: checked('chk-enable-goal-custom-code', true),
+      customHTML: val('input-goal-custom-html', ''),
+      customCSS: val('input-goal-custom-css', ''),
+      customJS: val('input-goal-custom-js', '')
+    };
 
-    // Media Tab
-    elements.imageUrl.value = mediaData.imageUrl || mediaData.gifUrl || '';
-    elements.soundUrl.value = mediaData.soundUrl || '';
-    if (elements.soundVolume) elements.soundVolume.value = mediaData.soundVolume !== undefined ? mediaData.soundVolume : 80;
-    elements.mediaPosition.value = mediaData.position || 'top';
-    elements.mediaSize.value = mediaData.size || 100;
+    const lb = config.widgets.leaderboard;
+    lb.enabled = checked('chk-enable-lb', lb.enabled);
+    lb.title = val('input-lb-title', lb.title);
+    lb.maxEntries = numVal('select-lb-max', lb.maxEntries);
+    lb.showAmounts = checked('chk-lb-show-amounts', lb.showAmounts);
+    lb.text = Object.assign(readTextStyle(TEXT_PREFIXES.leaderboard, lb.text), {
+      titleTemplate: val('input-lb-title', lb.text.titleTemplate)
+    });
+    lb.canvas = readCanvas(TEXT_PREFIXES.leaderboard, lb.canvas);
+    lb.style = Object.assign({}, lb.style, {
+      accentColor: val('input-lb-accent-color', lb.style.accentColor),
+      rowBgColor: val('input-lb-row-bg-color', lb.style.rowBgColor),
+      isTransparent: checked('chk-lb-transparent-bg', lb.style.isTransparent)
+    });
+    lb.code = {
+      enableCustomCode: checked('chk-enable-lb-custom-code', true),
+      customHTML: val('input-lb-custom-html', ''),
+      customCSS: val('input-lb-custom-css', ''),
+      customJS: val('input-lb-custom-js', '')
+    };
 
-    // Style Tab
-    elements.bgColor.value = styleData.backgroundColor || '#000000';
-    elements.bgColorHex.value = styleData.backgroundColor || '#000000';
-    elements.bgOpacity.value = styleData.backgroundOpacity !== undefined ? styleData.backgroundOpacity : 60;
-    elements.chkTransparentBg.checked = !!styleData.isTransparent;
-    elements.accentColor.value = styleData.accentColor || '#00e5ff';
-    elements.accentColorHex.value = styleData.accentColor || '#00e5ff';
-    elements.textColor.value = styleData.textColor || '#ffffff';
-    elements.textColorHex.value = styleData.textColor || '#ffffff';
-    elements.borderWidth.value = styleData.borderWidth !== undefined ? styleData.borderWidth : 5;
-    elements.borderRadius.value = styleData.borderRadius !== undefined ? styleData.borderRadius : 12;
-    elements.padding.value = styleData.padding || 20;
+    config.filter = { allowedAmounts: allowedAmounts.slice() };
+    config = ConfigSchema.normalizeConfig(config);
+    return config;
+  }
 
-    // Animation Tab
-    elements.animType.value = animData.type || 'slide-up';
-    elements.animDuration.value = animData.duration || 600;
-    elements.displayDuration.value = animData.displayDuration || 5000;
+  // ── Config → form ────────────────────────────────────────────
+  function populateForm(raw) {
+    config = ConfigMigration.migrate(raw);
+    suppressSync = true;
 
-    // Advanced Section
-    if (elements.canvasWidth) elements.canvasWidth.value = advData.canvasWidth || 1920;
-    if (elements.canvasHeight) elements.canvasHeight.value = advData.canvasHeight || 1080;
-    if (elements.positionPreset) elements.positionPreset.value = advData.positionPreset || 'center';
-    if (elements.marginX) elements.marginX.value = advData.marginX || 0;
-    if (elements.marginY) elements.marginY.value = advData.marginY || 0;
-    if (elements.chkEnableCustomCode) {
-      elements.chkEnableCustomCode.checked = advData.enableCustomCode !== undefined ? !!advData.enableCustomCode : true;
+    renderTemplateList();
+    const template = currentTemplate();
+    if (template) {
+      setChecked('chk-template-enabled', template.enabled);
+      setVal('input-template-priority', template.priority);
+      renderAmountFilters(template.amountFilters);
+      setVal('input-title-template', template.text.titleTemplate);
+      setVal('input-subtitle-template', template.text.subtitleTemplate);
+      writeTextStyle(TEXT_PREFIXES.template, template.text);
+      writeCanvas(TEXT_PREFIXES.template, template.canvas);
+
+      setVal('input-image-url', template.image.imageUrl || template.image.gifUrl);
+      setSelectVal('select-media-position', template.image.position);
+      setVal('input-media-size', template.image.size);
+      setVal('input-sound-url', template.sound.soundUrl);
+      setVal('input-sound-volume', template.sound.soundVolume);
+
+      setVal('input-bg-color', template.style.backgroundColor);
+      setVal('input-bg-color-hex', template.style.backgroundColor);
+      setVal('input-bg-opacity', template.style.backgroundOpacity);
+      setChecked('chk-transparent-bg', template.style.isTransparent);
+      setVal('input-accent-color', template.style.accentColor);
+      setVal('input-accent-color-hex', template.style.accentColor);
+      setVal('input-border-radius', template.style.borderRadius);
+      setVal('input-border-width', template.style.borderWidth);
+      setVal('input-padding', template.style.padding);
+
+      setSelectVal('select-anim-type', template.animation.type);
+      setVal('input-anim-duration', template.animation.duration);
+      setVal('input-display-duration', template.animation.displayDuration);
+
+      setVal('tpl-position-preset', template.layout.positionPreset);
+      setVal('tpl-layout-width', template.layout.width);
+
+      setChecked('chk-enable-custom-code', template.code.enableCustomCode);
+      setVal('input-custom-html', template.code.customHTML);
+      setVal('input-custom-css', template.code.customCSS);
+      setVal('input-custom-js', template.code.customJS);
     }
-    if (elements.customHTML) elements.customHTML.value = advData.customHTML !== undefined && advData.customHTML !== null && advData.customHTML.trim() !== '' ? advData.customHTML : DEFAULT_CUSTOM_HTML;
-    if (elements.customCSS) elements.customCSS.value = advData.customCSS !== undefined && advData.customCSS !== null && advData.customCSS.trim() !== '' ? advData.customCSS : DEFAULT_CUSTOM_CSS;
-    if (elements.customJS) elements.customJS.value = advData.customJS !== undefined && advData.customJS !== null && advData.customJS.trim() !== '' ? advData.customJS : DEFAULT_CUSTOM_JS;
-    if (elements.positionX) elements.positionX.value = advData.positionX !== undefined ? advData.positionX : 50;
-    if (elements.positionY) elements.positionY.value = advData.positionY !== undefined ? advData.positionY : 50;
-    if (elements.width) elements.width.value = advData.width || 400;
 
-    // Goal Tab
-    if (elements.chkEnableGoal) elements.chkEnableGoal.checked = settings.goal.enableGoal !== false;
-    if (elements.goalTitle) elements.goalTitle.value = settings.goal.title || 'Stream Goal';
-    if (elements.goalTarget) elements.goalTarget.value = settings.goal.targetAmount !== undefined ? settings.goal.targetAmount : 5000;
-    if (elements.goalCurrent) elements.goalCurrent.value = settings.goal.currentAmount !== undefined ? settings.goal.currentAmount : 0;
-    if (elements.goalStart) elements.goalStart.value = settings.goal.startAmount !== undefined ? settings.goal.startAmount : 0;
-    if (elements.goalEndDate) elements.goalEndDate.value = settings.goal.endDate || '';
-    if (elements.goalFillColor) elements.goalFillColor.value = settings.goal.fillColor || '#00e5ff';
-    if (elements.goalFillColorHex) elements.goalFillColorHex.value = settings.goal.fillColor || '#00e5ff';
-    if (elements.goalBarColor) elements.goalBarColor.value = settings.goal.barColor || '#1e2433';
-    if (elements.goalBarColorHex) elements.goalBarColorHex.value = settings.goal.barColor || '#1e2433';
-    if (elements.goalBarHeight) elements.goalBarHeight.value = settings.goal.barHeight || 36;
-    if (elements.goalFont) elements.goalFont.value = settings.goal.fontFamily || 'Inter';
-    if (elements.chkGoalTransparentBg) elements.chkGoalTransparentBg.checked = !!(settings.goal && settings.goal.isTransparent);
-    if (elements.chkEnableGoalCustomCode) elements.chkEnableGoalCustomCode.checked = (settings.goal && settings.goal.enableCustomCode !== false);
+    const alertWidget = config.widgets.alert;
+    setChecked('chk-enable-alert', alertWidget.enabled);
+    writeTextStyle(TEXT_PREFIXES.alert, alertWidget.text);
+    writeCanvas(TEXT_PREFIXES.alert, alertWidget.canvas);
 
-    if (elements.goalCustomHTML) elements.goalCustomHTML.value = (settings.goal && settings.goal.customHTML && settings.goal.customHTML.trim()) ? settings.goal.customHTML : DEFAULT_GOAL_HTML;
-    if (elements.goalCustomCSS) elements.goalCustomCSS.value = (settings.goal && settings.goal.customCSS && settings.goal.customCSS.trim()) ? settings.goal.customCSS : DEFAULT_GOAL_CSS;
-    if (elements.goalCustomJS) elements.goalCustomJS.value = (settings.goal && settings.goal.customJS && settings.goal.customJS.trim()) ? settings.goal.customJS : DEFAULT_GOAL_JS;
+    const goal = config.widgets.goal;
+    setChecked('chk-enable-goal', goal.enabled);
+    setVal('input-goal-title', goal.text.titleTemplate || goal.title);
+    setVal('input-goal-target', goal.targetAmount);
+    setVal('input-goal-current', goal.currentAmount);
+    setVal('input-goal-start', goal.startAmount);
+    setVal('input-goal-end-date', goal.endDate);
+    setVal('input-goal-fill-color', goal.style.fillColor);
+    setVal('input-goal-fill-color-hex', goal.style.fillColor);
+    setVal('input-goal-bar-color', goal.style.barColor);
+    setVal('input-goal-bar-color-hex', goal.style.barColor);
+    setVal('input-goal-bar-height', goal.style.barHeight);
+    setChecked('chk-goal-transparent-bg', goal.style.isTransparent);
+    writeTextStyle(TEXT_PREFIXES.goal, goal.text);
+    writeCanvas(TEXT_PREFIXES.goal, goal.canvas);
+    setChecked('chk-enable-goal-custom-code', goal.code.enableCustomCode);
+    setVal('input-goal-custom-html', goal.code.customHTML);
+    setVal('input-goal-custom-css', goal.code.customCSS);
+    setVal('input-goal-custom-js', goal.code.customJS);
 
-    // Leaderboard Tab
-    if (elements.chkEnableLb) elements.chkEnableLb.checked = settings.leaderboard.enableLeaderboard !== false;
-    if (elements.lbTitle) elements.lbTitle.value = settings.leaderboard.title || 'Top Supporters';
-    if (elements.lbMax) elements.lbMax.value = settings.leaderboard.maxEntries || 5;
-    if (elements.lbAccentColor) elements.lbAccentColor.value = settings.leaderboard.accentColor || '#00e5ff';
-    if (elements.lbAccentColorHex) elements.lbAccentColorHex.value = settings.leaderboard.accentColor || '#00e5ff';
-    if (elements.lbFont) elements.lbFont.value = settings.leaderboard.fontFamily || 'Inter';
-    if (elements.lbRowBgColor) elements.lbRowBgColor.value = settings.leaderboard.rowBgColor || '#1a1e2b';
-    if (elements.lbRowBgColorHex) elements.lbRowBgColorHex.value = settings.leaderboard.rowBgColor || '#1a1e2b';
-    if (elements.lbRowAlign) elements.lbRowAlign.value = settings.leaderboard.rowAlign || 'space-between';
-    if (elements.chkLbShowAmounts) elements.chkLbShowAmounts.checked = settings.leaderboard.showAmounts !== false;
-    if (elements.chkLbTransparentBg) elements.chkLbTransparentBg.checked = !!(settings.leaderboard && settings.leaderboard.isTransparent);
-    if (elements.chkEnableLbCustomCode) elements.chkEnableLbCustomCode.checked = (settings.leaderboard && settings.leaderboard.enableCustomCode !== false);
+    const lb = config.widgets.leaderboard;
+    setChecked('chk-enable-lb', lb.enabled);
+    setVal('input-lb-title', lb.text.titleTemplate || lb.title);
+    setSelectVal('select-lb-max', lb.maxEntries);
+    setChecked('chk-lb-show-amounts', lb.showAmounts);
+    setChecked('chk-lb-transparent-bg', lb.style.isTransparent);
+    setVal('input-lb-accent-color', lb.style.accentColor);
+    setVal('input-lb-accent-color-hex', lb.style.accentColor);
+    setVal('input-lb-row-bg-color', lb.style.rowBgColor);
+    setVal('input-lb-row-bg-color-hex', lb.style.rowBgColor);
+    writeTextStyle(TEXT_PREFIXES.leaderboard, lb.text);
+    writeCanvas(TEXT_PREFIXES.leaderboard, lb.canvas);
+    setChecked('chk-enable-lb-custom-code', lb.code.enableCustomCode);
+    setVal('input-lb-custom-html', lb.code.customHTML);
+    setVal('input-lb-custom-css', lb.code.customCSS);
+    setVal('input-lb-custom-js', lb.code.customJS);
 
-    if (elements.lbCustomHTML) elements.lbCustomHTML.value = (settings.leaderboard && settings.leaderboard.customHTML && settings.leaderboard.customHTML.trim()) ? settings.leaderboard.customHTML : DEFAULT_LB_HTML;
-    if (elements.lbCustomCSS) elements.lbCustomCSS.value = (settings.leaderboard && settings.leaderboard.customCSS && settings.leaderboard.customCSS.trim()) ? settings.leaderboard.customCSS : DEFAULT_LB_CSS;
-    if (elements.lbCustomJS) elements.lbCustomJS.value = (settings.leaderboard && settings.leaderboard.customJS && settings.leaderboard.customJS.trim()) ? settings.leaderboard.customJS : DEFAULT_LB_JS;
-
+    allowedAmounts = config.filter.allowedAmounts.slice();
+    renderFilterTags();
     renderSupportersTable();
     updateValueDisplays();
-    updateSnippetButtonStates();
+
+    suppressSync = false;
     syncLivePreview();
   }
 
   function updateValueDisplays() {
-    document.querySelectorAll('.val-display').forEach(el => {
-      const targetId = el.dataset.target;
-      const inputEl = document.getElementById(targetId);
-      if (inputEl) {
-        let suffix = el.dataset.suffix || '';
-        el.textContent = inputEl.value + suffix;
-      }
+    document.querySelectorAll('.val-display').forEach(node => {
+      const input = el(node.dataset.target);
+      if (input) node.textContent = input.value + (node.dataset.suffix || '');
     });
   }
 
   function syncLivePreview() {
-    settings = readFormValues();
-    if (elements.iframe && elements.iframe.contentWindow) {
-      elements.iframe.contentWindow.postMessage({
-        type: 'SETTINGS_UPDATED',
-        payload: settings
-      }, '*');
+    if (suppressSync) return;
+    readFormValues();
+    renderTemplateList();
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'SETTINGS_UPDATED', payload: config }, '*');
     }
   }
 
-  async function sendTestAlert() {
-    syncLivePreview();
+  // ── Supporters table ─────────────────────────────────────────
+  function renderSupportersTable() {
+    const body = el('lb-table-body');
+    if (!body) return;
+    const supporters = config.widgets.leaderboard.supporters || {};
+    const rows = Object.keys(supporters)
+      .map(name => ({ name, amount: parseFloat(supporters[name]) || 0 }))
+      .sort((a, b) => b.amount - a.amount);
 
-    // Rotate realistic sample supporters for simulation
-    const sampleSupporters = [
-      { sender: 'Rahul Kumar', amount: '₹500', sourceApp: 'PhonePe', message: 'Awesome stream! 🚀' },
-      { sender: 'Priya Singh', amount: '₹1000', sourceApp: 'Google Pay', message: 'Keep up the great work! ❤️' },
-      { sender: 'Amit Verma', amount: '₹250', sourceApp: 'Paytm', message: 'Chai paani subscription ☕' },
-      { sender: 'Ankit Sharma', amount: '₹750', sourceApp: 'PhonePe', message: 'Superchat donation 🔥' },
-      { sender: 'Sneha Patel', amount: '₹300', sourceApp: 'BHIM UPI', message: 'Great gameplay! 🎮' }
-    ];
-
-    const sample = sampleSupporters[Math.floor(Math.random() * sampleSupporters.length)];
-    const testData = {
-      ...sample,
-      timestamp: Date.now()
-    };
-
-    // 1. Trigger live preview iframe alert
-    if (elements.iframe && elements.iframe.contentWindow) {
-      elements.iframe.contentWindow.postMessage({
-        type: 'TRIGGER_TEST_ALERT',
-        data: testData
-      }, '*');
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="3" style="padding: 10px; color: var(--text-muted);">No supporters yet</td></tr>';
+      return;
     }
 
-    // 2. Trigger connected live OBS overlay clients & server simulation (Goal + Leaderboard)
-    try {
-      const res = await fetch('/api/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(testData)
+    body.innerHTML = rows.map(r => `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 6px;">${TemplateEngine.escapeHtml(r.name)}</td>
+        <td style="padding: 6px;">₹${r.amount.toLocaleString('en-IN')}</td>
+        <td style="padding: 6px; text-align: right;">
+          <button type="button" class="btn btn-danger btn-remove-supporter" data-name="${TemplateEngine.escapeHtml(r.name)}" style="padding: 2px 8px; font-size: 11px;">Remove</button>
+        </td>
+      </tr>`).join('');
+
+    body.querySelectorAll('.btn-remove-supporter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        delete config.widgets.leaderboard.supporters[btn.dataset.name];
+        renderSupportersTable();
+        syncLivePreview();
       });
+    });
+  }
+
+  // ── Alert amount allowlist ───────────────────────────────────
+  let allowedAmounts = [];
+
+  function renderFilterTags() {
+    const container = el('filter-amount-tags');
+    const hint = el('filter-empty-hint');
+    if (!container) return;
+    Array.from(container.querySelectorAll('.filter-tag')).forEach(node => node.remove());
+    if (hint) hint.style.display = allowedAmounts.length ? 'none' : 'inline';
+
+    allowedAmounts.forEach(amount => {
+      const tag = document.createElement('span');
+      tag.className = 'filter-tag';
+      tag.textContent = `₹${amount} `;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = '✕';
+      remove.addEventListener('click', () => {
+        allowedAmounts = allowedAmounts.filter(a => a !== amount);
+        renderFilterTags();
+        syncLivePreview();
+      });
+      tag.appendChild(remove);
+      container.appendChild(tag);
+    });
+  }
+
+  // ── Server IO ────────────────────────────────────────────────
+  async function saveToServer(profileName) {
+    readFormValues();
+    const res = await fetch('/api/profiles/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: profileName || el('select-profile').value || 'Default', settings: config })
+    });
+    const data = await res.json();
+    if (data.ok) populateForm(data.settings);
+    return data;
+  }
+
+  async function loadProfilesList(activeProfile) {
+    const select = el('select-profile');
+    if (!select) return;
+    try {
+      const res = await fetch('/api/profiles');
       const data = await res.json();
-      if (data.ok) {
-        // Fetch updated settings with goal & leaderboard values
-        const updatedSettings = await StorageHelper.loadServer();
-        settings = updatedSettings;
-        populateForm(settings);
-      }
+      if (!data || !data.profiles) return;
+      const active = activeProfile || data.activeProfile;
+      select.innerHTML = Object.keys(data.profiles).map(name =>
+        `<option value="${TemplateEngine.escapeHtml(name)}"${name === active ? ' selected' : ''}>${TemplateEngine.escapeHtml(name)}</option>`
+      ).join('');
     } catch (e) {
-      console.warn('[Config] Live overlay test trigger error:', e.message);
+      console.warn('[Profiles] Failed to load profiles list:', e.message);
     }
   }
 
-  // ── Tab Switching ──────────────────────────────────────────
-  const TAB_PREVIEW_URLS = {
-    goal: '/overlay/goal',
-    leaderboard: '/overlay/leaderboard'
-  };
-  let lastPreviewTab = 'alert';
+  // ── Wiring ───────────────────────────────────────────────────
+  const TAB_PREVIEW_URLS = { goal: '/overlay/goal', leaderboard: '/overlay/leaderboard' };
 
   function setupTabs() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
         btn.classList.add('active');
-        const targetTab = btn.dataset.tab;
-        const tabEl = document.getElementById(`tab-${targetTab}`);
-        if (tabEl) tabEl.classList.add('active');
+        const tab = btn.dataset.tab;
+        const content = el(`tab-${tab}`);
+        if (content) content.classList.add('active');
 
-        if (!elements.iframe) return;
-
-        const previewUrl = TAB_PREVIEW_URLS[targetTab] || '/overlay/alert';
-        const comingBackToAlert = targetTab !== 'goal' && targetTab !== 'leaderboard';
-
-        if (elements.iframe.src !== location.origin + previewUrl) {
-          elements.iframe.src = previewUrl;
-
-          // When switching back to alert tab, re-trigger test alert after iframe loads
-          if (comingBackToAlert) {
-            const onLoad = () => {
-              elements.iframe.removeEventListener('load', onLoad);
-              // Give overlay time to connect, then send settings + test alert
-              setTimeout(() => {
-                syncLivePreview();
-                const sampleSupporters = [
-                  { sender: 'Rahul Kumar', amount: '₹500', sourceApp: 'PhonePe', message: 'Awesome stream! 🚀' },
-                  { sender: 'Priya Singh', amount: '₹1000', sourceApp: 'Google Pay', message: 'Keep it up! ❤️' },
-                  { sender: 'Amit Verma', amount: '₹250', sourceApp: 'Paytm', message: 'Chai paani ☕' },
-                ];
-                const sample = sampleSupporters[Math.floor(Math.random() * sampleSupporters.length)];
-                if (elements.iframe.contentWindow) {
-                  elements.iframe.contentWindow.postMessage({ type: 'TRIGGER_TEST_ALERT', data: { ...sample, timestamp: Date.now() } }, '*');
-                }
-              }, 300);
-            };
-            elements.iframe.addEventListener('load', onLoad);
-          }
+        const manager = el('template-manager');
+        if (manager) {
+          const alertTabs = ['text', 'media', 'style', 'animation'];
+          manager.style.display = alertTabs.indexOf(tab) === -1 ? 'none' : '';
         }
 
-        lastPreviewTab = targetTab;
+        if (!iframe) return;
+        const previewUrl = TAB_PREVIEW_URLS[tab] || '/overlay/alert';
+        if (iframe.src !== location.origin + previewUrl) iframe.src = previewUrl;
       });
     });
   }
 
-  // ── Code Editor Tabs Switching ─────────────────────────────────
   function setupCodeEditorTabs() {
     document.querySelectorAll('.code-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const container = btn.closest('.code-editor-container');
         if (!container) return;
-        const targetTab = btn.dataset.codeTab; // 'html' | 'css' | 'js'
-
         container.querySelectorAll('.code-tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-
         container.querySelectorAll('.code-tab-panel').forEach(panel => {
-          if (panel.dataset.codePanel === targetTab) {
-            panel.style.display = 'block';
-          } else {
-            panel.style.display = 'none';
-          }
+          panel.style.display = panel.dataset.codePanel === btn.dataset.codeTab ? 'block' : 'none';
         });
       });
     });
   }
 
-  // ── Variable Pills Handling ─────────────────────────────────
   function setupVariablePills() {
-    let activeInputEl = elements.titleTemplate;
-
-    // Track active focused text input/textarea across all tabs
+    let activeInput = el('input-title-template');
     document.querySelectorAll('input[type="text"], textarea').forEach(input => {
-      input.addEventListener('focus', () => { activeInputEl = input; });
+      input.addEventListener('focus', () => { activeInput = input; });
     });
 
     document.querySelectorAll('.var-pill').forEach(pill => {
       pill.addEventListener('click', () => {
-        const varName = pill.dataset.var;
-        const targetId = pill.dataset.targetInput;
-        let targetEl = activeInputEl;
-
-        if (targetId && document.getElementById(targetId)) {
-          targetEl = document.getElementById(targetId);
-        }
-        if (!targetEl) targetEl = elements.titleTemplate;
-
-        const start = targetEl.selectionStart !== undefined ? targetEl.selectionStart : targetEl.value.length;
-        const end = targetEl.selectionEnd !== undefined ? targetEl.selectionEnd : targetEl.value.length;
-        const text = targetEl.value;
-        const insertText = `{{${varName}}}`;
-
-        targetEl.value = text.substring(0, start) + insertText + text.substring(end);
-        targetEl.focus();
-        if (targetEl.setSelectionRange) {
-          targetEl.setSelectionRange(start + insertText.length, start + insertText.length);
-        }
-
+        const target = (pill.dataset.targetInput && el(pill.dataset.targetInput)) || activeInput;
+        if (!target) return;
+        const start = target.selectionStart !== null ? target.selectionStart : target.value.length;
+        const end = target.selectionEnd !== null ? target.selectionEnd : target.value.length;
+        const insert = `{{${pill.dataset.var}}}`;
+        target.value = target.value.substring(0, start) + insert + target.value.substring(end);
+        target.focus();
+        if (target.setSelectionRange) target.setSelectionRange(start + insert.length, start + insert.length);
         syncLivePreview();
       });
     });
   }
 
-  // ── Color Picker Sync ───────────────────────────────────────
   function setupColorPickers() {
-    const colorPairs = [
-      { picker: elements.bgColor, hex: elements.bgColorHex },
-      { picker: elements.accentColor, hex: elements.accentColorHex },
-      { picker: elements.textColor, hex: elements.textColorHex },
-      { picker: elements.goalFillColor, hex: elements.goalFillColorHex },
-      { picker: elements.goalBarColor, hex: elements.goalBarColorHex },
-      { picker: elements.lbAccentColor, hex: elements.lbAccentColorHex },
-      { picker: elements.lbRowBgColor, hex: elements.lbRowBgColorHex }
+    const pairs = [
+      ['input-bg-color', 'input-bg-color-hex'],
+      ['input-accent-color', 'input-accent-color-hex'],
+      ['input-goal-fill-color', 'input-goal-fill-color-hex'],
+      ['input-goal-bar-color', 'input-goal-bar-color-hex'],
+      ['input-lb-accent-color', 'input-lb-accent-color-hex'],
+      ['input-lb-row-bg-color', 'input-lb-row-bg-color-hex'],
+      ...Object.keys(TEXT_PREFIXES).map(k => [`${TEXT_PREFIXES[k]}-text-color`, `${TEXT_PREFIXES[k]}-text-color-hex`])
     ];
 
-    colorPairs.forEach(({ picker, hex }) => {
+    pairs.forEach(([pickerId, hexId]) => {
+      const picker = el(pickerId);
+      const hex = el(hexId);
       if (!picker || !hex) return;
-      picker.addEventListener('input', () => {
-        hex.value = picker.value;
-        syncLivePreview();
-      });
+      picker.addEventListener('input', () => { hex.value = picker.value; syncLivePreview(); });
       hex.addEventListener('change', () => {
-        if (/^#[0-9A-F]{6}$/i.test(hex.value)) {
-          picker.value = hex.value;
-          syncLivePreview();
-        }
+        if (/^#[0-9a-f]{6}$/i.test(hex.value)) { picker.value = hex.value; syncLivePreview(); }
       });
     });
   }
 
-  // ── Attach Form Input Listeners ──────────────────────────────
-  function attachInputListeners() {
-    const inputs = document.querySelectorAll('.form-control');
-    inputs.forEach(input => {
-      input.addEventListener('input', () => {
-        updateValueDisplays();
-        syncLivePreview();
-      });
-      input.addEventListener('change', () => {
+  function setupCanvasPresets() {
+    Object.keys(TEXT_PREFIXES).forEach(key => {
+      const prefix = TEXT_PREFIXES[key];
+      const select = el(`${prefix}-canvas-preset`);
+      if (!select) return;
+      select.addEventListener('change', () => {
+        writeCanvas(prefix, { preset: select.value });
         updateValueDisplays();
         syncLivePreview();
       });
     });
   }
 
-  // ── CSS Reference Pills Handling ─────────────────────────────
-  function setupCssPills() {
-    document.querySelectorAll('.css-pill').forEach(pill => {
-      pill.addEventListener('click', () => {
-        const textToCopy = pill.dataset.copy || pill.textContent.trim();
-        // Find the visible CSS textarea in the current container
-        const activePanel = pill.closest('.code-editor-container');
-        let activeTextarea = null;
-        if (activePanel) {
-          const cssPanel = activePanel.querySelector('.code-tab-panel[data-code-panel="css"]');
-          if (cssPanel) activeTextarea = cssPanel.querySelector('textarea');
-        }
-        if (!activeTextarea) activeTextarea = document.querySelector('textarea:focus') || elements.customCSS;
+  function setupAmountFilterEditor() {
+    const list = el('amount-filter-list');
+    const addBtn = el('btn-filter-row-add');
+    if (!list) return;
 
-        if (activeTextarea) {
-          const start = activeTextarea.selectionStart !== undefined ? activeTextarea.selectionStart : activeTextarea.value.length;
-          const end = activeTextarea.selectionEnd !== undefined ? activeTextarea.selectionEnd : activeTextarea.value.length;
-          const insertText = `${textToCopy} {\n  \n}\n`;
-          activeTextarea.value = activeTextarea.value.substring(0, start) + insertText + activeTextarea.value.substring(end);
-          activeTextarea.focus();
-          if (activeTextarea.setSelectionRange) {
-            activeTextarea.setSelectionRange(start + textToCopy.length + 5, start + textToCopy.length + 5);
-          }
-        }
-
-        if (navigator.clipboard) navigator.clipboard.writeText(textToCopy).catch(() => {});
-        showToast(`📋 Copied selector "${textToCopy}"`);
-      });
+    list.addEventListener('change', (event) => {
+      const row = event.target.closest('.amount-filter-row');
+      if (row) updateFilterRowVisibility(row);
+      syncLivePreview();
     });
-  }
+    list.addEventListener('input', () => syncLivePreview());
+    list.addEventListener('click', (event) => {
+      if (!event.target.classList.contains('filter-remove')) return;
+      event.target.closest('.amount-filter-row').remove();
+      syncLivePreview();
+      if (!list.querySelector('.amount-filter-row')) renderAmountFilters([]);
+    });
 
-  async function loadProfilesList() {
-    if (!elements.selectProfile) return;
-    try {
-      const res = await fetch('/api/profiles');
-      const data = await res.json();
-      if (data && data.profiles) {
-        elements.selectProfile.innerHTML = Object.keys(data.profiles).map(name =>
-          `<option value="${TemplateEngine.escapeHtml(name)}" ${name === data.activeProfile ? 'selected' : ''}>${TemplateEngine.escapeHtml(name)}</option>`
-        ).join('');
-      }
-    } catch (e) {
-      console.warn('[Profiles] Failed to load profiles list:', e);
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        const filters = readAmountFilters();
+        filters.push(TemplateMatcher.normalizeFilter({ type: 'range', min: 0, max: 500 }));
+        renderAmountFilters(filters);
+        syncLivePreview();
+      });
     }
-  }
 
-  // ── Button Actions ──────────────────────────────────────────
-  function setupActionButtons() {
-    if (elements.selectTargetWidget) {
-      elements.selectTargetWidget.addEventListener('change', (e) => {
-        const target = e.target.value;
-        const urls = {
-          'alert': 'http://localhost:3000/overlay/alert',
-          'goal': 'http://localhost:3000/overlay/goal',
-          'leaderboard': 'http://localhost:3000/overlay/leaderboard'
-        };
-
-        // 1. Read and save current widget state
+    const testBtn = el('btn-match-test');
+    if (testBtn) {
+      testBtn.addEventListener('click', () => {
         readFormValues();
-
-        // 2. Switch widget context key
-        currentWidgetKey = target;
-
-        // 3. Update OBS URL callout & iframe preview
-        if (elements.widgetUrlDisplay) {
-          elements.widgetUrlDisplay.textContent = `OBS Overlay URL: ${urls[target] || urls.alert}`;
+        const amount = numVal('input-match-test', 0);
+        const winner = TemplateMatcher.select(config.alertTemplates, amount);
+        const result = el('match-test-result');
+        if (result) {
+          result.textContent = winner
+            ? `₹${amount} → "${winner.name}"${winner.id === config.activeTemplateId ? ' (the template you are editing)' : ''}`
+            : `₹${amount} → no template available`;
         }
-        if (elements.iframe) {
-          elements.iframe.src = target === 'alert' ? '/overlay/alert' : (target === 'goal' ? '/overlay/goal' : '/overlay/leaderboard');
-        }
-
-        // 4. Populate form controls with new widget's style/animation/advanced settings
-        populateForm(settings);
-
-        showToast(`🎯 Loaded ${target.toUpperCase()} settings & preview`);
-      });
-    }
-
-    if (elements.selectProfile) {
-      elements.selectProfile.addEventListener('change', async (e) => {
-        const name = e.target.value;
-        if (!name) return;
-        try {
-          const res = await fetch('/api/profiles/switch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name })
-          });
-          const data = await res.json();
-          if (data.ok && data.settings) {
-            populateForm(data.settings);
-            showToast(`👤 Switched to profile "${name}"`);
-          }
-        } catch (err) {
-          alert('Failed to switch profile: ' + err.message);
-        }
-      });
-    }
-
-    if (elements.btnProfileNew) {
-      elements.btnProfileNew.addEventListener('click', async () => {
-        const name = prompt('Enter a name for the new profile:');
-        if (!name || !name.trim()) return;
-        const profileName = name.trim();
-        const currentVals = readFormValues();
-        try {
-          const res = await fetch('/api/profiles/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: profileName, settings: currentVals })
-          });
-          const data = await res.json();
-          if (data.ok) {
-            await loadProfilesList();
-            showToast(`✨ Profile "${profileName}" created!`);
-          }
-        } catch (err) {
-          alert('Failed to create profile: ' + err.message);
-        }
-      });
-    }
-
-    if (elements.btnProfileRename) {
-      elements.btnProfileRename.addEventListener('click', async () => {
-        const currentName = elements.selectProfile ? elements.selectProfile.value : 'Default';
-        const newName = prompt(`Rename profile "${currentName}" to:`, currentName);
-        if (!newName || !newName.trim() || newName.trim() === currentName) return;
-        const profileName = newName.trim();
-        const currentVals = readFormValues();
-        try {
-          await fetch('/api/profiles/delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: currentName })
-          });
-          const res = await fetch('/api/profiles/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: profileName, settings: currentVals })
-          });
-          const data = await res.json();
-          if (data.ok) {
-            await loadProfilesList();
-            showToast(`✏️ Renamed profile to "${profileName}"`);
-          }
-        } catch (err) {
-          alert('Failed to rename profile: ' + err.message);
-        }
-      });
-    }
-
-    if (elements.btnProfileDelete) {
-      elements.btnProfileDelete.addEventListener('click', async () => {
-        const currentName = elements.selectProfile ? elements.selectProfile.value : 'Default';
-        if (currentName === 'Default') {
-          alert('The Default profile cannot be deleted.');
-          return;
-        }
-        if (confirm(`Are you sure you want to delete profile "${currentName}"?`)) {
-          try {
-            const res = await fetch('/api/profiles/delete', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: currentName })
-            });
-            const data = await res.json();
-            if (data.ok) {
-              await loadProfilesList();
-              if (data.settings) populateForm(data.settings);
-              showToast(`🗑️ Profile "${currentName}" deleted`);
-            }
-          } catch (err) {
-            alert('Failed to delete profile: ' + err.message);
-          }
-        }
-      });
-    }
-
-    if (elements.btnProfileExport) {
-      elements.btnProfileExport.addEventListener('click', () => {
-        const fullVals = readFormValues();
-        const activeName = elements.selectProfile ? elements.selectProfile.value : 'default';
-        StorageHelper.exportToFile(fullVals, `${activeName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-full-config.json`);
-        showToast(`📤 Complete profile config "${activeName}" exported!`);
-      });
-    }
-
-    if (elements.btnProfileImport && elements.fileProfileInput) {
-      elements.btnProfileImport.addEventListener('click', () => elements.fileProfileInput.click());
-      elements.fileProfileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        try {
-          const importedConfig = await StorageHelper.importFromFile(file);
-          if (!importedConfig) { alert('Invalid profile file.'); return; }
-
-          // Derive a default name from the filename (strip extension)
-          const defaultName = file.name.replace(/\.[^.]+$/, '').replace(/-full-config$/, '') || 'Imported';
-          const profileName = prompt(`Name for the imported profile:`, defaultName);
-          if (!profileName || !profileName.trim()) return;
-
-          const mergedConfig = StorageHelper.mergeWithDefaults(importedConfig);
-          const res = await fetch('/api/profiles/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: profileName.trim(), settings: mergedConfig })
-          });
-          const data = await res.json();
-          if (data.ok) {
-            settings = mergedConfig;
-            await loadProfilesList();
-            if (elements.selectProfile) elements.selectProfile.value = profileName.trim();
-            populateForm(settings);
-            showToast(`🎉 Profile "${profileName.trim()}" imported!`);
-          } else {
-            alert('Failed to save imported profile: ' + (data.error || 'Unknown error'));
-          }
-        } catch (err) {
-          alert('Failed to import profile: ' + err.message);
-        }
-        elements.fileProfileInput.value = '';
-      });
-    }
-
-    if (elements.btnTest) {
-      elements.btnTest.addEventListener('click', () => {
-        sendTestAlert();
-      });
-    }
-
-    if (elements.btnSave) {
-      elements.btnSave.addEventListener('click', async () => {
-        const currentVals = readFormValues();
-        const activeName = elements.selectProfile ? elements.selectProfile.value : 'Default';
-        try {
-          const res = await fetch('/api/profiles/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: activeName, settings: currentVals })
-          });
-          const data = await res.json();
-          if (data.ok) {
-            settings = currentVals;
-            showToast('✅ Settings saved!');
-          } else {
-            showToast('⚠️ Save failed: ' + (data.error || 'Unknown'));
-          }
-        } catch (err) {
-          showToast('⚠️ Save failed: ' + err.message);
-        }
-      });
-    }
-
-    if (elements.btnExport) {
-      elements.btnExport.addEventListener('click', () => {
-        const fullVals = readFormValues();
-        const currentProfileName = elements.selectProfile ? elements.selectProfile.value : 'config';
-        StorageHelper.exportToFile(fullVals, `${currentProfileName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-full-config.json`);
-        showToast('📤 Complete configuration exported!');
-      });
-    }
-
-    if (elements.btnImport) {
-      elements.btnImport.addEventListener('click', () => {
-        if (elements.fileInput) elements.fileInput.click();
-      });
-    }
-
-    if (elements.fileInput) {
-      elements.fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        try {
-          const importedConfig = await StorageHelper.importFromFile(file);
-          if (importedConfig) {
-            settings = StorageHelper.mergeWithDefaults(importedConfig);
-            populateForm(settings);
-            await StorageHelper.saveServer(settings);
-            showToast('🎉 Complete configuration imported & applied!');
-          }
-        } catch (err) {
-          alert('Failed to import config file: ' + err.message);
-        }
-        elements.fileInput.value = '';
-      });
-    }
-
-    // Dedicated Goal Export / Import
-    if (elements.btnGoalExport) {
-      elements.btnGoalExport.addEventListener('click', () => {
-        settings = readFormValues();
-        StorageHelper.exportToFile(settings.goal, 'stream-goal-data.json');
-        showToast('📥 Goal data exported!');
-      });
-    }
-
-    if (elements.btnGoalImport && elements.fileGoalInput) {
-      elements.btnGoalImport.addEventListener('click', () => elements.fileGoalInput.click());
-      elements.fileGoalInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        try {
-          const importedGoal = await StorageHelper.importFromFile(file);
-          settings.goal = { ...settings.goal, ...(importedGoal || {}) };
-          populateForm(settings);
-          await StorageHelper.saveServer(settings);
-          showToast('🎉 Goal data imported!');
-        } catch (err) {
-          alert('Failed to import Goal data: ' + err.message);
-        }
-        elements.fileGoalInput.value = '';
-      });
-    }
-
-    // Dedicated Leaderboard Export / Import
-    if (elements.btnLbExport) {
-      elements.btnLbExport.addEventListener('click', () => {
-        settings = readFormValues();
-        StorageHelper.exportToFile(settings.leaderboard, 'leaderboard-data.json');
-        showToast('📥 Leaderboard data exported!');
-      });
-    }
-
-    if (elements.btnLbImport && elements.fileLbInput) {
-      elements.btnLbImport.addEventListener('click', () => elements.fileLbInput.click());
-      elements.fileLbInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        try {
-          const importedLb = await StorageHelper.importFromFile(file);
-          settings.leaderboard = { ...settings.leaderboard, ...(importedLb || {}) };
-          populateForm(settings);
-          await StorageHelper.saveServer(settings);
-          showToast('🎉 Leaderboard data imported!');
-        } catch (err) {
-          alert('Failed to import Leaderboard data: ' + err.message);
-        }
-        elements.fileLbInput.value = '';
-      });
-    }
-
-    if (elements.btnResetAlertCode) {
-      elements.btnResetAlertCode.addEventListener('click', () => {
-        if (confirm('Reset Alert custom HTML, CSS, and JS code to default templates?')) {
-          if (elements.customHTML) elements.customHTML.value = DEFAULT_CUSTOM_HTML;
-          if (elements.customCSS) elements.customCSS.value = DEFAULT_CUSTOM_CSS;
-          if (elements.customJS) elements.customJS.value = DEFAULT_CUSTOM_JS;
-          updateSnippetButtonStates();
-          syncLivePreview();
-          showToast('🔄 Alert custom code reset to defaults');
-        }
-      });
-    }
-
-    if (elements.btnResetGoalCode) {
-      elements.btnResetGoalCode.addEventListener('click', () => {
-        if (confirm('Reset Payment Goal custom HTML, CSS, and JS code to default templates?')) {
-          if (elements.goalCustomHTML) elements.goalCustomHTML.value = DEFAULT_GOAL_HTML;
-          if (elements.goalCustomCSS) elements.goalCustomCSS.value = DEFAULT_GOAL_CSS;
-          if (elements.goalCustomJS) elements.goalCustomJS.value = DEFAULT_GOAL_JS;
-          updateSnippetButtonStates();
-          syncLivePreview();
-          showToast('🔄 Payment Goal custom code reset to defaults');
-        }
-      });
-    }
-
-    if (elements.btnResetLbCode) {
-      elements.btnResetLbCode.addEventListener('click', () => {
-        if (confirm('Reset Top Leaderboard custom HTML, CSS, and JS code to default templates?')) {
-          if (elements.lbCustomHTML) elements.lbCustomHTML.value = DEFAULT_LB_HTML;
-          if (elements.lbCustomCSS) elements.lbCustomCSS.value = DEFAULT_LB_CSS;
-          if (elements.lbCustomJS) elements.lbCustomJS.value = DEFAULT_LB_JS;
-          updateSnippetButtonStates();
-          syncLivePreview();
-          showToast('🔄 Top Leaderboard custom code reset to defaults');
-        }
-      });
-    }
-
-    if (elements.btnReset) {
-      elements.btnReset.addEventListener('click', async () => {
-        if (confirm('Are you sure you want to reset all settings to default values?')) {
-          const defaults = StorageHelper.getDefaultSettings();
-          populateForm(defaults);
-          await StorageHelper.saveServer(defaults);
-          showToast('🔄 Settings reset to defaults!');
-        }
-      });
-    }
-
-    if (elements.btnGoalTestAdd) {
-      elements.btnGoalTestAdd.addEventListener('click', () => {
-        const cur = parseFloat(elements.goalCurrent.value) || 0;
-        elements.goalCurrent.value = cur + 100;
-        updateValueDisplays();
-        syncLivePreview();
-        showToast('🎯 Added ₹100 to Stream Goal progress!');
-      });
-    }
-
-    if (elements.btnGoalReset) {
-      elements.btnGoalReset.addEventListener('click', () => {
-        elements.goalCurrent.value = elements.goalStart ? parseFloat(elements.goalStart.value) || 0 : 0;
-        updateValueDisplays();
-        syncLivePreview();
-        showToast('🔄 Stream Goal current amount reset to zero');
-      });
-    }
-
-    if (elements.btnLbClearAll) {
-      elements.btnLbClearAll.addEventListener('click', async () => {
-        if (confirm('Are you sure you want to clear all supporters from the leaderboard?')) {
-          if (settings.leaderboard) settings.leaderboard.supporters = {};
-          renderSupportersTable();
-          syncLivePreview();
-          showToast('🗑️ Supporter leaderboard cleared');
-        }
-      });
-    }
-
-    if (elements.btnTestSound && elements.soundUrl) {
-      elements.btnTestSound.addEventListener('click', () => {
-        const soundUrl = elements.soundUrl.value.trim();
-        if (!soundUrl) {
-          showToast('⚠️ Please select or enter a Sound URL first');
-          return;
-        }
-        try {
-          const audio = new Audio(soundUrl);
-          const rawVol = elements.soundVolume ? (!isNaN(parseInt(elements.soundVolume.value)) ? parseInt(elements.soundVolume.value) : 80) : 80;
-          audio.volume = Math.max(0, Math.min(1, rawVol / 100));
-          audio.play().then(() => showToast('🔊 Playing sound preview...')).catch(err => showToast('⚠️ Sound playback failed: ' + err.message));
-        } catch (e) {
-          showToast('⚠️ Invalid sound URL');
-        }
-      });
-    }
-
-    if (elements.positionPreset) {
-      elements.positionPreset.addEventListener('change', (e) => {
-        const val = e.target.value;
-        const coords = {
-          'center': { x: 50, y: 50 },
-          'top-left': { x: 10, y: 10 },
-          'top-center': { x: 50, y: 10 },
-          'top-right': { x: 90, y: 10 },
-          'bottom-left': { x: 10, y: 90 },
-          'bottom-center': { x: 50, y: 90 },
-          'bottom-right': { x: 90, y: 90 }
-        };
-        if (coords[val]) {
-          if (elements.positionX) elements.positionX.value = coords[val].x;
-          if (elements.positionY) elements.positionY.value = coords[val].y;
-          updateValueDisplays();
-          syncLivePreview();
-        }
-      });
-    }
-
-    if (elements.canvasPreset) {
-      elements.canvasPreset.addEventListener('change', (e) => {
-        const val = e.target.value;
-        if (val === '1920x1080') {
-          if (elements.canvasWidth) elements.canvasWidth.value = 1920;
-          if (elements.canvasHeight) elements.canvasHeight.value = 1080;
-        } else if (val === '1280x720') {
-          if (elements.canvasWidth) elements.canvasWidth.value = 1280;
-          if (elements.canvasHeight) elements.canvasHeight.value = 720;
-        } else if (val === '3840x2160') {
-          if (elements.canvasWidth) elements.canvasWidth.value = 3840;
-          if (elements.canvasHeight) elements.canvasHeight.value = 2160;
-        }
-        updateValueDisplays();
-        syncLivePreview();
       });
     }
   }
 
-  // ── File Browsers (Image/GIF, Sound) ───────────────────────
-  function setupFileBrowsers() {
-    const filePairs = [
-      { btnId: 'btn-browse-image', fileId: 'input-image-file', urlInput: elements.imageUrl },
-      { btnId: 'btn-browse-sound', fileId: 'input-sound-file', urlInput: elements.soundUrl }
-    ];
-
-    filePairs.forEach(({ btnId, fileId, urlInput }) => {
-      const btn = document.getElementById(btnId);
-      const fileInput = document.getElementById(fileId);
-      if (!btn || !fileInput) return;
-
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        fileInput.click();
+  function setupTemplateManager() {
+    const select = el('select-template');
+    if (select) {
+      select.addEventListener('change', () => {
+        readFormValues();
+        config.activeTemplateId = select.value;
+        populateForm(config);
       });
+    }
 
+    const withTemplate = (fn) => () => {
+      readFormValues();
+      fn(currentTemplate());
+      populateForm(config);
+    };
+
+    el('btn-template-new').addEventListener('click', withTemplate(() => {
+      const name = prompt('New template name:', `Alert Template ${config.alertTemplates.length + 1}`);
+      if (!name) return;
+      const base = config.widgets.alert;
+      const created = ConfigSchema.createTemplate({
+        name,
+        canvas: ConfigSchema.clone(base.canvas),
+        text: ConfigSchema.clone(base.text),
+        style: ConfigSchema.clone(base.style),
+        animation: ConfigSchema.clone(base.animation),
+        layout: ConfigSchema.clone(base.layout),
+        code: ConfigSchema.clone(base.code)
+      });
+      config.alertTemplates.push(created);
+      config.activeTemplateId = created.id;
+      showToast(`✨ Created template "${created.name}"`);
+    }));
+
+    el('btn-template-rename').addEventListener('click', withTemplate((template) => {
+      if (!template) return;
+      const name = prompt('Rename template:', template.name);
+      if (name) template.name = name;
+    }));
+
+    el('btn-template-duplicate').addEventListener('click', withTemplate((template) => {
+      if (!template) return;
+      const copy = ConfigSchema.normalizeTemplate(Object.assign(ConfigSchema.clone(template), {
+        id: ConfigSchema.generateId('tpl'),
+        name: `${template.name} copy`,
+        isDefault: false
+      }));
+      config.alertTemplates.push(copy);
+      config.activeTemplateId = copy.id;
+      showToast(`📋 Duplicated as "${copy.name}"`);
+    }));
+
+    el('btn-template-default').addEventListener('click', withTemplate((template) => {
+      if (!template) return;
+      config.alertTemplates.forEach(t => { t.isDefault = t.id === template.id; });
+      showToast(`⭐ "${template.name}" is now the fallback template`);
+    }));
+
+    el('btn-template-delete').addEventListener('click', withTemplate((template) => {
+      if (!template) return;
+      if (config.alertTemplates.length === 1) {
+        showToast('⚠️ At least one template is required');
+        return;
+      }
+      if (!confirm(`Delete template "${template.name}"?`)) return;
+      config.alertTemplates = config.alertTemplates.filter(t => t.id !== template.id);
+      config.activeTemplateId = config.alertTemplates[0].id;
+      showToast('🗑️ Template deleted');
+    }));
+
+    el('chk-template-enabled').addEventListener('change', () => syncLivePreview());
+  }
+
+  function setupFileBrowsers() {
+    [['btn-browse-image', 'input-image-file', 'input-image-url'],
+     ['btn-browse-sound', 'input-sound-file', 'input-sound-url']].forEach(([btnId, fileId, urlId]) => {
+      const btn = el(btnId);
+      const fileInput = el(fileId);
+      const urlInput = el(urlId);
+      if (!btn || !fileInput) return;
+      btn.addEventListener('click', (e) => { e.preventDefault(); fileInput.click(); });
       fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = (event) => {
           if (urlInput) urlInput.value = event.target.result;
-          else if (btnId.includes('image') && elements.imageUrl) elements.imageUrl.value = event.target.result;
-          else if (btnId.includes('sound') && elements.soundUrl) elements.soundUrl.value = event.target.result;
-
-          updateValueDisplays();
           syncLivePreview();
           showToast(`📁 Loaded local file: ${file.name}`);
         };
@@ -1139,9 +740,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // ── Quick Snippets & Active Highlight Toggles ────────────────
-  const SNIPPET_DICTIONARY = {
-    'html-default': '{{mediaHtml}}\n<div class="alert-content">\n  <div class="alert-title">{{sender}} sent {{amount}}</div>\n  <div class="alert-subtitle">{{sourceApp}} payment received</div>\n</div>',
+  const SNIPPETS = {
+    'html-default': ConfigSchema.DEFAULT_CODE.alert.customHTML,
     'html-badge': '<div class="alert-badge" style="background:var(--accent-color);color:#000;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-bottom:6px;display:inline-block;">{{sourceApp}}</div>\n{{mediaHtml}}\n<div class="alert-title" style="font-size:26px;">{{sender}} → {{amount}}</div>',
     'css-no-border': '\n.alert-box {\n  border-left: none !important;\n}',
     'css-transparent': '\n.alert-box {\n  background: transparent !important;\n  box-shadow: none !important;\n  backdrop-filter: none !important;\n}',
@@ -1151,114 +751,374 @@ document.addEventListener('DOMContentLoaded', async () => {
     'js-scale': '\nalertBox.style.transform = "scale(1.15)";\nsetTimeout(() => alertBox.style.transform = "scale(1)", 300);'
   };
 
+  function snippetTarget(key) {
+    if (key.startsWith('html-')) return el('input-custom-html');
+    if (key.startsWith('css-')) return el('input-custom-css');
+    return el('input-custom-js');
+  }
+
   function updateSnippetButtonStates() {
     document.querySelectorAll('.snippet-btn').forEach(btn => {
-      const key = btn.dataset.snippet;
-      const snippetText = SNIPPET_DICTIONARY[key];
-      if (!snippetText) return;
-
-      let currentVal = '';
-      if (key.startsWith('html-') && elements.customHTML) currentVal = elements.customHTML.value || '';
-      else if (key.startsWith('css-') && elements.customCSS) currentVal = elements.customCSS.value || '';
-      else if (key.startsWith('js-') && elements.customJS) currentVal = elements.customJS.value || '';
-
-      if (currentVal && currentVal.includes(snippetText.trim())) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
+      const snippet = SNIPPETS[btn.dataset.snippet];
+      const target = snippetTarget(btn.dataset.snippet);
+      const active = snippet && target && target.value.includes(snippet.trim());
+      btn.classList.toggle('active', !!active);
     });
   }
 
   function setupSnippets() {
     document.querySelectorAll('.snippet-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const key = btn.dataset.snippet;
-        const snippetText = SNIPPET_DICTIONARY[key];
-        if (!snippetText) return;
-
-        let targetEl = null;
-        if (key.startsWith('html-')) targetEl = elements.customHTML;
-        else if (key.startsWith('css-')) targetEl = elements.customCSS;
-        else if (key.startsWith('js-')) targetEl = elements.customJS;
-
-        if (!targetEl) return;
-
-        const trimmedSnippet = snippetText.trim();
-        if (targetEl.value.includes(trimmedSnippet)) {
-          // Toggle Off (Remove)
-          targetEl.value = targetEl.value.replace(snippetText, '').replace(trimmedSnippet, '').trim();
+        const snippet = SNIPPETS[btn.dataset.snippet];
+        const target = snippetTarget(btn.dataset.snippet);
+        if (!snippet || !target) return;
+        const trimmed = snippet.trim();
+        if (target.value.includes(trimmed)) {
+          target.value = target.value.replace(snippet, '').replace(trimmed, '').trim();
           showToast('❌ Code snippet removed');
         } else {
-          // Toggle On (Insert)
-          targetEl.value = (targetEl.value + (targetEl.value.endsWith('\n') || !targetEl.value ? '' : '\n') + snippetText).trim();
+          target.value = (target.value + (target.value.endsWith('\n') || !target.value ? '' : '\n') + snippet).trim();
           showToast('✨ Code snippet applied!');
         }
-
         updateSnippetButtonStates();
         syncLivePreview();
       });
     });
+  }
 
-    [elements.customHTML, elements.customCSS, elements.customJS].forEach(el => {
-      if (el) {
-        el.addEventListener('input', updateSnippetButtonStates);
-        el.addEventListener('change', updateSnippetButtonStates);
+  function setupCssPills() {
+    document.querySelectorAll('.css-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const selector = pill.dataset.copy || pill.textContent.trim();
+        const container = pill.closest('.code-editor-container');
+        const cssPanel = container && container.querySelector('.code-tab-panel[data-code-panel="css"]');
+        const textarea = cssPanel && cssPanel.querySelector('textarea');
+        if (textarea) {
+          const start = textarea.selectionStart !== null ? textarea.selectionStart : textarea.value.length;
+          const insert = `${selector} {\n  \n}\n`;
+          textarea.value = textarea.value.substring(0, start) + insert + textarea.value.substring(start);
+          textarea.focus();
+        }
+        if (navigator.clipboard) navigator.clipboard.writeText(selector).catch(() => {});
+        showToast(`📋 Copied selector "${selector}"`);
+      });
+    });
+  }
+
+  function attachInputListeners() {
+    document.querySelectorAll('.form-control').forEach(input => {
+      if (input.closest('#amount-filter-list')) return;
+      ['input', 'change'].forEach(evt => input.addEventListener(evt, () => {
+        updateValueDisplays();
+        syncLivePreview();
+      }));
+    });
+    document.querySelectorAll('input[type="checkbox"]').forEach(input => {
+      input.addEventListener('change', () => syncLivePreview());
+    });
+    ['input-custom-html', 'input-custom-css', 'input-custom-js'].forEach(id => {
+      const node = el(id);
+      if (node) node.addEventListener('input', updateSnippetButtonStates);
+    });
+  }
+
+  function sampleAlert() {
+    const samples = [
+      { sender: 'Rahul Kumar', amount: '₹500', sourceApp: 'PhonePe', message: 'Awesome stream! 🚀' },
+      { sender: 'Priya Singh', amount: '₹1000', sourceApp: 'Google Pay', message: 'Keep up the great work! ❤️' },
+      { sender: 'Amit Verma', amount: '₹250', sourceApp: 'Paytm', message: 'Chai paani subscription ☕' },
+      { sender: 'Sneha Patel', amount: '₹300', sourceApp: 'BHIM UPI', message: 'Great gameplay! 🎮' }
+    ];
+    return { ...samples[Math.floor(Math.random() * samples.length)], timestamp: Date.now() };
+  }
+
+  function setupActionButtons() {
+    el('btn-save').addEventListener('click', async () => {
+      try {
+        const data = await saveToServer();
+        showToast(data.ok ? '💾 Settings saved!' : '⚠️ Save failed');
+      } catch (e) {
+        showToast('⚠️ Save failed: ' + e.message);
       }
     });
 
-    if (elements.chkTransparentBg) {
-      elements.chkTransparentBg.addEventListener('change', () => {
-        syncLivePreview();
-      });
-    }
+    el('btn-test').addEventListener('click', async () => {
+      syncLivePreview();
+      const testData = sampleAlert();
+      const resolved = TemplateMatcher.resolve(config, TemplateMatcher.parseAmount(testData.amount));
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'TRIGGER_TEST_ALERT',
+          data: { ...testData, alertTemplateId: resolved.templateId }
+        }, '*');
+      }
+      showToast(`⚡ Test alert via "${resolved.templateName}"`);
+      try {
+        await fetch('/api/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(testData)
+        });
+      } catch (e) {
+        console.warn('[Config] Live overlay test trigger error:', e.message);
+      }
+    });
 
-    if (elements.chkEnableCustomCode) {
-      elements.chkEnableCustomCode.addEventListener('change', () => {
-        syncLivePreview();
+    el('btn-export').addEventListener('click', () => {
+      readFormValues();
+      StorageHelper.exportToFile(config, 'alert-theme.json');
+      showToast('📤 Exported configuration');
+    });
+
+    el('btn-import').addEventListener('click', () => el('file-import-input').click());
+    el('file-import-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        populateForm(await StorageHelper.importFromFile(file));
+        showToast('📥 Imported configuration');
+      } catch (err) {
+        showToast('⚠️ ' + err.message);
+      }
+      e.target.value = '';
+    });
+
+    el('btn-reset').addEventListener('click', () => {
+      if (!confirm('Reset all settings in this profile to defaults?')) return;
+      populateForm(ConfigSchema.createDefaultConfig());
+      showToast('🔄 Reset to defaults');
+    });
+
+    // ── Profiles
+    el('select-profile').addEventListener('change', async (e) => {
+      const res = await fetch('/api/profiles/switch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: e.target.value })
       });
-    }
+      const data = await res.json();
+      if (data.ok) {
+        populateForm(data.settings);
+        showToast(`👤 Switched to "${data.activeProfile}"`);
+      }
+    });
+
+    el('btn-profile-new').addEventListener('click', async () => {
+      const name = prompt('New profile name:');
+      if (!name) return;
+      await saveToServer(name);
+      await loadProfilesList(name);
+      showToast(`👤 Created profile "${name}"`);
+    });
+
+    el('btn-profile-rename').addEventListener('click', async () => {
+      const select = el('select-profile');
+      const oldName = select.value;
+      const name = prompt('Rename profile:', oldName);
+      if (!name || name === oldName) return;
+      await saveToServer(name);
+      if (oldName !== 'Default') {
+        await fetch('/api/profiles/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: oldName })
+        });
+      }
+      await loadProfilesList(name);
+      showToast(`✏️ Renamed to "${name}"`);
+    });
+
+    el('btn-profile-delete').addEventListener('click', async () => {
+      const name = el('select-profile').value;
+      if (!confirm(`Delete profile "${name}"?`)) return;
+      const res = await fetch('/api/profiles/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      if (!data.ok) return showToast('⚠️ ' + (data.error || 'Delete failed'));
+      await loadProfilesList(data.activeProfile);
+      populateForm(await StorageHelper.loadServer());
+      showToast('🗑️ Profile deleted');
+    });
+
+    el('btn-profile-export').addEventListener('click', () => {
+      readFormValues();
+      StorageHelper.exportToFile(config, `profile-${el('select-profile').value || 'default'}.json`);
+    });
+
+    el('btn-profile-import').addEventListener('click', () => el('file-import-profile-input').click());
+    el('file-import-profile-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        config = await StorageHelper.importFromFile(file);
+        const data = await saveToServer();
+        if (data.ok) showToast('📥 Profile imported');
+      } catch (err) {
+        showToast('⚠️ ' + err.message);
+      }
+      e.target.value = '';
+    });
+
+    // ── Goal helpers
+    el('btn-goal-test-add').addEventListener('click', () => {
+      readFormValues();
+      config.widgets.goal.currentAmount += 100;
+      populateForm(config);
+      showToast('⚡ Added ₹100 to the goal');
+    });
+
+    el('btn-goal-reset').addEventListener('click', () => {
+      readFormValues();
+      config.widgets.goal.currentAmount = 0;
+      populateForm(config);
+      showToast('🔄 Goal progress reset');
+    });
+
+    el('btn-goal-export').addEventListener('click', () => {
+      readFormValues();
+      StorageHelper.exportToFile(config.widgets.goal, 'goal-data.json');
+    });
+
+    el('btn-goal-import').addEventListener('click', () => el('file-import-goal-input').click());
+    el('file-import-goal-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          readFormValues();
+          config.widgets.goal = ConfigSchema.normalizeWidget('goal', JSON.parse(ev.target.result));
+          populateForm(config);
+          showToast('📥 Goal data imported');
+        } catch (err) {
+          showToast('⚠️ Invalid goal JSON');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    // ── Leaderboard helpers
+    el('btn-lb-export').addEventListener('click', () => {
+      readFormValues();
+      StorageHelper.exportToFile(config.widgets.leaderboard.supporters, 'leaderboard.json');
+    });
+
+    el('btn-lb-import').addEventListener('click', () => el('file-import-lb-input').click());
+    el('file-import-lb-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          readFormValues();
+          const parsed = JSON.parse(ev.target.result);
+          config.widgets.leaderboard.supporters = parsed.supporters || parsed;
+          populateForm(config);
+          showToast('📥 Leaderboard imported');
+        } catch (err) {
+          showToast('⚠️ Invalid leaderboard JSON');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    el('btn-lb-clear-all').addEventListener('click', () => {
+      if (!confirm('Clear every supporter from the leaderboard?')) return;
+      readFormValues();
+      config.widgets.leaderboard.supporters = {};
+      populateForm(config);
+      showToast('🗑️ Leaderboard cleared');
+    });
+
+    // ── Code reset buttons
+    [['btn-reset-alert-code', 'alert', ['input-custom-html', 'input-custom-css', 'input-custom-js']],
+     ['btn-reset-goal-code', 'goal', ['input-goal-custom-html', 'input-goal-custom-css', 'input-goal-custom-js']],
+     ['btn-reset-lb-code', 'leaderboard', ['input-lb-custom-html', 'input-lb-custom-css', 'input-lb-custom-js']]
+    ].forEach(([btnId, kind, ids]) => {
+      el(btnId).addEventListener('click', () => {
+        const defaults = ConfigSchema.DEFAULT_CODE[kind];
+        setVal(ids[0], defaults.customHTML);
+        setVal(ids[1], defaults.customCSS);
+        setVal(ids[2], defaults.customJS);
+        updateSnippetButtonStates();
+        syncLivePreview();
+        showToast('🔄 Code reset to defaults');
+      });
+    });
+
+    // ── Sound test
+    el('btn-test-sound').addEventListener('click', () => {
+      const url = val('input-sound-url', '');
+      if (!url) return showToast('⚠️ No sound URL set');
+      const audio = new Audio(url);
+      audio.volume = Math.max(0, Math.min(1, numVal('input-sound-volume', 80) / 100));
+      audio.play().catch(err => showToast('⚠️ ' + err.message));
+    });
+
+    // ── Amount allowlist
+    const addAmount = () => {
+      const input = el('input-filter-new-amount');
+      const parsed = parseFloat(input.value);
+      if (!Number.isFinite(parsed) || parsed < 0) return input.focus();
+      const rounded = Math.round(parsed * 100) / 100;
+      if (allowedAmounts.indexOf(rounded) === -1) {
+        allowedAmounts.push(rounded);
+        allowedAmounts.sort((a, b) => a - b);
+        renderFilterTags();
+        syncLivePreview();
+      }
+      input.value = '';
+      input.focus();
+    };
+    el('btn-filter-add').addEventListener('click', addAmount);
+    el('input-filter-new-amount').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); addAmount(); }
+    });
+    el('btn-filter-clear').addEventListener('click', () => {
+      allowedAmounts = [];
+      renderFilterTags();
+      syncLivePreview();
+    });
   }
 
-  // ── Initialization (already in DOMContentLoaded) ─────────────
+  // ── Boot ─────────────────────────────────────────────────────
   setupTabs();
   setupCodeEditorTabs();
   setupVariablePills();
   setupCssPills();
   setupColorPickers();
-  attachInputListeners();
-  setupActionButtons();
+  setupCanvasPresets();
+  setupAmountFilterEditor();
+  setupTemplateManager();
   setupFileBrowsers();
   setupSnippets();
+  setupActionButtons();
+  attachInputListeners();
 
-  // Load settings from server (active profile)
   try {
     const res = await fetch('/api/settings');
     const data = await res.json();
-    const rawSettings = (data && data.settings) ? data.settings : data;
-    await loadProfilesList();
-    if (data.activeProfile && elements.selectProfile) {
-      elements.selectProfile.value = data.activeProfile;
-    }
-    populateForm(rawSettings);
+    await loadProfilesList(data.activeProfile);
+    populateForm(data.settings || data);
   } catch (e) {
     console.error('[Config] Failed to load settings, using defaults:', e);
-    populateForm(StorageHelper.getDefaultSettings());
+    populateForm(ConfigSchema.createDefaultConfig());
   }
+  updateSnippetButtonStates();
 
-  // Listen for iframe ready message from overlay pages
   window.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'OVERLAY_READY') {
-      syncLivePreview();
-    }
+    if (event.data && event.data.type === 'OVERLAY_READY') syncLivePreview();
   });
 
-  // Sync preview once iframe completes load
-  if (elements.iframe) {
-    elements.iframe.addEventListener('load', () => {
+  if (iframe) {
+    iframe.addEventListener('load', () => {
       syncLivePreview();
       setTimeout(syncLivePreview, 150);
     });
   }
 });
-

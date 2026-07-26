@@ -27,7 +27,9 @@ The server will start on port `3000` (or `process.env.PORT`).
 | Route | Description |
 | :--- | :--- |
 | **`http://localhost:3000/config`** | StreamLabs-style alert customization editor UI |
-| **`http://localhost:3000/overlay`** | Transparent OBS Browser Source overlay |
+| **`http://localhost:3000/overlay`** | Transparent OBS Browser Source alert overlay |
+| **`http://localhost:3000/goal`** | Payment goal overlay |
+| **`http://localhost:3000/leaderboard`** | Top supporters overlay |
 | **`http://localhost:3000/preview`** | Live preview and manual alert test page |
 | **`http://localhost:3000/health`** | Server & WebSocket connection health check |
 
@@ -35,33 +37,89 @@ The server will start on port `3000` (or `process.env.PORT`).
 
 ## 🎨 Alert Customization System
 
-Access the editor UI at `http://localhost:3000/config` to customize your alerts with 5 dedicated configuration tabs:
+Access the editor UI at `http://localhost:3000/config`.
 
-1. **Text Templates**:
-   - Customize Title & Subtitle templates using variables: `{{sender}}`, `{{amount}}`, `{{sourceApp}}`, `{{message}}`, `{{timestamp}}`, `{{date}}`.
-   - Adjust font sizes and Google Font families (Inter, Outfit, Poppins, Roboto, Montserrat).
-2. **Media & Sound**:
-   - Add image or GIF URLs, alert sound (MP3/WAV) playback, media sizing, and media layout position (`top`, `left`, `right`, `bottom`).
-3. **Style & Colors**:
-   - Background color & opacity slider, accent color, text color, border radius, and card padding.
-4. **Animations**:
-   - Entrance and exit animations (`slide-up`, `slide-down`, `fade-in`, `zoom-in`, `bounce`).
-   - Motion speed duration and alert display duration.
-5. **Advanced & Layout**:
-   - Position X/Y sliders (0-100%), card width, and custom CSS overrides.
+### Alert templates
+
+Alerts are driven by **templates**. Each entry in `alertTemplates` owns its own
+image, sound, text style, animation, layout and canvas, and declares which
+payment amounts it applies to:
+
+```jsonc
+{
+  "id": "vip",
+  "name": "VIP Alert",
+  "enabled": true,
+  "isDefault": false,      // the fallback used when nothing matches
+  "priority": 0,           // tie-breaker, higher wins
+  "amountFilters": [{ "type": "min", "min": 1000 }],
+  "image":     { "imageUrl": "", "gifUrl": "", "position": "top", "size": 100 },
+  "sound":     { "soundUrl": "", "soundVolume": 80 },
+  "canvas":    { "preset": "1080p", "width": 1920, "height": 1080 },
+  "text":      { "titleTemplate": "…", "subtitleTemplate": "…", "fontFamily": "Inter", … },
+  "style":     { … }, "animation": { … }, "layout": { … }, "code": { … }
+}
+```
+
+Filter types are `any`, `exact` (`value`), `min`, `max` and `range`
+(`min`+`max`). A template with no filters matches every amount.
+
+**Matching rule.** Every enabled template whose filters accept the amount is
+scored by how *narrow* its filter is — `exact` (0) beats `range` (`max - min`)
+beats `max`/`min` beats `any`. Ties break on the higher `priority`, then on the
+earlier position in the array. If nothing matches, the fallback is the enabled
+template flagged `isDefault`, else the first enabled template, else the first
+template. The server stamps the template it picked onto the broadcast
+(`alertTemplateId`) so overlays never disagree with it.
+
+### Per-widget settings
+
+The alert, payment goal and leaderboard widgets are fully independent. Each has
+its own `text` style (font family/size/weight/style, colour, align, transform,
+letter spacing, line height) and its own `canvas` — `1080p`, `720p` or `custom`
+width/height. Changing one widget's canvas never affects another's.
+
+Alert templates layer on top of `widgets.alert`, which acts as the base and
+seeds newly created templates.
+
+### Config tabs
+
+1. **Alert Templates** — template CRUD (create / rename / duplicate / delete /
+   enable / set fallback), title & subtitle templates using `{{sender}}`,
+   `{{amount}}`, `{{sourceApp}}`, `{{message}}`, `{{timestamp}}`, `{{date}}`,
+   amount filters with a live match tester, and custom HTML/CSS/JS.
+2. **Media & Sound** — image/GIF URL, alert sound, volume, media position and size.
+3. **Style & Canvas** — template typography, canvas preset, colours, border, padding, position and width.
+4. **Animations** — entrance/exit animation, motion speed and display duration.
+5. **Alert Widget Base** — the base typography and canvas that templates inherit.
+6. **Payment Goal** / 7. **Top Leaderboard** — widget fields plus their own typography and canvas.
+8. **Amount Filter** — an optional allowlist of amounts that may trigger alerts.
 
 ### Features
 - **Live Preview Sync**: Instant visual preview inside an embedded iframe.
-- **Theme Export & Import**: Save custom themes as `.json` files or load existing theme files.
-- **Live OBS Reload**: Modifying and saving settings broadcasts updates via WebSocket so OBS overlays update immediately without reloads.
+- **Profiles**: Named configurations in `config/profiles.json`, storing every template and widget setting.
+- **Theme Export & Import**: Save configurations as `.json` files or load existing ones. Older files are migrated on import.
+- **Live OBS Reload**: Saving broadcasts `SETTINGS_UPDATED` over WebSocket so overlays update without a reload.
+
+### Config format & migration
+
+Configs are versioned (`version: 2`). Older files — the pre-template global
+`text`/`media`/`style`/`animation`/`advanced` layout, and the original flat
+`widget-config.json` — are migrated on every load, import and profile switch:
+the global alert/media setup becomes a single `Default Alert` template and the
+global text styling is copied into each widget's own text block. Migration is
+idempotent and loss-free, so existing profiles keep working unchanged.
 
 ---
 
 ## 📡 REST API
 
-- `GET /api/settings`: Returns current configuration stored in `config/settings.json`.
-- `POST /api/settings`: Save updated JSON configuration and broadcast `SETTINGS_UPDATED` to all connected clients.
+- `GET /api/settings`: Returns the active profile, the profile list and the current (migrated) configuration.
+- `POST /api/config`: Patch the active configuration, persist it to the active profile and broadcast `SETTINGS_UPDATED`.
+- `POST /api/settings`: Replace the configuration and broadcast `SETTINGS_UPDATED`.
+- `GET /api/profiles` / `POST /api/profiles/switch` / `POST /api/profiles/save` / `POST /api/profiles/delete`: Profile management.
 - `GET /api/test`: Trigger a sample payment notification alert to connected OBS overlays.
+- `POST /api/test`: Trigger a custom sample notification; the response reports which alert template matched.
 
 ---
 

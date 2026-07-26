@@ -1,43 +1,50 @@
+/**
+ * Payment goal overlay. Reads only `widgets.goal` — its text style, canvas and
+ * layout are its own and are never shared with the alert or leaderboard widget.
+ */
 (function () {
-  let settings = StorageHelper.getDefaultSettings();
+  let config = StorageHelper.getDefaultSettings();
   let ws = null;
 
   function applyGoalSettings(newSettings) {
-    settings = StorageHelper.mergeWithDefaults(newSettings);
-    const widgetGoal = (settings.widgets && settings.widgets.goal) ? settings.widgets.goal : {};
-    const goal = { ...settings.goal, ...widgetGoal };
-    const styleData = widgetGoal.style || settings.style || {};
-    const textData = widgetGoal.text || settings.text || {};
-    const advData = widgetGoal.advanced || settings.advanced || {};
+    config = StorageHelper.mergeWithDefaults(newSettings);
+    const goal = config.widgets.goal;
     const root = document.documentElement;
 
-    root.style.setProperty('--goal-bar-color', styleData.barColor || goal.barColor || '#1e2433');
-    root.style.setProperty('--goal-fill-color', styleData.fillColor || goal.fillColor || '#00e5ff');
-    root.style.setProperty('--goal-text-color', styleData.textColor || styleData.color || goal.textColor || '#ffffff');
-    root.style.setProperty('--goal-font-family', `'${textData.fontFamily || goal.fontFamily || 'Inter'}', sans-serif`);
-    root.style.setProperty('--goal-bar-height', (styleData.barHeight || goal.barHeight || 36) + 'px');
+    root.style.setProperty('--goal-bar-color', goal.style.barColor);
+    root.style.setProperty('--goal-fill-color', goal.style.fillColor);
+    root.style.setProperty('--goal-accent-color', goal.style.accentColor);
+    root.style.setProperty('--goal-bar-height', goal.style.barHeight + 'px');
+    root.style.setProperty('--goal-border-radius', goal.style.borderRadius + 'px');
+    root.style.setProperty('--goal-padding', goal.style.padding + 'px');
+    root.style.setProperty('--goal-width', goal.layout.width + 'px');
+    root.style.setProperty('--goal-position-x', goal.layout.positionX);
+    root.style.setProperty('--goal-position-y', goal.layout.positionY);
+    root.style.setProperty('--goal-margin-x', goal.layout.marginX + 'px');
+    root.style.setProperty('--goal-margin-y', goal.layout.marginY + 'px');
 
-    // Apply Custom CSS
+    WidgetStyle.applyCssVars(root, WidgetStyle.toCssVars(goal.text, 'goal'));
+    WidgetStyle.applyCssVars(root, CanvasPresets.toCssVars(goal.canvas));
+
     let customStyleEl = document.getElementById('custom-goal-css');
     if (!customStyleEl) {
       customStyleEl = document.createElement('style');
       customStyleEl.id = 'custom-goal-css';
       document.head.appendChild(customStyleEl);
     }
-    const isCodeEnabled = advData.enableCustomCode !== false;
-    const customCssText = advData.customCSS || goal.customCSS || '';
-    const isTransparent = goal.isTransparent === true;
-    const transparentCss = isTransparent ? `.goal-card { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }\n` : '';
-    customStyleEl.textContent = transparentCss + (isCodeEnabled ? customCssText : '');
+    const transparentCss = goal.style.isTransparent
+      ? '.goal-card { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }\n'
+      : '';
+    customStyleEl.textContent = transparentCss + (goal.code.enableCustomCode !== false ? (goal.code.customCSS || '') : '');
 
-    renderGoalWidget(goal, textData, advData);
+    renderGoalWidget(goal);
   }
 
-  function renderGoalWidget(goal, textData, advData) {
+  function renderGoalWidget(goal) {
     const container = document.getElementById('goal-container');
     if (!container) return;
 
-    if (goal.enableGoal === false) {
+    if (goal.enabled === false) {
       container.innerHTML = '';
       return;
     }
@@ -50,17 +57,20 @@
 
     const formattedCurrent = `₹${current.toLocaleString('en-IN')}`;
     const formattedTarget = `₹${target.toLocaleString('en-IN')}`;
-    const goalTitle = goal.title || textData.titleTemplate || 'Payment Goal';
+    const goalTitle = TemplateEngine.render(goal.text.titleTemplate || goal.title || 'Payment Goal', {
+      title: goal.title,
+      targetAmount: formattedTarget,
+      currentAmount: formattedCurrent
+    });
 
-    if (advData && advData.enableCustomCode && advData.customHTML && advData.customHTML.trim()) {
-      const renderData = {
+    if (goal.code.enableCustomCode !== false && goal.code.customHTML && goal.code.customHTML.trim()) {
+      container.innerHTML = TemplateEngine.render(goal.code.customHTML, {
         title: goalTitle,
         currentAmount: formattedCurrent,
         targetAmount: formattedTarget,
         percent: `${percent}%`,
         endDate: goal.endDate || ''
-      };
-      container.innerHTML = TemplateEngine.render(advData.customHTML, renderData);
+      });
       return;
     }
 
@@ -83,29 +93,19 @@
 
   function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/obs`;
-
-    ws = new WebSocket(wsUrl);
-
+    ws = new WebSocket(`${protocol}//${window.location.host}/obs`);
     ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
-        if (msg.type === 'SETTINGS_UPDATED' && msg.payload) {
-          applyGoalSettings(msg.payload);
-        } else if (msg.type === 'config' && msg.config) {
-          applyGoalSettings(msg.config);
-        }
+        if (msg.type === 'SETTINGS_UPDATED' && msg.payload) applyGoalSettings(msg.payload);
+        else if (msg.type === 'config' && msg.config) applyGoalSettings(msg.config);
       } catch (e) {
         console.warn('[Goal] WS parse error:', e);
       }
     };
-
-    ws.onclose = () => {
-      setTimeout(connectWebSocket, 3000);
-    };
+    ws.onclose = () => setTimeout(connectWebSocket, 3000);
   }
 
-  // Listen for iframe postMessage from Config live preview
   window.addEventListener('message', (event) => {
     if (event.data && (event.data.type === 'SETTINGS_UPDATED' || event.data.type === 'config')) {
       const payload = event.data.payload || event.data.config;
@@ -115,9 +115,8 @@
 
   document.addEventListener('DOMContentLoaded', async () => {
     try {
-      const serverSettings = await StorageHelper.loadServer();
-      applyGoalSettings(serverSettings);
-    } catch (e) {}
+      applyGoalSettings(await StorageHelper.loadServer());
+    } catch (e) { /* keep defaults */ }
     connectWebSocket();
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'OVERLAY_READY', widget: 'goal' }, '*');

@@ -12,7 +12,7 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-icon">💸</div>
+        <div class="brand-icon">&#128181;</div>
         <div>
           <div class="brand-title">Payment Alerts for OBS</div>
           <div class="brand-sub">Widget Customizer</div>
@@ -21,38 +21,41 @@
 
       <nav class="nav-tabs">
         <button class="tab-btn active" data-tab="text">
-          <span class="icon">🔔</span> Alert Templates
+          <span class="icon">&#128276;</span> Alert Templates
         </button>
         <button class="tab-btn" data-tab="media">
-          <span class="icon">🖼️</span> Media & Sound
+          <span class="icon">&#128444;&#65039;</span> Media &amp; Sound
         </button>
         <button class="tab-btn" data-tab="style">
-          <span class="icon">🎨</span> Style & Colors
+          <span class="icon">&#127912;</span> Style &amp; Colors
         </button>
         <button class="tab-btn" data-tab="animation">
-          <span class="icon">✨</span> Animations
+          <span class="icon">&#10024;</span> Animations
+        </button>
+        <button class="tab-btn" data-tab="alert-widget">
+          <span class="icon">&#128280;</span> Alert Widget Base
         </button>
         <button class="tab-btn" data-tab="goal">
-          <span class="icon">🎯</span> Payment Goal
+          <span class="icon">&#127919;</span> Payment Goal
         </button>
         <button class="tab-btn" data-tab="leaderboard">
-          <span class="icon">🏆</span> Top Leaderboard
+          <span class="icon">&#127942;</span> Top Leaderboard
         </button>
         <button class="tab-btn" data-tab="filter">
-          <span class="icon">🔍</span> Alert Filter
+          <span class="icon">&#128269;</span> Alert Filter
         </button>
       </nav>
 
       <!-- Profile Switcher Card -->
       <div class="profile-switcher-card">
-        <label for="select-profile" class="profile-label">👤 Active Profile Context</label>
+        <label for="select-profile" class="profile-label">&#128100; Active Profile Context</label>
         <select id="select-profile" class="form-control select-profile-dropdown"></select>
         <div class="profile-actions-grid">
-          <button class="btn btn-secondary profile-icon-btn" type="button" id="btn-profile-new" title="New Profile">➕</button>
-          <button class="btn btn-outline profile-icon-btn" type="button" id="btn-profile-rename" title="Rename Profile">✏️</button>
-          <button class="btn btn-danger profile-icon-btn" type="button" id="btn-profile-delete" title="Delete Profile">🗑️</button>
-          <button class="btn btn-outline profile-icon-btn" type="button" id="btn-profile-export" title="Export Profile Config JSON">📤</button>
-          <button class="btn btn-outline profile-icon-btn" type="button" id="btn-profile-import" title="Import Profile Config JSON">📥</button>
+          <button class="btn btn-secondary profile-icon-btn" type="button" id="btn-profile-new" title="New Profile">&#10133;</button>
+          <button class="btn btn-outline profile-icon-btn" type="button" id="btn-profile-rename" title="Rename Profile">&#9999;&#65039;</button>
+          <button class="btn btn-danger profile-icon-btn" type="button" id="btn-profile-delete" title="Delete Profile">&#128465;&#65039;</button>
+          <button class="btn btn-outline profile-icon-btn" type="button" id="btn-profile-export" title="Export Profile Config JSON">&#128228;</button>
+          <button class="btn btn-outline profile-icon-btn" type="button" id="btn-profile-import" title="Import Profile Config JSON">&#128229;</button>
           <input type="file" id="file-import-profile-input" accept=".json" style="display: none;" />
         </div>
       </div>
@@ -65,14 +68,33 @@
 
     <!-- Main View Pane -->
     <main class="main-view">
-      <!-- Settings Form Panel -->
       <section class="form-panel">
-        
-        <!-- Tab 1: Text -->
+
+        <!-- Template manager: shared by the alert-facing tabs -->
+        <div class="template-manager" id="template-manager">
+          <div class="label-with-switch">
+            <label for="select-template">&#128220; Editing Alert Template</label>
+            <label class="checkbox-row">
+              <input type="checkbox" id="chk-template-enabled" checked />
+              <span>Template enabled</span>
+            </label>
+          </div>
+          <select id="select-template" class="form-control"></select>
+          <div class="profile-actions-grid" style="margin-top: 8px;">
+            <button class="btn btn-secondary profile-icon-btn" type="button" id="btn-template-new" title="New Template">&#10133;</button>
+            <button class="btn btn-outline profile-icon-btn" type="button" id="btn-template-rename" title="Rename Template">&#9999;&#65039;</button>
+            <button class="btn btn-outline profile-icon-btn" type="button" id="btn-template-duplicate" title="Duplicate Template">&#128203;</button>
+            <button class="btn btn-outline profile-icon-btn" type="button" id="btn-template-default" title="Make Fallback Template">&#11088;</button>
+            <button class="btn btn-danger profile-icon-btn" type="button" id="btn-template-delete" title="Delete Template">&#128465;&#65039;</button>
+          </div>
+          <p class="panel-desc" id="template-summary" style="margin-top: 8px;"></p>
+        </div>
+
+        <!-- Tab 1: Template content, matching and code -->
         <div class="tab-content active" id="tab-text">
           <div class="panel-header">
-            <h2 class="panel-title">Alert Templates</h2>
-            <p class="panel-desc">Customize alert text and placeholder variables.</p>
+            <h2 class="panel-title">Alert Template Text</h2>
+            <p class="panel-desc">Text, amount matching and typography for the selected template.</p>
           </div>
 
           <div class="form-group">
@@ -97,22 +119,47 @@
             </div>
           </div>
 
-          <!-- Advanced Settings & Code Injections (Open by Default) -->
+          <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;" />
+
+          <div class="panel-header">
+            <h2 class="panel-title">Amount Matching</h2>
+            <p class="panel-desc">A payment picks the template whose matching filter covers the narrowest amount range. Ties break on priority, then on the order below. A template with no filters matches every amount.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="input-template-priority">Priority (higher wins a tie)</label>
+            <input type="number" id="input-template-priority" class="form-control" min="-1000" max="1000" step="1" value="0" />
+          </div>
+
+          <div class="form-group">
+            <label>Amount Filters</label>
+            <div id="amount-filter-list" class="amount-filter-list"></div>
+            <button class="btn btn-secondary" type="button" id="btn-filter-row-add" style="margin-top: 8px;">&#10133; Add Filter</button>
+          </div>
+
+          <div class="form-group">
+            <label for="input-match-test">Match Tester (&#8377;)</label>
+            <div class="input-with-button">
+              <input type="number" id="input-match-test" class="form-control" placeholder="e.g. 500" step="any" />
+              <button class="btn btn-outline" type="button" id="btn-match-test">&#127919; Which template wins?</button>
+            </div>
+            <p class="panel-desc" id="match-test-result" style="margin-top: 6px;"></p>
+          </div>
+
+          <!-- Advanced Settings & Code Injections -->
           <details class="collapsible-advanced" open>
             <summary class="collapsible-summary">
-              <span>⚙️ Advanced Code & Layout Settings</span>
-              <span>▼</span>
+              <span>&#9881;&#65039; Advanced Code &amp; Layout Settings</span>
+              <span>&#9660;</span>
             </summary>
             <div class="collapsible-content">
-              <!-- Security Warning Callout -->
               <div class="warning-callout" style="margin-top: 0;">
-                <span class="warning-icon">⚠️</span>
+                <span class="warning-icon">&#9888;&#65039;</span>
                 <div>
                   <strong>Security Warning:</strong> Custom HTML, CSS, and JavaScript functions are executed at your own risk. Verify code before running to ensure it performs safely.
                 </div>
               </div>
 
-              <!-- Switch -->
               <div class="panel-header-with-switch" style="margin-bottom: 16px;">
                 <span style="font-weight: 600; font-size: 13px;">Enable Custom Code</span>
                 <label class="switch-container">
@@ -121,7 +168,6 @@
                 </label>
               </div>
 
-              <!-- Tabbed Code Editor Container -->
               <div class="code-editor-container">
                 <div class="code-tabs-header">
                   <div class="code-tabs">
@@ -129,41 +175,38 @@
                     <button class="code-tab-btn" type="button" data-code-tab="css">CSS</button>
                     <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
                   </div>
-                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-alert-code" style="padding: 2px 8px; font-size: 11px;">🔄 Reset Code</button>
+                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-alert-code" style="padding: 2px 8px; font-size: 11px;">&#128260; Reset Code</button>
                 </div>
 
-                <!-- HTML Panel -->
                 <div class="code-tab-panel" data-code-panel="html" id="code-panel-html">
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-custom-html" class="form-control code-editor-input" placeholder="{{mediaHtml}}&#10;<div class=&quot;alert-content&quot;>&#10;  <div class=&quot;alert-title&quot;>{{sender}} sent {{amount}}</div>&#10;  <div class=&quot;alert-subtitle&quot;>{{sourceApp}} payment received</div>&#10;</div>"></textarea>
+                    <textarea id="input-custom-html" class="form-control code-editor-input"></textarea>
                   </div>
                   <div class="snippet-btns">
-                    <button class="snippet-btn" type="button" data-snippet="html-default">📄 Default Card HTML</button>
-                    <button class="snippet-btn" type="button" data-snippet="html-badge">🏷️ Badge Style HTML</button>
+                    <button class="snippet-btn" type="button" data-snippet="html-default">&#128196; Default Card HTML</button>
+                    <button class="snippet-btn" type="button" data-snippet="html-badge">&#127991;&#65039; Badge Style HTML</button>
                   </div>
                 </div>
 
-                <!-- CSS Panel -->
                 <div class="code-tab-panel" data-code-panel="css" id="code-panel-css" style="display: none;">
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-custom-css" class="form-control code-editor-input" placeholder="/* Enter custom CSS rules */&#10;.alert-title { text-transform: uppercase; }"></textarea>
+                    <textarea id="input-custom-css" class="form-control code-editor-input"></textarea>
                   </div>
                   <div class="snippet-btns">
-                    <button class="snippet-btn" type="button" data-snippet="css-no-border">❌ Remove Left Border</button>
-                    <button class="snippet-btn" type="button" data-snippet="css-transparent">👻 Transparent Card</button>
-                    <button class="snippet-btn" type="button" data-snippet="css-large-media">🖼️ 100% Media Width</button>
-                    <button class="snippet-btn" type="button" data-snippet="css-glow">✨ Neon Glow</button>
+                    <button class="snippet-btn" type="button" data-snippet="css-no-border">&#10060; Remove Left Border</button>
+                    <button class="snippet-btn" type="button" data-snippet="css-transparent">&#128123; Transparent Card</button>
+                    <button class="snippet-btn" type="button" data-snippet="css-large-media">&#128444;&#65039; 100% Media Width</button>
+                    <button class="snippet-btn" type="button" data-snippet="css-glow">&#10024; Neon Glow</button>
                   </div>
                 </div>
 
-                <!-- JS Panel -->
                 <div class="code-tab-panel" data-code-panel="js" id="code-panel-js" style="display: none;">
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-custom-js" class="form-control code-editor-input" placeholder="// JS executed on alert trigger: parameters (notifData, alertBox, settings)&#10;console.log('Payment alert received:', notifData.amount);"></textarea>
+                    <textarea id="input-custom-js" class="form-control code-editor-input"></textarea>
                   </div>
                   <div class="snippet-btns">
-                    <button class="snippet-btn" type="button" data-snippet="js-log">📜 Log Notification Data</button>
-                    <button class="snippet-btn" type="button" data-snippet="js-scale">💥 Scale Pulse Animation</button>
+                    <button class="snippet-btn" type="button" data-snippet="js-log">&#128220; Log Notification Data</button>
+                    <button class="snippet-btn" type="button" data-snippet="js-scale">&#128165; Scale Pulse Animation</button>
                   </div>
                 </div>
               </div>
@@ -171,18 +214,18 @@
           </details>
         </div>
 
-        <!-- Tab 2: Media -->
+        <!-- Tab 2: Media (per template) -->
         <div class="tab-content" id="tab-media">
           <div class="panel-header">
-            <h2 class="panel-title">Media & Sound</h2>
-            <p class="panel-desc">Configure GIF/image displays and sound alerts.</p>
+            <h2 class="panel-title">Media &amp; Sound</h2>
+            <p class="panel-desc">Image, GIF and sound for the selected alert template.</p>
           </div>
 
           <div class="form-group">
             <label for="input-image-url">Image or GIF URL</label>
             <div class="input-with-button">
               <input type="text" id="input-image-url" class="form-control" placeholder="https://example.com/alert.gif or select file..." />
-              <button class="btn btn-secondary btn-browse" type="button" id="btn-browse-image">📁 Browse</button>
+              <button class="btn btn-secondary btn-browse" type="button" id="btn-browse-image">&#128193; Browse</button>
               <input type="file" id="input-image-file" accept="image/*" style="display: none;" />
             </div>
           </div>
@@ -191,8 +234,8 @@
             <label for="input-sound-url">Sound URL or Local File (MP3/WAV/OGG)</label>
             <div class="input-with-button">
               <input type="text" id="input-sound-url" class="form-control" placeholder="https://example.com/chime.mp3 or select audio file..." />
-              <button class="btn btn-secondary btn-browse" type="button" id="btn-browse-sound">📁 Browse</button>
-              <button class="btn btn-outline" type="button" id="btn-test-sound">🔊 Test Sound</button>
+              <button class="btn btn-secondary btn-browse" type="button" id="btn-browse-sound">&#128193; Browse</button>
+              <button class="btn btn-outline" type="button" id="btn-test-sound">&#128266; Test Sound</button>
               <input type="file" id="input-sound-file" accept="audio/*" style="display: none;" />
             </div>
           </div>
@@ -220,24 +263,18 @@
           </div>
         </div>
 
-        <!-- Tab 3: Style -->
+        <!-- Tab 3: Style (per template) -->
         <div class="tab-content" id="tab-style">
           <div class="panel-header">
-            <h2 class="panel-title">Style & Text Settings</h2>
-            <p class="panel-desc">Customize typography, text formatting, background colors, and borders.</p>
+            <h2 class="panel-title">Template Typography</h2>
+            <p class="panel-desc">Typography for the selected alert template. Each template &mdash; and each widget &mdash; keeps its own text style.</p>
           </div>
 
-          <!-- Text & Typography Sub-section -->
           <div class="form-row">
             <div class="form-group">
-              <label for="input-font-size">Font Size <span class="val-display" data-target="input-font-size" data-suffix="px">24px</span></label>
-              <input type="range" id="input-font-size" class="form-control" min="14" max="48" value="24" />
-            </div>
-
-            <div class="form-group">
-              <label for="input-font-family">Font Family</label>
-              <select id="input-font-family" class="form-control">
-                <option value="Inter">Inter</option>
+              <label for="tpl-font-family">Font Family</label>
+              <select id="tpl-font-family" class="form-control">
+                <option value="Inter" selected>Inter</option>
                 <option value="Outfit">Outfit</option>
                 <option value="Poppins">Poppins</option>
                 <option value="Roboto">Roboto</option>
@@ -246,26 +283,50 @@
                 <option value="Arial">Arial</option>
               </select>
             </div>
+            <div class="form-group">
+              <label for="tpl-font-size">Font Size <span class="val-display" data-target="tpl-font-size" data-suffix="px">24px</span></label>
+              <input type="range" id="tpl-font-size" class="form-control" min="8" max="96" value="24" />
+            </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label>Text Formatting</label>
-              <div style="display: flex; gap: 16px; align-items: center; padding-top: 6px;">
-                <label class="checkbox-row">
-                  <input type="checkbox" id="chk-font-bold" checked />
-                  <span>Bold</span>
-                </label>
-                <label class="checkbox-row">
-                  <input type="checkbox" id="chk-font-italic" />
-                  <span>Italic</span>
-                </label>
-              </div>
+              <label for="tpl-font-weight">Font Weight</label>
+              <select id="tpl-font-weight" class="form-control">
+                <option value="100">100</option>
+                <option value="200">200</option>
+                <option value="300">300</option>
+                <option value="400">400</option>
+                <option value="500">500</option>
+                <option value="600">600</option>
+                <option value="700" selected>700</option>
+                <option value="800">800</option>
+                <option value="900">900</option>
+              </select>
             </div>
-
             <div class="form-group">
-              <label for="select-text-transform">Capitalization</label>
-              <select id="select-text-transform" class="form-control">
+              <label for="tpl-font-style">Font Style</label>
+              <select id="tpl-font-style" class="form-control">
+                <option value="normal">Normal</option>
+                <option value="italic">Italic</option>
+                <option value="oblique">Oblique</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tpl-text-align">Text Alignment</label>
+              <select id="tpl-text-align" class="form-control">
+                <option value="left">Left</option>
+                <option value="center" selected>Center</option>
+                <option value="right">Right</option>
+                <option value="justify">Justify</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="tpl-text-transform">Capitalization</label>
+              <select id="tpl-text-transform" class="form-control">
                 <option value="none">Normal Text</option>
                 <option value="uppercase">UPPERCASE</option>
                 <option value="lowercase">lowercase</option>
@@ -274,20 +335,56 @@
             </div>
           </div>
 
-          <div class="form-group" style="margin-bottom: 20px;">
-            <label for="select-text-align">Text Alignment</label>
-            <select id="select-text-align" class="form-control">
-              <option value="center">Center</option>
-              <option value="left">Left Align</option>
-              <option value="right">Right Align</option>
-            </select>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tpl-letter-spacing">Letter Spacing <span class="val-display" data-target="tpl-letter-spacing" data-suffix="px">0px</span></label>
+              <input type="range" id="tpl-letter-spacing" class="form-control" min="-5" max="20" step="0.5" value="0" />
+            </div>
+            <div class="form-group">
+              <label for="tpl-line-height">Line Height <span class="val-display" data-target="tpl-line-height" data-suffix="">1.3</span></label>
+              <input type="range" id="tpl-line-height" class="form-control" min="0.8" max="3" step="0.05" value="1.3" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Text Color</label>
+            <div class="color-picker-row">
+              <input type="color" id="tpl-text-color" class="color-picker" value="#ffffff" />
+              <input type="text" id="tpl-text-color-hex" class="form-control" value="#ffffff" />
+            </div>
           </div>
 
           <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;" />
-          
+
           <div class="panel-header">
-            <h2 class="panel-title">Colors & Background</h2>
-            <p class="panel-desc">Customize alert box background, accent colors, and padding.</p>
+            <h2 class="panel-title">Template Canvas</h2>
+            <p class="panel-desc">This canvas size applies to this widget only — it never changes the other widgets.</p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tpl-canvas-preset">Canvas Preset</label>
+              <select id="tpl-canvas-preset" class="form-control" data-canvas-preset="tpl">
+                <option value="1080p">1080p — 1920 × 1080</option>
+                <option value="720p">720p — 1280 × 720</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="tpl-canvas-width">Canvas Width (px)</label>
+              <input type="number" id="tpl-canvas-width" class="form-control" min="100" max="7680" value="1920" />
+            </div>
+            <div class="form-group">
+              <label for="tpl-canvas-height">Canvas Height (px)</label>
+              <input type="number" id="tpl-canvas-height" class="form-control" min="100" max="4320" value="1080" />
+            </div>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;" />
+
+          <div class="panel-header">
+            <h2 class="panel-title">Colors &amp; Background</h2>
+            <p class="panel-desc">Alert box background, accent colors and padding for this template.</p>
           </div>
 
           <div class="form-group">
@@ -310,21 +407,11 @@
             <input type="range" id="input-bg-opacity" class="form-control" min="0" max="100" value="60" />
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>Accent Color</label>
-              <div class="color-picker-row">
-                <input type="color" id="input-accent-color" class="color-picker" value="#00e5ff" />
-                <input type="text" id="input-accent-color-hex" class="form-control" value="#00e5ff" />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Text Color</label>
-              <div class="color-picker-row">
-                <input type="color" id="input-text-color" class="color-picker" value="#ffffff" />
-                <input type="text" id="input-text-color-hex" class="form-control" value="#ffffff" />
-              </div>
+          <div class="form-group">
+            <label>Accent Color</label>
+            <div class="color-picker-row">
+              <input type="color" id="input-accent-color" class="color-picker" value="#00e5ff" />
+              <input type="text" id="input-accent-color-hex" class="form-control" value="#00e5ff" />
             </div>
           </div>
 
@@ -344,13 +431,32 @@
             <label for="input-padding">Card Padding <span class="val-display" data-target="input-padding" data-suffix="px">20px</span></label>
             <input type="range" id="input-padding" class="form-control" min="8" max="50" value="20" />
           </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tpl-position-preset">Position Preset</label>
+              <select id="tpl-position-preset" class="form-control">
+                <option value="center">Center</option>
+                <option value="top-left">Top Left</option>
+                <option value="top-center">Top Center</option>
+                <option value="top-right">Top Right</option>
+                <option value="bottom-left">Bottom Left</option>
+                <option value="bottom-center">Bottom Center</option>
+                <option value="bottom-right">Bottom Right</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="tpl-layout-width">Alert Width (px)</label>
+              <input type="number" id="tpl-layout-width" class="form-control" min="40" max="4000" value="400" />
+            </div>
+          </div>
         </div>
 
-        <!-- Tab 4: Animation -->
+        <!-- Tab 4: Animation (per template) -->
         <div class="tab-content" id="tab-animation">
           <div class="panel-header">
             <h2 class="panel-title">Animations</h2>
-            <p class="panel-desc">Choose entrance/exit motion effects and display timings.</p>
+            <p class="panel-desc">Motion effects and display timing for the selected alert template.</p>
           </div>
 
           <div class="form-group">
@@ -375,7 +481,137 @@
           </div>
         </div>
 
-        <!-- Tab 5: Goal -->
+        <!-- Tab 5: Alert widget base -->
+        <div class="tab-content" id="tab-alert-widget">
+          <div class="panel-header-with-switch">
+            <div>
+              <h2 class="panel-title">Alert Widget Base</h2>
+              <p class="panel-desc">Defaults for the alert widget itself. New templates start from these values, and they fill in anything a template leaves unset.</p>
+            </div>
+            <label class="switch-container">
+              <input type="checkbox" id="chk-enable-alert" checked />
+              <span class="switch-slider"></span>
+              <span class="switch-label">Enable Alert Widget</span>
+            </label>
+          </div>
+
+          <div class="panel-header">
+            <h2 class="panel-title">Alert Widget Typography</h2>
+            <p class="panel-desc">Text style used as the starting point for new alert templates.</p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="alert-font-family">Font Family</label>
+              <select id="alert-font-family" class="form-control">
+                <option value="Inter" selected>Inter</option>
+                <option value="Outfit">Outfit</option>
+                <option value="Poppins">Poppins</option>
+                <option value="Roboto">Roboto</option>
+                <option value="Montserrat">Montserrat</option>
+                <option value="Segoe UI">Segoe UI</option>
+                <option value="Arial">Arial</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="alert-font-size">Font Size <span class="val-display" data-target="alert-font-size" data-suffix="px">24px</span></label>
+              <input type="range" id="alert-font-size" class="form-control" min="8" max="96" value="24" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="alert-font-weight">Font Weight</label>
+              <select id="alert-font-weight" class="form-control">
+                <option value="100">100</option>
+                <option value="200">200</option>
+                <option value="300">300</option>
+                <option value="400">400</option>
+                <option value="500">500</option>
+                <option value="600">600</option>
+                <option value="700" selected>700</option>
+                <option value="800">800</option>
+                <option value="900">900</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="alert-font-style">Font Style</label>
+              <select id="alert-font-style" class="form-control">
+                <option value="normal">Normal</option>
+                <option value="italic">Italic</option>
+                <option value="oblique">Oblique</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="alert-text-align">Text Alignment</label>
+              <select id="alert-text-align" class="form-control">
+                <option value="left">Left</option>
+                <option value="center" selected>Center</option>
+                <option value="right">Right</option>
+                <option value="justify">Justify</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="alert-text-transform">Capitalization</label>
+              <select id="alert-text-transform" class="form-control">
+                <option value="none">Normal Text</option>
+                <option value="uppercase">UPPERCASE</option>
+                <option value="lowercase">lowercase</option>
+                <option value="capitalize">Capitalize Words</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="alert-letter-spacing">Letter Spacing <span class="val-display" data-target="alert-letter-spacing" data-suffix="px">0px</span></label>
+              <input type="range" id="alert-letter-spacing" class="form-control" min="-5" max="20" step="0.5" value="0" />
+            </div>
+            <div class="form-group">
+              <label for="alert-line-height">Line Height <span class="val-display" data-target="alert-line-height" data-suffix="">1.3</span></label>
+              <input type="range" id="alert-line-height" class="form-control" min="0.8" max="3" step="0.05" value="1.3" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Text Color</label>
+            <div class="color-picker-row">
+              <input type="color" id="alert-text-color" class="color-picker" value="#ffffff" />
+              <input type="text" id="alert-text-color-hex" class="form-control" value="#ffffff" />
+            </div>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;" />
+
+          <div class="panel-header">
+            <h2 class="panel-title">Alert Widget Canvas</h2>
+            <p class="panel-desc">This canvas size applies to this widget only — it never changes the other widgets.</p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="alert-canvas-preset">Canvas Preset</label>
+              <select id="alert-canvas-preset" class="form-control" data-canvas-preset="alert">
+                <option value="1080p">1080p — 1920 × 1080</option>
+                <option value="720p">720p — 1280 × 720</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="alert-canvas-width">Canvas Width (px)</label>
+              <input type="number" id="alert-canvas-width" class="form-control" min="100" max="7680" value="1920" />
+            </div>
+            <div class="form-group">
+              <label for="alert-canvas-height">Canvas Height (px)</label>
+              <input type="number" id="alert-canvas-height" class="form-control" min="100" max="4320" value="1080" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 6: Goal -->
         <div class="tab-content" id="tab-goal">
           <div class="panel-header-with-switch">
             <div>
@@ -407,19 +643,19 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="input-goal-target">Target Amount (₹)</label>
+              <label for="input-goal-target">Target Amount (&#8377;)</label>
               <input type="number" id="input-goal-target" class="form-control" value="5000" />
             </div>
 
             <div class="form-group">
-              <label for="input-goal-current">Current Amount (₹)</label>
+              <label for="input-goal-current">Current Amount (&#8377;)</label>
               <input type="number" id="input-goal-current" class="form-control" value="0" />
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label for="input-goal-start">Start Amount (₹)</label>
+              <label for="input-goal-start">Start Amount (&#8377;)</label>
               <input type="number" id="input-goal-start" class="form-control" value="0" />
             </div>
 
@@ -447,21 +683,9 @@
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="input-goal-bar-height">Bar Height <span class="val-display" data-target="input-goal-bar-height" data-suffix="px">36px</span></label>
-              <input type="range" id="input-goal-bar-height" class="form-control" min="20" max="70" value="36" />
-            </div>
-
-            <div class="form-group">
-              <label for="select-goal-font">Goal Font Family</label>
-              <select id="select-goal-font" class="form-control">
-                <option value="Inter">Inter</option>
-                <option value="Outfit">Outfit</option>
-                <option value="Poppins">Poppins</option>
-                <option value="Montserrat">Montserrat</option>
-              </select>
-            </div>
+          <div class="form-group">
+            <label for="input-goal-bar-height">Bar Height <span class="val-display" data-target="input-goal-bar-height" data-suffix="px">36px</span></label>
+            <input type="range" id="input-goal-bar-height" class="form-control" min="20" max="70" value="36" />
           </div>
 
           <div class="form-group">
@@ -471,25 +695,141 @@
             </label>
           </div>
 
+          <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;" />
+
+          <div class="panel-header">
+            <h2 class="panel-title">Goal Typography</h2>
+            <p class="panel-desc">The goal widget owns its text style; changing it never affects the alert or leaderboard.</p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="goal-font-family">Font Family</label>
+              <select id="goal-font-family" class="form-control">
+                <option value="Inter" selected>Inter</option>
+                <option value="Outfit">Outfit</option>
+                <option value="Poppins">Poppins</option>
+                <option value="Roboto">Roboto</option>
+                <option value="Montserrat">Montserrat</option>
+                <option value="Segoe UI">Segoe UI</option>
+                <option value="Arial">Arial</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="goal-font-size">Font Size <span class="val-display" data-target="goal-font-size" data-suffix="px">18px</span></label>
+              <input type="range" id="goal-font-size" class="form-control" min="8" max="96" value="18" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="goal-font-weight">Font Weight</label>
+              <select id="goal-font-weight" class="form-control">
+                <option value="100">100</option>
+                <option value="200">200</option>
+                <option value="300">300</option>
+                <option value="400">400</option>
+                <option value="500">500</option>
+                <option value="600">600</option>
+                <option value="700" selected>700</option>
+                <option value="800">800</option>
+                <option value="900">900</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="goal-font-style">Font Style</label>
+              <select id="goal-font-style" class="form-control">
+                <option value="normal">Normal</option>
+                <option value="italic">Italic</option>
+                <option value="oblique">Oblique</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="goal-text-align">Text Alignment</label>
+              <select id="goal-text-align" class="form-control">
+                <option value="left" selected>Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+                <option value="justify">Justify</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="goal-text-transform">Capitalization</label>
+              <select id="goal-text-transform" class="form-control">
+                <option value="none">Normal Text</option>
+                <option value="uppercase">UPPERCASE</option>
+                <option value="lowercase">lowercase</option>
+                <option value="capitalize">Capitalize Words</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="goal-letter-spacing">Letter Spacing <span class="val-display" data-target="goal-letter-spacing" data-suffix="px">0px</span></label>
+              <input type="range" id="goal-letter-spacing" class="form-control" min="-5" max="20" step="0.5" value="0" />
+            </div>
+            <div class="form-group">
+              <label for="goal-line-height">Line Height <span class="val-display" data-target="goal-line-height" data-suffix="">1.3</span></label>
+              <input type="range" id="goal-line-height" class="form-control" min="0.8" max="3" step="0.05" value="1.3" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Text Color</label>
+            <div class="color-picker-row">
+              <input type="color" id="goal-text-color" class="color-picker" value="#ffffff" />
+              <input type="text" id="goal-text-color-hex" class="form-control" value="#ffffff" />
+            </div>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;" />
+
+          <div class="panel-header">
+            <h2 class="panel-title">Goal Canvas</h2>
+            <p class="panel-desc">This canvas size applies to this widget only — it never changes the other widgets.</p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="goal-canvas-preset">Canvas Preset</label>
+              <select id="goal-canvas-preset" class="form-control" data-canvas-preset="goal">
+                <option value="1080p">1080p — 1920 × 1080</option>
+                <option value="720p">720p — 1280 × 720</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="goal-canvas-width">Canvas Width (px)</label>
+              <input type="number" id="goal-canvas-width" class="form-control" min="100" max="7680" value="1920" />
+            </div>
+            <div class="form-group">
+              <label for="goal-canvas-height">Canvas Height (px)</label>
+              <input type="number" id="goal-canvas-height" class="form-control" min="100" max="4320" value="1080" />
+            </div>
+          </div>
+
           <div class="form-group" style="margin-top: 10px;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-              <button class="btn btn-secondary" type="button" id="btn-goal-test-add">⚡ Add ₹100 Test</button>
-              <button class="btn btn-danger" type="button" id="btn-goal-reset">🔄 Reset Current Amount</button>
-              <button class="btn btn-outline" type="button" id="btn-goal-export">📤 Export Goal Data</button>
-              <button class="btn btn-outline" type="button" id="btn-goal-import">📥 Import Goal Data</button>
+              <button class="btn btn-secondary" type="button" id="btn-goal-test-add">&#9889; Add &#8377;100 Test</button>
+              <button class="btn btn-danger" type="button" id="btn-goal-reset">&#128260; Reset Current Amount</button>
+              <button class="btn btn-outline" type="button" id="btn-goal-export">&#128228; Export Goal Data</button>
+              <button class="btn btn-outline" type="button" id="btn-goal-import">&#128229; Import Goal Data</button>
               <input type="file" id="file-import-goal-input" accept=".json" style="display: none;" />
             </div>
           </div>
 
-          <!-- Advanced Settings & Code Injections (Collapsed) -->
           <details class="collapsible-advanced">
             <summary class="collapsible-summary">
-              <span>⚙️ Advanced Code & Layout Settings</span>
-              <span>▼</span>
+              <span>&#9881;&#65039; Advanced Code &amp; Layout Settings</span>
+              <span>&#9660;</span>
             </summary>
             <div class="collapsible-content">
               <div class="warning-callout" style="margin-top: 0;">
-                <span class="warning-icon">⚠️</span>
+                <span class="warning-icon">&#9888;&#65039;</span>
                 <div>
                   <strong>Security Warning:</strong> Custom HTML, CSS, and JavaScript functions are executed at your own risk. Verify code before running to ensure it performs safely.
                 </div>
@@ -510,24 +850,24 @@
                     <button class="code-tab-btn" type="button" data-code-tab="css">CSS</button>
                     <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
                   </div>
-                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-goal-code" style="padding: 2px 8px; font-size: 11px;">🔄 Reset Code</button>
+                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-goal-code" style="padding: 2px 8px; font-size: 11px;">&#128260; Reset Code</button>
                 </div>
 
                 <div class="code-tab-panel" data-code-panel="html" id="code-panel-goal-html">
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-goal-custom-html" class="form-control code-editor-input" placeholder="<!-- Custom Goal HTML -->"></textarea>
+                    <textarea id="input-goal-custom-html" class="form-control code-editor-input"></textarea>
                   </div>
                 </div>
 
                 <div class="code-tab-panel" data-code-panel="css" id="code-panel-goal-css" style="display: none;">
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-goal-custom-css" class="form-control code-editor-input" placeholder="/* Custom Goal CSS */"></textarea>
+                    <textarea id="input-goal-custom-css" class="form-control code-editor-input"></textarea>
                   </div>
                 </div>
 
                 <div class="code-tab-panel" data-code-panel="js" id="code-panel-goal-js" style="display: none;">
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-goal-custom-js" class="form-control code-editor-input" placeholder="// Custom Goal JS"></textarea>
+                    <textarea id="input-goal-custom-js" class="form-control code-editor-input"></textarea>
                   </div>
                 </div>
               </div>
@@ -535,12 +875,12 @@
           </details>
         </div>
 
-        <!-- Tab 6: Leaderboard -->
+        <!-- Tab 7: Leaderboard -->
         <div class="tab-content" id="tab-leaderboard">
           <div class="panel-header-with-switch">
             <div>
               <h2 class="panel-title">UPI Top Supporters Leaderboard</h2>
-              <p class="panel-desc">Rank supporters by total PhonePe payment contributions (URL: <code>http://localhost:3000/leaderboard</code>)</p>
+              <p class="panel-desc">Rank supporters by total payment contributions (URL: <code>http://localhost:3000/leaderboard</code>)</p>
             </div>
             <label class="switch-container">
               <input type="checkbox" id="chk-enable-lb" checked />
@@ -558,7 +898,6 @@
             <span class="pills-label">Click variable tag to insert into Leaderboard template:</span>
             <div class="variable-pills">
               <span class="var-pill" data-var="title" data-target-input="input-lb-title">{{title}}</span>
-              <span class="var-pill" data-var="maxEntries" data-target-input="input-lb-title">{{maxEntries}}</span>
             </div>
           </div>
 
@@ -582,24 +921,11 @@
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="select-lb-font">Leaderboard Font Family</label>
-              <select id="select-lb-font" class="form-control">
-                <option value="Inter">Inter</option>
-                <option value="Outfit">Outfit</option>
-                <option value="Poppins">Poppins</option>
-                <option value="Roboto">Roboto</option>
-                <option value="Montserrat">Montserrat</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="input-lb-row-bg-color">Row Background Color</label>
-              <div class="input-with-button">
-                <input type="color" id="input-lb-row-bg-color" class="color-picker-input" value="#1a1e2b" />
-                <input type="text" id="input-lb-row-bg-color-hex" class="form-control" value="#1a1e2b" />
-              </div>
+          <div class="form-group">
+            <label for="input-lb-row-bg-color">Row Background Color</label>
+            <div class="input-with-button">
+              <input type="color" id="input-lb-row-bg-color" class="color-picker-input" value="#1a1e2b" />
+              <input type="text" id="input-lb-row-bg-color-hex" class="form-control" value="#1a1e2b" />
             </div>
           </div>
 
@@ -608,7 +934,7 @@
             <div style="padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
               <label class="checkbox-row">
                 <input type="checkbox" id="chk-lb-show-amounts" checked />
-                <span>Show Contribution Amounts (₹)</span>
+                <span>Show Contribution Amounts (&#8377;)</span>
               </label>
               <label class="checkbox-row">
                 <input type="checkbox" id="chk-lb-transparent-bg" />
@@ -617,14 +943,130 @@
             </div>
           </div>
 
-          <!-- Supporters Table -->
+          <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;" />
+
+          <div class="panel-header">
+            <h2 class="panel-title">Leaderboard Typography</h2>
+            <p class="panel-desc">The leaderboard owns its text style; changing it never affects the alert or goal widget.</p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="lb-font-family">Font Family</label>
+              <select id="lb-font-family" class="form-control">
+                <option value="Inter" selected>Inter</option>
+                <option value="Outfit">Outfit</option>
+                <option value="Poppins">Poppins</option>
+                <option value="Roboto">Roboto</option>
+                <option value="Montserrat">Montserrat</option>
+                <option value="Segoe UI">Segoe UI</option>
+                <option value="Arial">Arial</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="lb-font-size">Font Size <span class="val-display" data-target="lb-font-size" data-suffix="px">15px</span></label>
+              <input type="range" id="lb-font-size" class="form-control" min="8" max="96" value="15" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="lb-font-weight">Font Weight</label>
+              <select id="lb-font-weight" class="form-control">
+                <option value="100">100</option>
+                <option value="200">200</option>
+                <option value="300">300</option>
+                <option value="400">400</option>
+                <option value="500">500</option>
+                <option value="600">600</option>
+                <option value="700" selected>700</option>
+                <option value="800">800</option>
+                <option value="900">900</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="lb-font-style">Font Style</label>
+              <select id="lb-font-style" class="form-control">
+                <option value="normal">Normal</option>
+                <option value="italic">Italic</option>
+                <option value="oblique">Oblique</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="lb-text-align">Text Alignment</label>
+              <select id="lb-text-align" class="form-control">
+                <option value="left" selected>Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+                <option value="justify">Justify</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="lb-text-transform">Capitalization</label>
+              <select id="lb-text-transform" class="form-control">
+                <option value="none">Normal Text</option>
+                <option value="uppercase">UPPERCASE</option>
+                <option value="lowercase">lowercase</option>
+                <option value="capitalize">Capitalize Words</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="lb-letter-spacing">Letter Spacing <span class="val-display" data-target="lb-letter-spacing" data-suffix="px">0px</span></label>
+              <input type="range" id="lb-letter-spacing" class="form-control" min="-5" max="20" step="0.5" value="0" />
+            </div>
+            <div class="form-group">
+              <label for="lb-line-height">Line Height <span class="val-display" data-target="lb-line-height" data-suffix="">1.3</span></label>
+              <input type="range" id="lb-line-height" class="form-control" min="0.8" max="3" step="0.05" value="1.3" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Text Color</label>
+            <div class="color-picker-row">
+              <input type="color" id="lb-text-color" class="color-picker" value="#ffffff" />
+              <input type="text" id="lb-text-color-hex" class="form-control" value="#ffffff" />
+            </div>
+          </div>
+
+          <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;" />
+
+          <div class="panel-header">
+            <h2 class="panel-title">Leaderboard Canvas</h2>
+            <p class="panel-desc">This canvas size applies to this widget only — it never changes the other widgets.</p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="lb-canvas-preset">Canvas Preset</label>
+              <select id="lb-canvas-preset" class="form-control" data-canvas-preset="lb">
+                <option value="1080p">1080p — 1920 × 1080</option>
+                <option value="720p">720p — 1280 × 720</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="lb-canvas-width">Canvas Width (px)</label>
+              <input type="number" id="lb-canvas-width" class="form-control" min="100" max="7680" value="1920" />
+            </div>
+            <div class="form-group">
+              <label for="lb-canvas-height">Canvas Height (px)</label>
+              <input type="number" id="lb-canvas-height" class="form-control" min="100" max="4320" value="1080" />
+            </div>
+          </div>
+
           <div class="form-group" style="margin-top: 16px;">
             <div class="label-with-switch">
               <label>Live Supporters List</label>
               <div style="display: flex; gap: 6px;">
-                <button class="btn btn-outline" type="button" id="btn-lb-export" style="padding: 4px 10px; font-size: 11px;">📤 Export Leaderboard</button>
-                <button class="btn btn-outline" type="button" id="btn-lb-import" style="padding: 4px 10px; font-size: 11px;">📥 Import Leaderboard</button>
-                <button class="btn btn-secondary" type="button" id="btn-lb-clear-all" style="padding: 4px 10px; font-size: 11px;">🗑️ Clear All</button>
+                <button class="btn btn-outline" type="button" id="btn-lb-export" style="padding: 4px 10px; font-size: 11px;">&#128228; Export Leaderboard</button>
+                <button class="btn btn-outline" type="button" id="btn-lb-import" style="padding: 4px 10px; font-size: 11px;">&#128229; Import Leaderboard</button>
+                <button class="btn btn-secondary" type="button" id="btn-lb-clear-all" style="padding: 4px 10px; font-size: 11px;">&#128465;&#65039; Clear All</button>
                 <input type="file" id="file-import-lb-input" accept=".json" style="display: none;" />
               </div>
             </div>
@@ -637,22 +1079,19 @@
                     <th style="padding: 6px; text-align: right;">Action</th>
                   </tr>
                 </thead>
-                <tbody id="lb-table-body">
-                  <!-- Dynamically populated -->
-                </tbody>
+                <tbody id="lb-table-body"></tbody>
               </table>
             </div>
           </div>
 
-          <!-- Advanced Settings & Code Injections (Collapsed) -->
           <details class="collapsible-advanced">
             <summary class="collapsible-summary">
-              <span>⚙️ Advanced Code & Layout Settings</span>
-              <span>▼</span>
+              <span>&#9881;&#65039; Advanced Code &amp; Layout Settings</span>
+              <span>&#9660;</span>
             </summary>
             <div class="collapsible-content">
               <div class="warning-callout" style="margin-top: 0;">
-                <span class="warning-icon">⚠️</span>
+                <span class="warning-icon">&#9888;&#65039;</span>
                 <div>
                   <strong>Security Warning:</strong> Custom HTML, CSS, and JavaScript functions are executed at your own risk. Verify code before running to ensure it performs safely.
                 </div>
@@ -673,18 +1112,18 @@
                     <button class="code-tab-btn" type="button" data-code-tab="css">CSS</button>
                     <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
                   </div>
-                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-lb-code" style="padding: 2px 8px; font-size: 11px;">🔄 Reset Code</button>
+                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-lb-code" style="padding: 2px 8px; font-size: 11px;">&#128260; Reset Code</button>
                 </div>
 
                 <div class="code-tab-panel" data-code-panel="html" id="code-panel-lb-html">
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-lb-custom-html" class="form-control code-editor-input" placeholder="<!-- Custom Leaderboard HTML -->"></textarea>
+                    <textarea id="input-lb-custom-html" class="form-control code-editor-input"></textarea>
                   </div>
                 </div>
 
                 <div class="code-tab-panel" data-code-panel="css" id="code-panel-lb-css" style="display: none;">
                   <div class="css-reference-box">
-                    <div class="css-ref-header">📋 Leaderboard CSS Classes Reference (Click tag to insert/copy):</div>
+                    <div class="css-ref-header">&#128203; Leaderboard CSS Classes Reference (Click tag to insert/copy):</div>
                     <div class="css-ref-tags">
                       <span class="css-pill" data-copy=".lb-card">{ .lb-card }</span>
                       <span class="css-pill" data-copy=".lb-header">{ .lb-header }</span>
@@ -701,13 +1140,13 @@
                     </div>
                   </div>
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-lb-custom-css" class="form-control code-editor-input" placeholder="/* Custom Leaderboard CSS */"></textarea>
+                    <textarea id="input-lb-custom-css" class="form-control code-editor-input"></textarea>
                   </div>
                 </div>
 
                 <div class="code-tab-panel" data-code-panel="js" id="code-panel-lb-js" style="display: none;">
                   <div class="form-group" style="margin-bottom: 8px;">
-                    <textarea id="input-lb-custom-js" class="form-control code-editor-input" placeholder="// Custom Leaderboard JS"></textarea>
+                    <textarea id="input-lb-custom-js" class="form-control code-editor-input"></textarea>
                   </div>
                 </div>
               </div>
@@ -715,7 +1154,7 @@
           </details>
         </div>
 
-        <!-- Tab 7: Alert Filter -->
+        <!-- Tab 8: Alert Filter -->
         <div class="tab-content" id="tab-filter">
           <div class="panel-header">
             <h2 class="panel-title">Alert Filter</h2>
@@ -723,10 +1162,10 @@
           </div>
 
           <div class="form-group">
-            <label for="input-filter-new-amount">Add Amount to Allowlist (₹)</label>
+            <label for="input-filter-new-amount">Add Amount to Allowlist (&#8377;)</label>
             <div class="input-with-button">
               <input type="number" id="input-filter-new-amount" class="form-control" placeholder="e.g. 1, 100, 500" min="0" step="any" />
-              <button class="btn btn-secondary" type="button" id="btn-filter-add">➕ Add</button>
+              <button class="btn btn-secondary" type="button" id="btn-filter-add">&#10133; Add</button>
             </div>
             <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Press Add or hit Enter to add an amount. Only notifications matching one of these amounts will trigger an OBS alert.</p>
           </div>
@@ -734,22 +1173,22 @@
           <div class="form-group" style="margin-top: 8px;">
             <label>Allowed Amounts</label>
             <div id="filter-amount-tags" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px;">
-              <span id="filter-empty-hint" style="color: var(--text-muted); font-size: 12px; align-self: center;">No amounts added — all payments will trigger alerts</span>
+              <span id="filter-empty-hint" style="color: var(--text-muted); font-size: 12px; align-self: center;">No amounts added &mdash; all payments will trigger alerts</span>
             </div>
           </div>
 
           <div class="form-group" style="margin-top: 16px;">
-            <button class="btn btn-danger" type="button" id="btn-filter-clear">🗑️ Clear All Amounts</button>
+            <button class="btn btn-danger" type="button" id="btn-filter-clear">&#128465;&#65039; Clear All Amounts</button>
           </div>
         </div>
 
         <!-- Form Action Buttons Bar -->
         <div class="action-bar">
-          <button class="btn btn-primary" id="btn-save">💾 Save Settings</button>
-          <button class="btn btn-secondary" id="btn-test">⚡ Test Alert</button>
-          <button class="btn btn-outline" id="btn-export">📤 Export</button>
-          <button class="btn btn-outline" id="btn-import">📥 Import</button>
-          <button class="btn btn-danger" id="btn-reset">🔄 Reset to Defaults</button>
+          <button class="btn btn-primary" id="btn-save">&#128190; Save Settings</button>
+          <button class="btn btn-secondary" id="btn-test">&#9889; Test Alert</button>
+          <button class="btn btn-outline" id="btn-export">&#128228; Export</button>
+          <button class="btn btn-outline" id="btn-import">&#128229; Import</button>
+          <button class="btn btn-danger" id="btn-reset">&#128260; Reset to Defaults</button>
           <input type="file" id="file-import-input" accept=".json" style="display: none;" />
         </div>
       </section>
@@ -762,9 +1201,9 @@
             <span class="preview-badge">Real-time Sync</span>
           </div>
           <div class="preview-open-links">
-            <a href="/overlay/alert" target="_blank" class="btn-open-preview" title="Open Alert Overlay in new tab">📢 Open Alert ↗</a>
-            <a href="/overlay/goal" target="_blank" class="btn-open-preview" title="Open Payment Goal Overlay in new tab">🎯 Open Goal ↗</a>
-            <a href="/overlay/leaderboard" target="_blank" class="btn-open-preview" title="Open Leaderboard Overlay in new tab">🏆 Open Leaderboard ↗</a>
+            <a href="/overlay/alert" target="_blank" class="btn-open-preview" title="Open Alert Overlay in new tab">&#128226; Open Alert &#8599;</a>
+            <a href="/overlay/goal" target="_blank" class="btn-open-preview" title="Open Payment Goal Overlay in new tab">&#127919; Open Goal &#8599;</a>
+            <a href="/overlay/leaderboard" target="_blank" class="btn-open-preview" title="Open Leaderboard Overlay in new tab">&#127942; Open Leaderboard &#8599;</a>
           </div>
         </div>
 
@@ -778,80 +1217,12 @@
   <div class="toast" id="toast">Settings Saved!</div>
 
   <script src="/js/template-engine.js"></script>
+  <script src="/js/lib/canvas-presets.js"></script>
+  <script src="/js/lib/widget-style.js"></script>
+  <script src="/js/lib/template-matcher.js"></script>
+  <script src="/js/lib/config-schema.js"></script>
+  <script src="/js/lib/config-migration.js"></script>
   <script src="/js/storage.js"></script>
   <script src="/js/config.js"></script>
-
-  <!-- Alert Filter Tab Logic -->
-  <script>
-    (function () {
-      let allowedAmounts = [];
-
-      function renderTags() {
-        const container = document.getElementById('filter-amount-tags');
-        const hint = document.getElementById('filter-empty-hint');
-        // remove existing tags
-        Array.from(container.querySelectorAll('.filter-tag')).forEach(el => el.remove());
-        if (allowedAmounts.length === 0) {
-          hint.style.display = 'inline';
-        } else {
-          hint.style.display = 'none';
-          allowedAmounts.forEach(function (amt) {
-            const tag = document.createElement('span');
-            tag.className = 'filter-tag';
-            tag.style.cssText = 'display:inline-flex;align-items:center;gap:6px;background:var(--accent,#00e5ff22);border:1px solid var(--accent,#00e5ff);color:var(--accent,#00e5ff);border-radius:20px;padding:3px 12px;font-size:13px;font-weight:600;';
-            tag.innerHTML = '₹' + amt + ' <button type="button" data-amt="' + amt + '" style="background:none;border:none;color:inherit;cursor:pointer;font-size:14px;line-height:1;padding:0;">✕</button>';
-            tag.querySelector('button').addEventListener('click', function () {
-              allowedAmounts = allowedAmounts.filter(function (a) { return a !== amt; });
-              renderTags();
-            });
-            container.appendChild(tag);
-          });
-        }
-      }
-
-      function addAmount() {
-        const input = document.getElementById('input-filter-new-amount');
-        const val = parseFloat(input.value);
-        if (isNaN(val) || val < 0) { input.focus(); return; }
-        const rounded = Math.round(val * 100) / 100;
-        if (!allowedAmounts.includes(rounded)) {
-          allowedAmounts.push(rounded);
-          allowedAmounts.sort(function (a, b) { return a - b; });
-          renderTags();
-        }
-        input.value = '';
-        input.focus();
-      }
-
-      document.getElementById('btn-filter-add').addEventListener('click', addAmount);
-      document.getElementById('input-filter-new-amount').addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); addAmount(); }
-      });
-
-      document.getElementById('btn-filter-clear').addEventListener('click', function () {
-        allowedAmounts = [];
-        renderTags();
-      });
-
-      // Load current filter from server on init
-      fetch('/api/settings').then(function (r) { return r.json(); }).then(function (data) {
-        const saved = (data.settings && data.settings.filter && data.settings.filter.allowedAmounts) || [];
-        allowedAmounts = saved.map(function (a) { return parseFloat(a); }).filter(function (a) { return !isNaN(a); });
-        allowedAmounts.sort(function (a, b) { return a - b; });
-        renderTags();
-      }).catch(function () {});
-
-      // Hook into the global Save Settings button to include filter data
-      document.getElementById('btn-save').addEventListener('click', function () {
-        fetch('/api/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filter: { allowedAmounts: allowedAmounts } })
-        }).catch(function () {});
-      }, true);
-
-      renderTags();
-    })();
-  </script>
 </body>
 </html>
