@@ -258,9 +258,20 @@ const parseAmountNum = (rawAmount) => TemplateMatcher.parseAmount(rawAmount);
 /**
  * Attach the alert template chosen for this payment so every overlay renders
  * the same template the server picked (see TemplateMatcher for the rule).
+ * If the event already carries an alertTemplateId (e.g. forwarded from the
+ * config test button), honour it instead of re-selecting by amount.
  */
 function decorateWithTemplate(event) {
   const amount = parseAmountNum(event.amount);
+  if (event.alertTemplateId) {
+    const template = alertSettings.alertTemplates.find(t => t.id === event.alertTemplateId);
+    return {
+      ...event,
+      amountValue: amount,
+      alertTemplateId: template ? template.id : event.alertTemplateId,
+      alertTemplateName: template ? template.name : ''
+    };
+  }
   const template = TemplateMatcher.select(alertSettings.alertTemplates, amount);
   return {
     ...event,
@@ -427,12 +438,16 @@ app.post('/api/test', (req, res) => {
   const body = req.body || {};
   const result = broadcastSample({
     type: 'payment_notification',
-    packageName: body.packageName || 'com.phonepe.app',
-    appName:     body.appName    || 'PhonePe',
-    title:       body.title      || 'PhonePe',
-    text:        body.text       || 'D SINGH has sent Rs. 500.00 to your bank account',
-    bigText:     body.bigText    || body.text || 'D SINGH has sent Rs. 500.00 to your bank account',
-    timestamp:   Date.now()
+    packageName:     body.packageName     || 'com.phonepe.app',
+    appName:         body.appName         || 'PhonePe',
+    title:           body.title           || 'PhonePe',
+    text:            body.text            || 'D SINGH has sent Rs. 500.00 to your bank account',
+    bigText:         body.bigText         || body.text || 'D SINGH has sent Rs. 500.00 to your bank account',
+    sender:          body.sender          || '',
+    amount:          body.amount          || '',
+    sourceApp:       body.sourceApp       || '',
+    alertTemplateId: body.alertTemplateId || null,
+    timestamp:       Date.now()
   });
   res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId });
 });

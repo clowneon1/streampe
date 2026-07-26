@@ -857,7 +857,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await fetch('/api/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(testData)
+          body: JSON.stringify({ ...testData, alertTemplateId: resolved.templateId })
         });
       } catch (e) {
         console.warn('[Config] Live overlay test trigger error:', e.message);

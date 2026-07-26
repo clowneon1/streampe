@@ -66,11 +66,11 @@
     customStyleEl.textContent = code.enableCustomCode !== false ? (code.customCSS || '') : '';
   }
 
-  /** Store a new config and preview the template currently selected in the UI. */
+  /** Store a new config and apply default settings render (no forced template). */
   function applySettings(newSettings) {
     if (!newSettings) return;
     config = StorageHelper.mergeWithDefaults(newSettings);
-    applyRenderConfig(TemplateMatcher.resolve(config, 0, config.activeTemplateId));
+    applyRenderConfig(TemplateMatcher.resolve(config, 0));
   }
 
   function playSound(url) {
