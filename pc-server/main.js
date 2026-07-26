@@ -4,6 +4,8 @@ const os = require('os');
 const { exec } = require('child_process');
 
 // ── Start embedded Express + WebSocket Server ─────────────────
+// server.js exports the http.Server instance so we can call
+// server.address().port once it is listening.
 let server = null;
 try {
   server = require('./server.js');
@@ -15,17 +17,22 @@ let mainWindow = null;
 let tray = null;
 let isQuitting = false;
 
-// Track the actual port the server started on
-let serverPort = 2907; // default, will be updated once server is ready
+// Actual port the server is listening on — populated by resolveServerPort()
+// before any window or tray is created. Never assume a default here.
+let serverPort = null;
 
 /**
  * Resolves the actual port the embedded server is listening on.
- * Tries /api/network-info first; falls back to the module-exported
- * address() if available, then to the default 2907.
+ *
+ * Primary path  — read server.address().port directly from the exported
+ *                 http.Server instance (works for both the preferred port
+ *                 and any OS-assigned random fallback port).
+ * Fallback path — if the server isn't ready yet, poll /api/network-info
+ *                 up to ~5 s then hand back whatever port it reports.
  */
 function resolveServerPort(callback) {
-  // If the server module exposes its http.Server instance we can ask directly
-  if (server && server.address && typeof server.address === 'function') {
+  // Primary: ask the exported http.Server instance directly
+  if (server && typeof server.address === 'function') {
     const addr = server.address();
     if (addr && addr.port) {
       serverPort = addr.port;
@@ -33,14 +40,17 @@ function resolveServerPort(callback) {
     }
   }
 
-  // Otherwise poll /api/network-info until the server is up (max ~5 s)
+  // Fallback: the server hasn't emitted 'listening' yet — poll network-info.
+  // We don't know the port yet so we probe the preferred env port first;
+  // once the server responds it will tell us the real (possibly random) port.
   const http = require('http');
+  const probePort = parseInt(process.env.PORT || '2907', 10);
   let attempts = 0;
   const MAX_ATTEMPTS = 10;
 
-  function tryFetch(port) {
+  function tryFetch() {
     attempts++;
-    const req = http.get(`http://127.0.0.1:${port}/api/network-info`, (res) => {
+    const req = http.get(`http://127.0.0.1:${probePort}/api/network-info`, (res) => {
       let data = '';
       res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
@@ -51,20 +61,30 @@ function resolveServerPort(callback) {
             return callback(serverPort);
           }
         } catch (_) {}
-        callback(port);
+        serverPort = probePort;
+        callback(serverPort);
       });
     });
     req.on('error', () => {
       if (attempts < MAX_ATTEMPTS) {
-        setTimeout(() => tryFetch(port), 500);
+        setTimeout(tryFetch, 500);
       } else {
-        callback(port);
+        // Last resort: re-check server.address() in case it became ready
+        if (server && typeof server.address === 'function') {
+          const addr = server.address();
+          if (addr && addr.port) {
+            serverPort = addr.port;
+            return callback(serverPort);
+          }
+        }
+        serverPort = probePort;
+        callback(serverPort);
       }
     });
     req.setTimeout(1000, () => req.destroy());
   }
 
-  tryFetch(serverPort);
+  tryFetch();
 }
 
 function getPrimaryIp() {
@@ -124,10 +144,9 @@ function createMainWindow() {
 
   createApplicationMenu();
 
-  // Load on the actual port the server spun up on (not a hardcoded default)
-  resolveServerPort((port) => {
-    mainWindow.loadURL(`http://127.0.0.1:${port}/config`);
-  });
+  // serverPort is guaranteed to be set before createMainWindow() is called
+  // (app.whenReady resolves the port first). Use it directly — no hardcoded default.
+  mainWindow.loadURL(`http://127.0.0.1:${serverPort}/config`);
 
   // Minimize to tray instead of closing when user clicks X
   mainWindow.on('close', (event) => {
@@ -168,6 +187,7 @@ function createTray() {
 function createApplicationMenu() {
   isWindowsStartupEnabled((startupEnabled) => {
     const primaryIp = getPrimaryIp();
+    // serverPort is resolved before this is ever called
     const port = serverPort;
     const connectUrl = `http://${primaryIp}:${port}`;
 
@@ -258,6 +278,7 @@ function updateTrayMenu() {
   if (!tray) return;
 
   const primaryIp = getPrimaryIp();
+  // serverPort is resolved before this is ever called
   const port = serverPort;
   const connectUrl = `http://${primaryIp}:${port}`;
 
@@ -311,7 +332,9 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(() => {
-    // Resolve the real port before creating the window so loadURL is correct
+    // Resolve the real port FIRST — before creating the window or tray —
+    // so every URL built in createMainWindow / createApplicationMenu /
+    // updateTrayMenu uses the actual listening port (including random fallbacks).
     resolveServerPort((port) => {
       serverPort = port;
       createMainWindow();

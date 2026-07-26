@@ -736,3 +736,8 @@ function startServer(port) {
 }
 
 startServer(PREFERRED_PORT);
+
+// Export the http.Server instance so Electron's main.js can read
+// server.address().port after the server has started listening —
+// this works for both the preferred port and any random fallback port.
+module.exports = server;
