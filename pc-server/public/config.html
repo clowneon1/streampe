@@ -179,8 +179,8 @@
               <span>&#9660;</span>
             </summary>
             <div class="collapsible-content">
-              <div class="form-group">
-                <label for="input-image-url">Image or GIF URL</label>
+              <div class="form-group drop-zone" data-drop-kind="image">
+                <label for="input-image-url">Image or GIF URL (Drag &amp; Drop here)</label>
                 <div class="input-with-button">
                   <input type="text" id="input-image-url" class="form-control"
                     placeholder="https://example.com/alert.gif or select file..." />
@@ -190,8 +190,8 @@
                 </div>
               </div>
 
-              <div class="form-group">
-                <label for="input-sound-url">Sound URL or Local File (MP3/WAV/OGG)</label>
+              <div class="form-group drop-zone" data-drop-kind="sound">
+                <label for="input-sound-url">Sound URL or Local File (Drag &amp; Drop here)</label>
                 <div class="input-with-button">
                   <input type="text" id="input-sound-url" class="form-control"
                     placeholder="https://example.com/chime.mp3 or select audio file..." />

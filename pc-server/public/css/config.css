@@ -682,6 +682,23 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow: 0 0 8px var(--accent);
 }
 
+.drop-zone {
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+
+.drop-zone.drag-over {
+  background: rgba(0, 229, 255, 0.05);
+  border: 1px dashed var(--accent);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.1);
+}
+
+.drop-zone.drag-over label {
+  color: var(--accent);
+}
+
 .input-unit-group {
   display: flex;
   gap: 8px;

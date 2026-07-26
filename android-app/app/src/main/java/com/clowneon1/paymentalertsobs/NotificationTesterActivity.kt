@@ -33,7 +33,7 @@ class NotificationTesterActivity : AppCompatActivity() {
         Preset(
             label   = "Amazon Pay",
             title   = "1.00 received",
-            text    = "Money received from RAJSHRI MAJHI on amazon pay",
+            text    = "Money received from RJ on amazon pay",
             pkg     = "in.amazon.mShop.android.shopping",
             appName = "Amazon Pay"
         ),

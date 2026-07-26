@@ -805,25 +805,65 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setupFileBrowsers() {
-    [['btn-browse-image', 'input-image-file', 'input-image-url'],
-     ['btn-browse-sound', 'input-sound-file', 'input-sound-url']].forEach(([btnId, fileId, urlId]) => {
-      const btn = el(btnId);
-      const fileInput = el(fileId);
-      const urlInput = el(urlId);
-      if (!btn || !fileInput) return;
-      btn.addEventListener('click', (e) => { e.preventDefault(); fileInput.click(); });
-      fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (urlInput) urlInput.value = event.target.result;
-          syncLivePreview();
-          showToast(`📁 Loaded local file: ${file.name}`);
-        };
-        reader.readAsDataURL(file);
-        fileInput.value = '';
-      });
+    const handlers = [
+      { btn: 'btn-browse-image', file: 'input-image-file', url: 'input-image-url', kind: 'image' },
+      { btn: 'btn-browse-sound', file: 'input-sound-file', url: 'input-sound-url', kind: 'sound' }
+    ];
+
+    function readFile(file, urlInputId) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setVal(urlInputId, event.target.result);
+        syncLivePreview();
+        showToast(`📁 Loaded local file: ${file.name}`);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    handlers.forEach(h => {
+      const btn = el(h.btn);
+      const fileInput = el(h.file);
+      const urlInput = el(h.url);
+      const zone = document.querySelector(`.drop-zone[data-drop-kind="${h.kind}"]`);
+
+      if (btn && fileInput) {
+        btn.addEventListener('click', (e) => { e.preventDefault(); fileInput.click(); });
+        fileInput.addEventListener('change', (e) => {
+          readFile(e.target.files[0], h.url);
+          fileInput.value = '';
+        });
+      }
+
+      if (zone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+          zone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          });
+        });
+
+        ['dragenter', 'dragover'].forEach(evt => {
+          zone.addEventListener(evt, () => zone.classList.add('drag-over'));
+        });
+
+        ['dragleave', 'drop'].forEach(evt => {
+          zone.addEventListener(evt, () => zone.classList.remove('drag-over'));
+        });
+
+        zone.addEventListener('drop', (e) => {
+          const file = e.dataTransfer.files[0];
+          if (file) {
+            const isImage = file.type.startsWith('image/');
+            const isAudio = file.type.startsWith('audio/');
+
+            if (h.kind === 'image' && !isImage) return showToast('⚠️ Please drop an image file');
+            if (h.kind === 'sound' && !isAudio) return showToast('⚠️ Please drop an audio file');
+
+            readFile(file, h.url);
+          }
+        });
+      }
     });
   }
 
