@@ -87,6 +87,19 @@ The compiled release ZIP will be created in `dist-portable/Payment Alerts for OB
 
 ---
 
+## 🤝 Contributing
+
+Contributions are welcome and highly appreciated!
+- **Fork the Repository** on GitHub.
+- **Create a Feature Branch** (`git checkout -b feature/amazing-feature`).
+- **Commit your changes** (`git commit -m 'Add amazing feature'`).
+- **Push to the Branch** (`git push origin feature/amazing-feature`).
+- **Open a Pull Request**.
+
+Whether it's adding regex patterns for new payment apps, creating overlay themes, or improving Android connectivity, feel free to submit a PR or open an Issue!
+
+---
+
 ## 📄 License & Credits
 Developed with ❤️ by [clowneon1](https://github.com/clowneon1).  
 Distributed under the MIT License. ⭐ If you like this project, please give it a star on GitHub!
