@@ -2,8 +2,10 @@ package com.clowneon1.paymentalertsobs
 
 import android.app.*
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.*
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 
 class NotificationForwarderService : Service() {
 
@@ -28,7 +30,12 @@ class NotificationForwarderService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        startForeground(NOTIF_ID, buildNotification())
+        ServiceCompat.startForeground(
+            this,
+            NOTIF_ID,
+            buildNotification(),
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+        )
         acquireWakeLock()
         keepAliveHandler.postDelayed(keepAliveRunnable, keepAliveInterval)
     }
