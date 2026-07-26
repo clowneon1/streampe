@@ -1,29 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.PaymentAlertsOBS" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="android:statusBarColor">@color/bg</item>
-        <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:statusBarColor">#0a0c14</item>
+        <item name="android:navigationBarColor">#0a0c14</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="colorPrimary">@color/accent</item>
-        <item name="colorPrimaryVariant">@color/accentHover</item>
-        <item name="colorOnPrimary">#000000</item>
-        <item name="colorSurface">@color/surface1</item>
-        <item name="colorOnSurface">@color/textMain</item>
-        <item name="android:windowBackground">@color/bg</item>
+        <item name="colorPrimary">#6C63FF</item>
+        <item name="colorPrimaryVariant">#4B44CC</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSurface">#12151f</item>
+        <item name="colorOnSurface">#F0F2FF</item>
+        <item name="android:windowBackground">#0a0c14</item>
         <item name="android:fitsSystemWindows">true</item>
+        <item name="materialButtonStyle">@style/Widget.App.Button</item>
+        <item name="textInputStyle">@style/Widget.App.TextInputLayout</item>
     </style>
 
-    <!-- Launch theme — applied to MainActivity in manifest so Android shows
-         the correct dark background before layout inflation (no white flash). -->
-    <style name="Theme.PaymentAlertsOBS.Splash" parent="Theme.PaymentAlertsOBS">
-        <item name="android:windowBackground">@color/bg</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:windowActionBar">false</item>
-        <item name="android:windowFullscreen">false</item>
-        <item name="android:windowContentOverlay">@null</item>
-        <item name="android:statusBarColor">@color/bg</item>
-        <item name="android:navigationBarColor">@color/bg</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    <style name="Widget.App.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="cornerRadius">12dp</item>
+    </style>
+
+    <style name="Widget.App.Button.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="strokeColor">#2e3248</item>
+    </style>
+
+    <style name="Widget.App.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="boxStrokeColor">#2e3248</item>
+        <item name="hintTextColor">#8890AA</item>
     </style>
 </resources>

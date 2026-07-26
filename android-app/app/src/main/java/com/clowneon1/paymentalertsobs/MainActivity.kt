@@ -101,7 +101,7 @@ class MainActivity : AppCompatActivity() {
         tvBatteryStatus        = findViewById(R.id.tvBatteryStatus)
         tvStatus               = findViewById(R.id.tvStatus)
         etServerUrl            = findViewById(R.id.etServerUrl)
-        etServerUrl.setText(prefs.serverUrl.ifBlank { "http://192.168.1.100:3000" })
+        etServerUrl.setText(prefs.serverUrl.ifBlank { "http://192.168.1.100:2907" })
     }
 
     private fun requestPostNotificationPermissionSilently() {
@@ -182,10 +182,10 @@ class MainActivity : AppCompatActivity() {
         MaterialAlertDialogBuilder(this)
             .setTitle("Accessibility Access — Android 15 Fix")
             .setMessage(
-                "Android 15 hides payment amounts from notification listeners.\n\n" +
-                "Enabling Accessibility Access lets the app read the full notification " +
-                "text (including \u20b9 amounts) from the screen \u2014 exactly like a screen reader does." +
-                "\n\nOn the next screen:\n" +
+                "This is optional and only needed on Android 15+ if payment amounts are missing.\n\n" +
+                "\u26a0\ufe0f Warning: Accessibility services can interfere with some payment apps " +
+                "(e.g. PhonePe screen-lock security). Only enable if you need this fix.\n\n" +
+                "On the next screen:\n" +
                 "1. Find \u201cPayment Alerts for OBS\u201d\n" +
                 "2. Tap it and turn it ON\n" +
                 "3. Tap Allow on the confirmation dialog"
@@ -250,23 +250,26 @@ class MainActivity : AppCompatActivity() {
             PackageManager.PERMISSION_GRANTED
         val batteryOk = isBatteryOptimizationIgnored()
 
-        // Step 1 — Notification Access
+        // Notification Access
         tvNotifAccess.text = if (notifAccess)
-            "\u2705 Step 1: Notification Access granted"
+            "\u2705 Notification Access granted"
         else
-            "\u274c Step 1: Notification Access required"
+            "\u274c Notification Access required — tap below to grant"
         btnPermission.visibility = if (notifAccess) View.GONE else View.VISIBLE
 
-        // Step 2 — Accessibility Access (Android 15 fix)
+        // Accessibility Access (optional)
         tvAccessibilityStatus.text = if (a11yAccess)
-            "\u2705 Step 2: Accessibility Access granted (Android 15 fix active)"
+            "\u2705 Accessibility enabled (Android 15 fix active)"
         else
-            "\u26a0\ufe0f Step 2: Accessibility Access — grant this to fix Android 15 redaction"
-        btnAccessibility.visibility = if (a11yAccess) View.GONE else View.VISIBLE
+            "\u26a0\ufe0f Not enabled — grant only if payment amounts are missing on Android 15"
+        // Accessibility button always shown so user can toggle it on/off
+        btnAccessibility.visibility = View.VISIBLE
+        btnAccessibility.text = if (a11yAccess) "Disable Accessibility" else "Enable Accessibility (Optional)"
 
         tvPermStatus.visibility = if (postNotifOk) View.GONE else View.VISIBLE
+        if (!postNotifOk) tvPermStatus.text = "\u26a0\ufe0f POST_NOTIFICATIONS permission not granted"
 
-        tvBatteryStatus.text = "\u26a0\ufe0f Battery optimization active \u2014 may interrupt during long streams"
+        tvBatteryStatus.text = "\u26a0\ufe0f Battery optimization active — may interrupt during long streams"
         tvBatteryStatus.visibility = if (batteryOk) View.GONE else View.VISIBLE
         btnBatteryOptimization.visibility = if (batteryOk) View.GONE else View.VISIBLE
 

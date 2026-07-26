@@ -116,10 +116,10 @@ function ensureWindowsFirewallRule(callback) {
   }
   exec('netsh advfirewall firewall show rule name="PaymentAlertsOBS"', (err, stdout) => {
     if (err || !stdout || stdout.includes('No rules match')) {
-      const psCmd = 'powershell -Command "Start-Process netsh -ArgumentList \'advfirewall firewall add rule name=\\\"PaymentAlertsOBS\\\" protocol=TCP dir=in localport=3000 action=allow\' -Verb RunAs -WindowStyle Hidden"';
+      const psCmd = 'powershell -Command "Start-Process netsh -ArgumentList \'advfirewall firewall add rule name=\\\"PaymentAlertsOBS\\\" protocol=TCP dir=in localport=2907 action=allow\' -Verb RunAs -WindowStyle Hidden"';
       exec(psCmd, (psErr) => {
         if (psErr) log.warn('Firewall', 'Firewall auto-rule error:', psErr.message);
-        else log.info('Firewall', 'Windows Firewall rule for port 3000 created successfully');
+        else log.info('Firewall', 'Windows Firewall rule for port 2907 created successfully');
         if (callback) callback(!psErr, psErr ? psErr.message : null);
       });
     } else {
@@ -131,9 +131,6 @@ function ensureWindowsFirewallRule(callback) {
 log.info('Server', `Log file: ${LOG_FILE}`);
 
 // ── Payment Parser (JS) ────────────────────────────────────────────
-// Parses sender + amount from raw notification fields.
-// Called on every incoming event so both real and tester events get parsed.
-
 const STRIP_SUFFIXES = [
   / on amazon pay$/i,
   / to your( bank)? account$/i,
@@ -154,7 +151,6 @@ function normaliseAmount(raw) {
   return `\u20B9${stripped}`;
 }
 
-// Patterns — all matched against lowercased strings
 const RE_PHONEPE_AMOUNT     = /has\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
 const RE_HAS_SENT           = /^(.+?)\s+has\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
 const RE_AMT_RECEIVED_FROM  = /(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+received\s+from\s+(.+)/i;
@@ -203,13 +199,11 @@ function parsePayment(notification) {
         };
       }
     }
-    // PhonePe title-split: title="₹500 received" text="From D SINGH"
     const amtTitleM = RE_AMT_TITLE.exec(title);
     const fromTextM = RE_FROM_NAME.exec(text);
     if (amtTitleM && fromTextM) {
       return { sender: cleanSender(fromTextM[1]), amount: normaliseAmount(amtTitleM[1]), sourceApp: 'PhonePe' };
     }
-    // PhonePe compact: title="₹500 from D SINGH"
     const compactM = RE_AMT_FROM_TITLE.exec(title);
     if (compactM) {
       return { sender: cleanSender(compactM[2]), amount: normaliseAmount(compactM[1]), sourceApp: 'PhonePe' };
@@ -262,10 +256,6 @@ function loadSettings() {
   return ConfigSchema.createDefaultConfig();
 }
 
-/**
- * Merge a partial settings payload (a single widget, a single tab, the whole
- * config …) into the current config and re-normalize the result.
- */
 function applySettingsPatch(current, patch) {
   const body = patch && typeof patch === 'object' ? patch : {};
   const widgetPatch = body.widgets && typeof body.widgets === 'object' ? body.widgets : {};
@@ -296,7 +286,6 @@ function loadProfilesStore() {
     if (fs.existsSync(PROFILES_FILE)) {
       const raw = JSON.parse(fs.readFileSync(PROFILES_FILE, 'utf8'));
       if (raw && raw.profiles && Object.keys(raw.profiles).length) {
-        // Old profiles are migrated to the current schema on load.
         const store = ConfigMigration.migrateProfileStore(raw);
         saveProfilesStore(store);
         return store;
@@ -329,12 +318,6 @@ function broadcastSettings(settings) {
 // ── Amount filter ─────────────────────────────────────────────────────
 const parseAmountNum = (rawAmount) => TemplateMatcher.parseAmount(rawAmount);
 
-/**
- * Attach the alert template chosen for this payment so every overlay renders
- * the same template the server picked (see TemplateMatcher for the rule).
- * If the event already carries an alertTemplateId (e.g. forwarded from the
- * config test button), honour it instead of re-selecting by amount.
- */
 function decorateWithTemplate(event) {
   const amount = parseAmountNum(event.amount);
   if (event.alertTemplateId) {
@@ -494,7 +477,7 @@ function getActiveWsCount(clientSet) {
 app.get('/api/network-info', (req, res) => {
   const interfaces = getLocalIpAddresses();
   const primaryIp = getPrimaryIp();
-  const port = server.address() ? server.address().port : (process.env.PORT || 3000);
+  const port = server.address() ? server.address().port : (process.env.PORT || 2907);
   res.json({
     primaryIp,
     port,
@@ -543,7 +526,7 @@ app.post('/api/system/server-stop', (req, res) => {
 
 app.post('/api/system/server-start', (req, res) => {
   if (!isServerListening) {
-    const PORT_NUM = process.env.PORT || 3000;
+    const PORT_NUM = process.env.PORT || 2907;
     try {
       server.listen(PORT_NUM, '0.0.0.0', () => {
         isServerListening = true;
@@ -585,7 +568,6 @@ app.post('/api/logs/clear', (req, res) => {
   }
 });
 
-/** Parse + template-decorate a synthetic notification and push it to every overlay. */
 function broadcastSample(sample) {
   const parsed = parsePayment(sample);
   const decorated = decorateWithTemplate({
@@ -662,7 +644,6 @@ wss.on('connection', (ws, req) => {
 
         if (!title && !text) return;
 
-        // ── Parse sender + amount on the server
         const parsed = parsePayment(notification);
         const enriched = {
           ...notification,
@@ -677,7 +658,6 @@ wss.on('connection', (ws, req) => {
         const decorated = decorateWithTemplate(enriched);
         const payload   = JSON.stringify({ type: 'payment_notification', ...decorated });
 
-        // ── Unified Payment Event JSON Logging
         log.event('PaymentEvent', `Payment received: ₹${decorated.amount || '0'} from "${decorated.sender || 'Unknown'}" via ${decorated.sourceApp} [Template: ${decorated.alertTemplateName || 'Default'}]`, decorated);
 
         let overlayTriggered = false;
@@ -688,7 +668,6 @@ wss.on('connection', (ws, req) => {
           }
         });
 
-        // ── Goal + leaderboard (processed ONLY when overlay is triggered and event id not processed already)
         if (overlayTriggered) {
           processPaymentForGoalAndLeaderboard(decorated);
         } else {
@@ -720,13 +699,10 @@ const heartbeat = setInterval(() => {
 }, 30000);
 
 wss.on('close', () => clearInterval(heartbeat));
-
-// Absorb errors forwarded from the http server to the WebSocketServer
-// so they don't become unhandled rejections before our http error handler fires.
 wss.on('error', () => {});
 
 // HTTP and WS share the same underlying server — one port covers both.
-const PREFERRED_PORT = parseInt(process.env.PORT || '2709', 10);
+const PREFERRED_PORT = parseInt(process.env.PORT || '2907', 10);
 
 function startServer(port) {
   server.listen(port, '0.0.0.0');

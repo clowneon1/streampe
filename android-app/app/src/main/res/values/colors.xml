@@ -1,19 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#090a0f</color>
-    <color name="colorPrimary">#00e5ff</color>
-    <color name="colorPrimaryDark">#00b8d4</color>
-    <color name="colorAccent">#00e5ff</color>
+    <color name="ic_launcher_background">#0a0c14</color>
 
-    <!-- PC-server palette -->
-    <color name="bg">#090a0f</color>
-    <color name="surface1">#12151e</color>
-    <color name="surface2">#1a1e2b</color>
-    <color name="border">#2a2f42</color>
-    <color name="accent">#00e5ff</color>
-    <color name="accentHover">#00b8d4</color>
-    <color name="textMain">#f0f3fa</color>
-    <color name="textMuted">#8c96ab</color>
-    <color name="danger">#ff4757</color>
-    <color name="success">#2ed573</color>
+    <!-- Brand / Primary -->
+    <color name="colorPrimary">#6C63FF</color>
+    <color name="colorPrimaryDark">#4B44CC</color>
+    <color name="colorAccent">#6C63FF</color>
+    <color name="colorPrimaryVariant">#4B44CC</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+
+    <!-- Backgrounds -->
+    <color name="bg">#0a0c14</color>
+    <color name="surface1">#12151f</color>
+    <color name="surface2">#1a1d2b</color>
+    <color name="surface3">#22263a</color>
+    <color name="border">#2e3248</color>
+
+    <!-- Text -->
+    <color name="textMain">#F0F2FF</color>
+    <color name="textMuted">#8890AA</color>
+    <color name="textDim">#555D7A</color>
+
+    <!-- Status -->
+    <color name="success">#4ADE80</color>
+    <color name="warning">#FBBF24</color>
+    <color name="danger">#F87171</color>
+    <color name="info">#60A5FA</color>
+
+    <!-- Gradients / tints -->
+    <color name="accent">#6C63FF</color>
+    <color name="accentHover">#4B44CC</color>
+    <color name="accentDim">#1a1830</color>
+
+    <!-- PC-server palette (keep compat) -->
+    <color name="colorSurface">#12151f</color>
+    <color name="colorOnSurface">#F0F2FF</color>
 </resources>
