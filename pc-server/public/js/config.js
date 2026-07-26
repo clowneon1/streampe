@@ -1344,16 +1344,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.target.value = '';
     });
 
-    on('btn-lb-clear-all', 'click', async () => {
-      const confirmed = await AppModal.show({
-        title: 'Clear Leaderboard',
-        message: 'Clear every supporter from the leaderboard? This cannot be undone.'
+    [['btn-lb-clear', 'Clear Leaderboard', 'Clear every supporter from the leaderboard?'],
+     ['btn-lb-clear-all', 'Clear Leaderboard', 'Clear every supporter from the leaderboard?']
+    ].forEach(([id, title, msg]) => {
+      on(id, 'click', async () => {
+        const confirmed = await AppModal.show({ title, message: msg + ' This cannot be undone.' });
+        if (!confirmed) return;
+        readFormValues();
+        config.widgets.leaderboard.supporters = {};
+        await saveToServer();
+        showToast('<i data-lucide="trash-2"></i> Leaderboard cleared and saved');
       });
-      if (!confirmed) return;
-      readFormValues();
-      config.widgets.leaderboard.supporters = {};
-      await saveToServer();
-      showToast('<i data-lucide="trash-2"></i> Leaderboard cleared and saved');
     });
 
     // ── Recent helpers
