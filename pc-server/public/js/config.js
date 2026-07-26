@@ -1892,6 +1892,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  function setupBoxExpanders() {
+    // CSS-based vertical resize is used instead of JS toggle
+  }
+
   // ── Boot ─────────────────────────────────────────────────────
   setupTabs();
   setupCodeEditorTabs();
@@ -1908,6 +1912,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupSimulator();
   setupNetworkAndSystem();
   setupPanelResizer();
+  setupBoxExpanders();
   attachInputListeners();
   connectDashboardWebSocket();
 

@@ -1304,12 +1304,14 @@
 
           <div class="form-group" style="margin-top: 16px;">
             <div class="label-with-switch">
-              <label>Live Supporters List</label>
-              <button class="btn btn-secondary" type="button" id="btn-lb-clear-all"
-                style="padding: 4px 10px; font-size: 11px;"><i data-lucide="trash-2"></i> Clear All</button>
+              <label><i data-lucide="users" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Live Supporters List</label>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="btn btn-secondary" type="button" id="btn-lb-clear-all"
+                  style="padding: 4px 10px; font-size: 11px;"><i data-lucide="trash-2"></i> Clear All</button>
+              </div>
             </div>
           </div>
-          <div class="code-preview-box" style="max-height: 180px; overflow-y: auto; white-space: normal; padding: 8px;">
+          <div id="lb-preview-container" class="code-preview-box box-expandable" style="white-space: normal; padding: 8px;">
             <table style="width: 100%; border-collapse: collapse; font-size: 12px;" id="lb-table">
               <thead>
                 <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--text-muted);">
@@ -1631,12 +1633,14 @@
 
           <div class="form-group" style="margin-top: 16px;">
             <div class="label-with-switch">
-              <label>Live Recent History</label>
-              <button class="btn btn-secondary" type="button" id="btn-recent-clear-all"
-                style="padding: 4px 10px; font-size: 11px;"><i data-lucide="trash-2"></i> Clear All</button>
+              <label><i data-lucide="list" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Live Recent History</label>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="btn btn-secondary" type="button" id="btn-recent-clear-all"
+                  style="padding: 4px 10px; font-size: 11px;"><i data-lucide="trash-2"></i> Clear All</button>
+              </div>
             </div>
           </div>
-          <div class="code-preview-box" style="max-height: 180px; overflow-y: auto; white-space: normal; padding: 8px;">
+          <div id="recent-preview-container" class="code-preview-box box-expandable" style="white-space: normal; padding: 8px;">
             <table style="width: 100%; border-collapse: collapse; font-size: 12px;" id="recent-table">
               <thead>
                 <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--text-muted);">
@@ -1789,9 +1793,11 @@
 
     <!-- Simulated Event Console -->
     <div class="form-group" style="margin-top: 16px;">
-      <label>Event Inspector &amp; Dispatch Console Log</label>
-      <pre id="sim-console"
-        style="background: var(--bg-dark, #06080d); color: #00e5ff; font-family: 'Fira Code', 'Consolas', monospace; font-size: 12px; padding: 14px; border-radius: 8px; border: 1px solid var(--border); max-height: 250px; overflow-y: auto; white-space: pre-wrap; margin-top: 4px;">Press "Inspect Match &amp; Parser" or "Dispatch Custom Event" to simulate an event.</pre>
+      <div class="label-with-switch">
+        <label>Event Inspector &amp; Dispatch Console Log</label>
+      </div>
+      <pre id="sim-console" class="box-expandable"
+        style="background: var(--bg-dark, #06080d); color: #00e5ff; font-family: 'Fira Code', 'Consolas', monospace; font-size: 12px; padding: 14px; border-radius: 8px; border: 1px solid var(--border); overflow-y: auto; white-space: pre-wrap; margin-top: 4px;">Press "Inspect Match &amp; Parser" or "Dispatch Custom Event" to simulate an event.</pre>
     </div>
   </div>
 
@@ -1842,8 +1848,8 @@
         Logs</button>
     </div>
 
-    <pre id="live-logs-terminal"
-      style="background: #04060a; color: #00e5ff; font-family: 'Fira Code', 'Consolas', monospace; font-size: 11.5px; padding: 16px; border-radius: 8px; border: 1px solid var(--border); height: 420px; overflow-y: auto; white-space: pre-wrap; margin: 0; line-height: 1.5;">Loading server logs...</pre>
+    <pre id="live-logs-terminal" class="box-expandable"
+      style="background: #04060a; color: #00e5ff; font-family: 'Fira Code', 'Consolas', monospace; font-size: 11.5px; padding: 16px; border-radius: 8px; border: 1px solid var(--border); overflow-y: auto; white-space: pre-wrap; margin: 0; line-height: 1.5;">Loading server logs...</pre>
   </div>
 
   <!-- Form Action Buttons Bar (Always visible at bottom of form panel) -->
