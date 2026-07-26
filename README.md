@@ -87,6 +87,31 @@ The compiled release ZIP will be created in `dist-portable/Payment Alerts for OB
 
 ---
 
+### 📱 Android Companion App Build
+
+To compile the Android companion app from source:
+
+1. **Prerequisites**:
+   - Download & install [Android Studio](https://developer.android.com/studio) (Hedgehog or newer).
+   - Android SDK (API Level 24 / Android 7.0 or higher).
+
+2. **Open Project**:
+   - Open Android Studio, select **Open an Existing Project**, and choose the `android-app` directory.
+
+3. **Build APK**:
+   - Sync Gradle project (`Sync Project with Gradle Files`).
+   - Build Debug APK: Select **Build ➔ Build Bundle(s) / APK(s) ➔ Build APK(s)**, or run via Gradle wrapper:
+     ```bash
+     cd android-app
+     ./gradlew assembleDebug
+     ```
+   - Compiled APK output: `android-app/app/build/outputs/apk/debug/app-debug.apk`.
+
+4. **Install on Device**:
+   - Connect your phone via USB with **USB Debugging** enabled, or transfer `app-debug.apk` directly to your Android device to install.
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome and highly appreciated!
@@ -102,4 +127,4 @@ Whether it's adding regex patterns for new payment apps, creating overlay themes
 
 ## 📄 License & Credits
 Developed with ❤️ by [clowneon1](https://github.com/clowneon1).  
-Distributed under the MIT License. ⭐ If you like this project, please give it a star on GitHub!
+Distributed under the [MIT License](LICENSE). ⭐ If you like this project, please give it a star on GitHub!
