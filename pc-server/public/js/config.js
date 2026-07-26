@@ -27,12 +27,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const iframe = el('preview-iframe');
 
-  function showToast(message) {
+  function showToast(message, type = 'info') {
     const toast = el('toast');
     if (!toast) return;
     toast.textContent = message;
+    toast.style.borderColor = type === 'success' ? '#00e676' : (type === 'error' ? '#ff5252' : 'var(--accent)');
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2400);
+    setTimeout(() => toast.classList.remove('show'), 3000);
   }
 
   // ── Universal Modal Controller ───────────────────────────────
@@ -351,7 +352,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         width: numVal('tpl-layout-width', template.layout.width)
       });
       template.code = {
-        enableCustomCode: checked('chk-enable-custom-code', true),
+        enableCustomCode: checked('chk-enable-custom-code', false),
         customHTML: val('input-custom-html', ''),
         customCSS: val('input-custom-css', ''),
         customJS: val('input-custom-js', '')
@@ -381,7 +382,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       backgroundOpacity: numVal('input-goal-bg-opacity', goal.style.backgroundOpacity)
     });
     goal.code = {
-      enableCustomCode: checked('chk-enable-goal-custom-code', true),
+      enableCustomCode: checked('chk-enable-goal-custom-code', false),
       customHTML: val('input-goal-custom-html', ''),
       customCSS: val('input-goal-custom-css', ''),
       customJS: val('input-goal-custom-js', '')
@@ -402,7 +403,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       backgroundOpacity: numVal('input-lb-bg-opacity', lb.style.backgroundOpacity)
     });
     lb.code = {
-      enableCustomCode: checked('chk-enable-lb-custom-code', true),
+      enableCustomCode: checked('chk-enable-lb-custom-code', false),
       customHTML: val('input-lb-custom-html', ''),
       customCSS: val('input-lb-custom-css', ''),
       customJS: val('input-lb-custom-js', '')
@@ -999,9 +1000,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     on('btn-save', 'click', async () => {
       try {
         const data = await saveToServer();
-        showToast(data.ok ? '💾 Settings saved!' : '⚠️ Save failed');
+        if (data.ok) {
+          showToast('💾 Settings saved successfully!', 'success');
+        } else {
+          showToast('⚠️ Save failed', 'error');
+        }
       } catch (e) {
-        showToast('⚠️ Save failed: ' + e.message);
+        showToast('⚠️ Save failed: ' + e.message, 'error');
       }
     });
 
@@ -1707,6 +1712,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  function setupCodeAutoSeeding() {
+    const configs = [
+      { id: 'chk-enable-custom-code', kind: 'alert', fields: ['input-custom-html', 'input-custom-css', 'input-custom-js'] },
+      { id: 'chk-enable-goal-custom-code', kind: 'goal', fields: ['input-goal-custom-html', 'input-goal-custom-css', 'input-goal-custom-js'] },
+      { id: 'chk-enable-lb-custom-code', kind: 'leaderboard', fields: ['input-lb-custom-html', 'input-lb-custom-css', 'input-lb-custom-js'] }
+    ];
+
+    configs.forEach(c => {
+      on(c.id, 'change', (e) => {
+        if (!e.target.checked) return;
+
+        // If HTML or CSS is empty, seed them with the default full source
+        const htmlEmpty = !val(c.fields[0], '').trim();
+        const cssEmpty = !val(c.fields[1], '').trim();
+
+        if (htmlEmpty || cssEmpty) {
+          const defaults = ConfigSchema.DEFAULT_CODE[c.kind];
+          if (htmlEmpty) setVal(c.fields[0], defaults.customHTML);
+          if (cssEmpty) setVal(c.fields[1], defaults.customCSS);
+          // Always seed JS if empty
+          if (!val(c.fields[2], '').trim()) setVal(c.fields[2], defaults.customJS);
+
+          showToast(`✨ Restored ${c.kind} baseline code`, 'info');
+          syncLivePreview();
+        }
+      });
+    });
+  }
+
   // ── Boot ─────────────────────────────────────────────────────
   setupTabs();
   setupCodeEditorTabs();
@@ -1718,6 +1752,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupTemplateManager();
   setupFileBrowsers();
   setupSnippets();
+  setupCodeAutoSeeding();
   setupActionButtons();
   setupSimulator();
   setupNetworkAndSystem();

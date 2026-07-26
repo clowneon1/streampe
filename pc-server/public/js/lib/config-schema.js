@@ -13,21 +13,117 @@
   const CONFIG_VERSION = 2;
   const WIDGET_KINDS = ['alert', 'goal', 'leaderboard'];
 
+  // ── Full Source Default Code ──────────────────────────────────────
   const DEFAULT_CODE = {
     alert: {
-      customHTML: '{{mediaHtml}}\n<div class="alert-content">\n  <div class="alert-title">{{sender}} sent {{amount}}</div>\n  <div class="alert-subtitle">{{sourceApp}} payment received</div>\n</div>',
-      customCSS: '/* Custom Overlay CSS Reference */\n/* .alert-box { border-left: none !important; } */\n/* .alert-title { font-weight: bold; text-transform: uppercase; } */',
-      customJS: '// Custom JavaScript executed on alert trigger\n// Available parameters: notifData, alertBox, settings\nconsole.log(\'[Alert Triggered]\', notifData.sender, notifData.amount);'
+      customHTML: `{{mediaHtml}}
+<div class="alert-content">
+  <div class="alert-title">{{title}}</div>
+  <div class="alert-subtitle">{{subtitle}}</div>
+  {{#message}}<div class="alert-message">{{message}}</div>{{/message}}
+</div>`,
+      customCSS: `/* Alert Container */
+.alert-box {
+  display: flex; flex-direction: column; align-items: center; width: 100%;
+  background-color: rgba(var(--bg-r, 0), var(--bg-g, 0), var(--bg-b, 0), calc(var(--bg-opacity, 60) / 100));
+  border-left: var(--border-width, 5px) solid var(--accent-color);
+  border-radius: var(--border-radius, 12px); padding: var(--padding, 20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 229, 255, 0.2);
+  backdrop-filter: blur(8px);
+}
+
+/* Media Positioning */
+.alert-box.media-pos-top { flex-direction: column; }
+.alert-box.media-pos-left { flex-direction: row; text-align: left; gap: 16px; }
+.alert-box.media-pos-right { flex-direction: row-reverse; text-align: right; gap: 16px; }
+.alert-box.media-pos-bottom { flex-direction: column-reverse; }
+
+/* Media Elements */
+.alert-media { max-width: var(--media-size, 100px); max-height: var(--media-size, 100px); object-fit: contain; border-radius: 8px; }
+
+/* Typography */
+.alert-title { font-size: 1em; font-weight: bold; margin-bottom: 4px; color: var(--text-color); }
+.alert-subtitle { font-size: 0.65em; color: var(--accent-color); text-transform: uppercase; letter-spacing: 1px; }
+.alert-message { font-size: 0.8em; margin-top: 8px; opacity: 0.8; font-style: italic; }
+
+/* Animations */
+@keyframes slideUpIn { from { opacity: 0; transform: translateY(80px); } to { opacity: 1; transform: translateY(0); } }
+.anim-enter-slide-up { animation: slideUpIn var(--anim-duration, 600ms) cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }`,
+      customJS: `console.log('[Alert]', notifData.sender, notifData.amount);`
     },
     goal: {
-      customHTML: '<div class="goal-card">\n  <div class="goal-header">\n    <div class="goal-title">{{title}}</div>\n  </div>\n  <div class="goal-bar-wrapper">\n    <div class="goal-bar-fill" style="width: {{percent}};"></div>\n    <div class="goal-bar-text">\n      <span>{{currentAmount}} ({{percent}})</span>\n      <span>{{targetAmount}}</span>\n    </div>\n  </div>\n</div>',
-      customCSS: '/* Custom Goal CSS */\n/* .goal-card { background: rgba(10, 14, 23, 0.95) !important; } */',
-      customJS: '// Custom Payment Goal JavaScript Hook\nconsole.log(\'[Goal Widget Sync]\');'
+      customHTML: `<div class="goal-card">
+  <div class="goal-header">
+    <div class="goal-title-group">
+      <div class="goal-title">{{title}}</div>
+      {{#subtitle}}<div class="goal-subtitle">{{subtitle}}</div>{{/subtitle}}
+    </div>
+    {{#endDate}}<div class="goal-end-date">Ends: {{endDate}}</div>{{/endDate}}
+  </div>
+  <div class="goal-bar-wrapper">
+    <div class="goal-bar-fill" style="width: {{percent}};"></div>
+    <div class="goal-bar-text">
+      <span>{{currentAmount}} ({{percent}})</span>
+      <span>{{targetAmount}}</span>
+    </div>
+  </div>
+</div>`,
+      customCSS: `.goal-card {
+  width: 100%; background: rgba(10, 14, 23, calc(var(--goal-bg-opacity, 85) / 100));
+  border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--goal-border-radius, 14px);
+  padding: var(--goal-padding, 16px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+}
+.goal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.goal-title { font-size: 1em; font-weight: bold; color: var(--goal-text-color); }
+.goal-subtitle { font-size: 0.8em; opacity: 0.7; }
+.goal-subtitle:empty { display: none; }
+.goal-bar-wrapper {
+  position: relative; width: 100%; height: var(--goal-bar-height, 36px);
+  background-color: var(--goal-bar-color, #1e2433); border-radius: 40px; overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.goal-bar-fill {
+  height: 100%; background: var(--goal-bar-fill-style, var(--goal-fill-color, #00e5ff));
+  transition: width 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+  box-shadow: 0 0 12px var(--goal-fill-color);
+}
+.goal-bar-text {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px; font-size: 14px; font-weight: 700; color: #fff;
+  text-shadow: 0 1px 4px #000; pointer-events: none;
+}`,
+      customJS: `console.log('[Goal Sync]');`
     },
     leaderboard: {
-      customHTML: '<div class="lb-card">\n  <div class="lb-header">\n    <span style="font-size: 22px;">🏆</span>\n    <div class="lb-title">{{title}}</div>\n  </div>\n  <div class="lb-list"></div>\n</div>',
-      customCSS: '/* Top Supporters Leaderboard Custom CSS */\n/* .lb-card { border-color: rgba(0, 229, 255, 0.4) !important; } */',
-      customJS: '// Custom Leaderboard JavaScript Hook\nconsole.log(\'[Leaderboard Widget Sync]\');'
+      customHTML: `<div class="lb-card">
+  <div class="lb-header">
+    <span style="font-size: 22px;">🏆</span>
+    <div class="lb-title">{{title}}</div>
+  </div>
+  <div class="lb-list">
+    <!-- Rows are injected by the renderer -->
+  </div>
+</div>`,
+      customCSS: `.lb-card {
+  width: 100%; background: rgba(10, 14, 23, calc(var(--lb-bg-opacity, 88) / 100));
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: var(--lb-border-radius, 16px);
+  padding: var(--lb-padding, 18px); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+}
+.lb-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.lb-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--lb-row-bg-color, rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px;
+  padding: 8px 14px; margin-bottom: 8px;
+}
+.lb-row.rank-1 { background: rgba(255, 215, 0, 0.12); border-color: #ffd70066; }
+.lb-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; background: rgba(255,255,255,0.1); }
+.rank-1 .lb-badge { background: #ffd700; color: #000; box-shadow: 0 0 10px #ffd700; }
+.lb-amount { font-weight: 700; color: var(--lb-accent-color); font-family: monospace; }`,
+      customJS: `console.log('[Leaderboard Sync]');`
     }
   };
 
@@ -46,7 +142,8 @@
         accentColor: '#00e5ff', borderRadius: 12, borderWidth: 5, padding: 20
       },
       animation: { type: 'slide-up', duration: 600, displayDuration: 5000 },
-      layout: { positionPreset: 'bottom-center', positionX: 50, positionY: 90, marginX: 0, marginY: 0, width: 400 }
+      layout: { positionPreset: 'bottom-center', positionX: 50, positionY: 90, marginX: 0, marginY: 0, width: 400 },
+      code: { enableCustomCode: false, customHTML: '', customCSS: '', customJS: '' }
     },
     goal: {
       enabled: true,
@@ -68,7 +165,8 @@
         barHeight: 36, barColor: '#1e2433', fillColor: '#00e5ff'
       },
       animation: { type: 'fade-in', duration: 400, displayDuration: 5000 },
-      layout: { positionPreset: 'center', positionX: 50, positionY: 50, marginX: 0, marginY: 0, width: 600 }
+      layout: { positionPreset: 'center', positionX: 50, positionY: 50, marginX: 0, marginY: 0, width: 600 },
+      code: { enableCustomCode: false, customHTML: '', customCSS: '', customJS: '' }
     },
     leaderboard: {
       enabled: true,
@@ -89,7 +187,8 @@
         rowBgColor: '#1a1e2b'
       },
       animation: { type: 'fade-in', duration: 400, displayDuration: 5000 },
-      layout: { positionPreset: 'center', positionX: 50, positionY: 50, marginX: 0, marginY: 0, width: 450 }
+      layout: { positionPreset: 'center', positionX: 50, positionY: 50, marginX: 0, marginY: 0, width: 450 },
+      code: { enableCustomCode: false, customHTML: '', customCSS: '', customJS: '' }
     }
   };
 
@@ -184,16 +283,16 @@
     };
   }
 
-  // Stored code stays empty unless the user writes some; DEFAULT_CODE is only the
-  // editor's reset/snippet content. Seeding it here would make every overlay take
-  // the custom-HTML branch instead of its built-in markup.
-  function normalizeCode(raw) {
+  // Stored code defaults to the baseline source code so that enabling it
+  // results in a functional widget immediately.
+  function normalizeCode(raw, kind) {
     const src = raw && typeof raw === 'object' ? raw : {};
+    const defaults = DEFAULT_CODE[kind] || DEFAULT_CODE.alert;
     return {
-      enableCustomCode: bool(src.enableCustomCode, true),
-      customHTML: str(src.customHTML, ''),
-      customCSS: str(src.customCSS, ''),
-      customJS: str(src.customJS, '')
+      enableCustomCode: bool(src.enableCustomCode, false),
+      customHTML: (typeof src.customHTML === 'string' && src.customHTML.trim()) ? src.customHTML : defaults.customHTML,
+      customCSS: (typeof src.customCSS === 'string' && src.customCSS.trim()) ? src.customCSS : defaults.customCSS,
+      customJS: (typeof src.customJS === 'string' && src.customJS.trim()) ? src.customJS : defaults.customJS
     };
   }
 
@@ -268,7 +367,7 @@
         style: normalizeStyle(src.style, base.style),
         animation: normalizeAnimation(src.animation, base.animation),
         layout: normalizeLayout(src.layout, base.layout),
-        code: normalizeCode(src.code)
+        code: normalizeCode(src.code, 'alert')
       };
     },
 
@@ -282,7 +381,7 @@
         style: normalizeStyle(src.style, defaults.style),
         animation: normalizeAnimation(src.animation, defaults.animation),
         layout: normalizeLayout(src.layout, defaults.layout),
-        code: normalizeCode(src.code)
+        code: normalizeCode(src.code, kind)
       };
 
       if (kind === 'goal') {

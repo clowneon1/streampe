@@ -118,11 +118,13 @@
         ...notifData, mediaHtml, title: titleText, subtitle: subtitleText
       });
     } else {
+      const messageHtml = notifData.message ? `<div class="alert-message">${TemplateEngine.escapeHtml(notifData.message)}</div>` : '';
       alertBox.innerHTML = `
         ${mediaHtml}
         <div class="alert-content">
           <div class="alert-title">${titleText}</div>
-          ${subtitleText ? `<div class="alert-subtitle">${subtitleText}</div>` : ''}
+          <div class="alert-subtitle">${subtitleText}</div>
+          ${messageHtml}
         </div>
       `;
     }

@@ -1,9 +1,12 @@
 /**
  * Safe Template Engine for Payment Alerts
- * Supported variables: sender, amount, sourceApp, message, timestamp, date
  */
 (function (global) {
-  const ALLOWED_VARS = new Set(['sender', 'amount', 'sourceApp', 'message', 'timestamp', 'date', 'mediaHtml', 'title', 'subtitle']);
+  const ALLOWED_VARS = new Set([
+    'sender', 'amount', 'sourceApp', 'message', 'timestamp', 'date',
+    'mediaHtml', 'title', 'subtitle',
+    'currentAmount', 'targetAmount', 'percent', 'endDate', 'count'
+  ]);
 
   const TemplateEngine = {
     /**
@@ -46,7 +49,9 @@
      * @returns {object}
      */
     extractNotificationData(notif) {
-      if (!notif) notif = {};
+      if (!notif) return {};
+      // If it already looks like extracted data, don't re-extract
+      if (notif._extracted) return notif;
 
       const appName = notif.appName || notif.sourceApp || notif.packageName || 'Payment App';
       const title = notif.title || '';
@@ -56,12 +61,11 @@
       // Extract amount using common currency patterns (₹, $, €, Rs, INR, etc.)
       let amount = notif.amount || '';
       if (!amount) {
-        const amountRegex = /(?:₹|Rs\.?|INR|\$|€)\s*[\d,]+(?:\.\d{1,2})?|[\d,]+(?:\.\d{1,2})?\s*(?:rupees|INR)/i;
+        const amountRegex = /(?:₹|Rs\.?|INR|\$|€)\s*[\d,]+(?:\.\d{1,2})?|[\d,]+(?:\.\d{1,2})\s*(?:rupees|INR)/i;
         const match = fullContent.match(amountRegex);
         if (match) {
           amount = match[0].trim();
         } else {
-          // Fallback regex for pure digits with currency symbol lookaround
           const standaloneNumber = fullContent.match(/[\d,]+(?:\.\d{1,2})?/);
           amount = standaloneNumber ? standaloneNumber[0] : '';
         }
@@ -70,7 +74,6 @@
       // Extract sender name
       let sender = notif.sender || '';
       if (!sender) {
-        // Patterns like "received ... from Sender Name" or "from Sender Name"
         const fromMatch = fullContent.match(/(?:from|by)\s+([A-Z][a-zA-Z\s]{1,25})(?=\s+(?:via|on|ref|upi|txn)|$|\.|\n)/i);
         if (fromMatch && fromMatch[1]) {
           sender = fromMatch[1].trim();
@@ -81,12 +84,12 @@
         }
       }
 
-      // Format date and time
       const dateObj = notif.timestamp ? new Date(notif.timestamp) : new Date();
       const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const dateStr = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 
       return {
+        _extracted: true,
         sender: sender,
         amount: amount || '₹0',
         sourceApp: appName,
@@ -105,13 +108,20 @@
      */
     render(tpl, rawData, safeHtml = true) {
       if (!tpl) return '';
-      const data = this.extractNotificationData(rawData);
 
-      return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, varName) => {
+      // Merge raw data with extracted data for notifications
+      const extracted = this.extractNotificationData(rawData);
+      const data = Object.assign({}, extracted, rawData || {});
+
+      // 1. Handle simple {{#var}}...{{/var}} presence blocks
+      let rendered = tpl.replace(/\{\{\s*#(\w+)\s*\}\}([\s\S]*?)\{\{\s*\/\1\s*\}\}/g, (match, varName, content) => {
+        return (data[varName] && String(data[varName]).trim()) ? content : '';
+      });
+
+      // 2. Handle variable replacements
+      return rendered.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, varName) => {
         if (!ALLOWED_VARS.has(varName)) return match;
-        const val = (rawData && rawData[varName] !== undefined)
-          ? rawData[varName]
-          : (data[varName] !== undefined ? data[varName] : '');
+        const val = data[varName] !== undefined ? data[varName] : '';
 
         if (varName === 'mediaHtml') return val;
         return safeHtml ? this.escapeHtml(val) : val;

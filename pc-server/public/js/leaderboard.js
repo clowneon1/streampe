@@ -52,10 +52,17 @@
       .sort((a, b) => b.amount - a.amount)
       .slice(0, parseInt(lb.maxEntries, 10) || 5);
 
-    const lbTitle = TemplateEngine.render(lb.text.titleTemplate || lb.title || 'Top Supporters', { title: lb.title });
+    const lbTitle = TemplateEngine.render(lb.text.titleTemplate || lb.title || 'Top Supporters', {
+      title: lb.title,
+      count: topSupporters.length,
+      max: parseInt(lb.maxEntries, 10)
+    });
 
     if (lb.code.enableCustomCode !== false && lb.code.customHTML && lb.code.customHTML.trim()) {
-      container.innerHTML = TemplateEngine.render(lb.code.customHTML, { title: lbTitle });
+      container.innerHTML = TemplateEngine.render(lb.code.customHTML, {
+        title: lbTitle,
+        count: topSupporters.length
+      });
       const list = container.querySelector('.lb-list');
       if (list) list.innerHTML = rowsHtml(topSupporters, lb);
       return;

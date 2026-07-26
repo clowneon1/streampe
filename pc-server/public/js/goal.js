@@ -55,27 +55,30 @@
 
     const formattedCurrent = `₹${current.toLocaleString('en-IN')}`;
     const formattedTarget = `₹${target.toLocaleString('en-IN')}`;
-    const goalTitle = TemplateEngine.render(goal.text.titleTemplate || goal.title || 'Payment Goal', {
+
+    const context = {
       title: goal.title,
       targetAmount: formattedTarget,
-      currentAmount: formattedCurrent
-    });
+      currentAmount: formattedCurrent,
+      percent: `${percent}%`,
+      endDate: goal.endDate || ''
+    };
+
+    const goalTitle = TemplateEngine.render(goal.text.titleTemplate || goal.title || 'Payment Goal', context);
+    context.title = goalTitle; // Use the rendered title for custom HTML
 
     if (goal.code.enableCustomCode !== false && goal.code.customHTML && goal.code.customHTML.trim()) {
-      container.innerHTML = TemplateEngine.render(goal.code.customHTML, {
-        title: goalTitle,
-        currentAmount: formattedCurrent,
-        targetAmount: formattedTarget,
-        percent: `${percent}%`,
-        endDate: goal.endDate || ''
-      });
+      container.innerHTML = TemplateEngine.render(goal.code.customHTML, context);
       return;
     }
 
     container.innerHTML = `
       <div class="goal-card">
         <div class="goal-header">
-          <div class="goal-title">${TemplateEngine.escapeHtml(goalTitle)}</div>
+          <div class="goal-title-group">
+            <div class="goal-title">${TemplateEngine.escapeHtml(goalTitle)}</div>
+            ${goal.subtitleTemplate ? `<div class="goal-subtitle">${TemplateEngine.escapeHtml(TemplateEngine.render(goal.subtitleTemplate, context))}</div>` : ''}
+          </div>
           ${goal.endDate ? `<div class="goal-end-date">Ends: ${TemplateEngine.escapeHtml(goal.endDate)}</div>` : ''}
         </div>
         <div class="goal-bar-wrapper">
