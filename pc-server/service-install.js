@@ -12,7 +12,7 @@ const svc = new Service({
   nodeOptions: [],
   env: {
     name: 'PORT',
-    value: 3000
+    value: 2907
   }
 });
 
@@ -23,7 +23,7 @@ svc.on('install', () => {
 });
 
 svc.on('start', () => {
-  console.log('✅ PaymentAlertsOBS service is running on port 3000');
+  console.log('✅ PaymentAlertsOBS service is running on port 2907');
   console.log('   It will auto-start on every Windows boot.');
 });
 

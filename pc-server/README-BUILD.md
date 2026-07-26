@@ -25,6 +25,6 @@ To build the portable ZIP package from source:
 - **Native Desktop Window & System Tray Minimization**
 - **Auto-Discovery of PC Local Network IP** for Mobile App pairing
 - **1-Click Mobile URL Copy Button**
-- **Automatic Windows Defender Firewall Port 3000 Unblock Rule**
+- **Automatic Windows Defender Firewall Port 2907 Unblock Rule**
 - **Real-Time Color-Coded Server Log Viewer & Level Filter**
 - **Optional Start on Windows Boot Checkbox**

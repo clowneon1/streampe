@@ -9,7 +9,7 @@ A free, open-source, and self-hosted solution to display real-time mobile paymen
 **Payment Alerts for OBS** connects your Android phone notifications to your PC live streaming software in real time over your local network.
 
 ### 🔒 100% Private & Safe (Local Network Only)
-- **Runs Completely Local**: Operates entirely within your local network (`http://<YOUR-PC-IP>:3000`).
+- **Runs Completely Local**: Operates entirely within your local network (`http://<YOUR-PC-IP>:2907`).
 - **No External Cloud Servers**: No third-party payment gateways, intermediate servers, subscription fees, or data collection.
 - **Data Security**: Your payment amounts, bank notifications, and financial details stay 100% private and secure on your own devices.
 
@@ -43,12 +43,12 @@ No coding required! Follow these simple steps to get started in minutes.
 
 ### 2. Launch the Application
 - Double-click **`Payment Alerts for OBS.exe`** to start the app.
-- The app starts on **port 2709** by default. If port 2709 is already in use, it automatically picks a random available port.
+- The app starts on **port 2907** by default. If port 2907 is already in use, it automatically picks a random available port.
 - The **Widget Customizer Dashboard** will open at `http://127.0.0.1:<PORT>/config` (port is shown in the **Mobile Connection IP** header inside the app).
-- The exact **Mobile Connection IP** (e.g., `192.168.1.100:2709`) is always displayed in the top header — copy this to connect your Android phone.
+- The exact **Mobile Connection IP** (e.g., `192.168.1.100:2907`) is always displayed in the top header — copy this to connect your Android phone.
 
 > [!NOTE]
-> If the app started on a port other than 2709, check the **Mobile Connection IP** header inside the dashboard for the correct address. Use that same port in your OBS Browser Source URL.
+> If the app started on a port other than 2907, check the **Mobile Connection IP** header inside the dashboard for the correct address. Use that same port in your OBS Browser Source URL.
 
 ### 3. Connect Your Android Phone
 - Download and install the companion **Android App APK** on your phone.
@@ -60,9 +60,9 @@ In OBS Studio, click **+ (Add Source)** ➔ **Browser**:
 
 | Overlay Type | URL | Recommended Size |
 | :--- | :--- | :--- |
-| 📡 **Payment Alert Widget** | `http://<YOUR-PC-IP>:3000/overlay/alerts` | `800 x 600` |
-| 🎯 **Payment Goal Bar** | `http://<YOUR-PC-IP>:3000/overlay/goal` | `800 x 120` |
-| 🏆 **Top Leaderboard** | `http://<YOUR-PC-IP>:3000/overlay/leaderboard` | `400 x 600` |
+| 📡 **Payment Alert Widget** | `http://<YOUR-PC-IP>:2907/overlay/alerts` | `800 x 600` |
+| 🎯 **Payment Goal Bar** | `http://<YOUR-PC-IP>:2907/overlay/goal` | `800 x 120` |
+| 🏆 **Top Leaderboard** | `http://<YOUR-PC-IP>:2907/overlay/leaderboard` | `400 x 600` |
 
 ---
 
@@ -85,7 +85,7 @@ npm install
 ```bash
 npm run dev
 ```
-Open `http://localhost:3000/config` in your browser.
+Open `http://localhost:2907/config` in your browser.
 
 ### 3. Run Electron App Desktop Mode
 ```bash

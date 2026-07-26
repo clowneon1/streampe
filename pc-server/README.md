@@ -33,12 +33,12 @@ Output: `dist-portable/Payment Alerts for OBS-1.0.0-win.zip` (Portable click-to-
 
 | Route | Description |
 | :--- | :--- |
-| **`http://<YOUR-PC-IP>:3000/`** | Server Control Panel UI (Server URL, Startup Checkbox, Live Log Terminal) |
-| **`http://<YOUR-PC-IP>:3000/config`** | Full OBS Theme & Template Editor UI |
-| **`http://<YOUR-PC-IP>:3000/overlay/alerts`** | Transparent OBS Browser Source Alert Overlay (also `/overlay`, `/overlay/alert`) |
-| **`http://<YOUR-PC-IP>:3000/overlay/goal`** | Payment Goal Widget Overlay (also `/goal`) |
-| **`http://<YOUR-PC-IP>:3000/overlay/leaderboard`** | Top Supporters Leaderboard Overlay (also `/leaderboard`) |
-| **`http://<YOUR-PC-IP>:3000/preview`** | Live preview and manual alert test page |
+| **`http://<YOUR-PC-IP>:2907/`** | Server Control Panel UI (Server URL, Startup Checkbox, Live Log Terminal) |
+| **`http://<YOUR-PC-IP>:2907/config`** | Full OBS Theme & Template Editor UI |
+| **`http://<YOUR-PC-IP>:2907/overlay/alerts`** | Transparent OBS Browser Source Alert Overlay (also `/overlay`, `/overlay/alert`) |
+| **`http://<YOUR-PC-IP>:2907/overlay/goal`** | Payment Goal Widget Overlay (also `/goal`) |
+| **`http://<YOUR-PC-IP>:2907/overlay/leaderboard`** | Top Supporters Leaderboard Overlay (also `/leaderboard`) |
+| **`http://<YOUR-PC-IP>:2907/preview`** | Live preview and manual alert test page |
 
 ---
 
@@ -46,9 +46,9 @@ Output: `dist-portable/Payment Alerts for OBS-1.0.0-win.zip` (Portable click-to-
 
 1. Add a **Browser Source** in OBS Studio.
 2. Set URL to your PC Network IP:
-   - **Payment Alerts Overlay**: `http://<YOUR-PC-IP>:3000/overlay/alerts`
-   - **Payment Goal Widget**: `http://<YOUR-PC-IP>:3000/overlay/goal`
-   - **Leaderboard Widget**: `http://<YOUR-PC-IP>:3000/overlay/leaderboard`
+   - **Payment Alerts Overlay**: `http://<YOUR-PC-IP>:2907/overlay/alerts`
+   - **Payment Goal Widget**: `http://<YOUR-PC-IP>:2907/overlay/goal`
+   - **Leaderboard Widget**: `http://<YOUR-PC-IP>:2907/overlay/leaderboard`
 3. Set **Width**: `1920`, **Height**: `1080` (or `400` x `200`).
 
 ---
@@ -59,7 +59,7 @@ Output: `dist-portable/Payment Alerts for OBS-1.0.0-win.zip` (Portable click-to-
 - `GET /api/logs/live`: Real-time server log output array for log viewer.
 - `POST /api/logs/clear`: Clear live log buffer.
 - `GET /api/system/startup` / `POST /api/system/startup`: Windows startup registry configuration.
-- `POST /api/system/firewall`: Automatic unblock of port 3000 in Windows Defender Firewall (`netsh advfirewall firewall add rule...`).
+- `POST /api/system/firewall`: Automatic unblock of port 2907 in Windows Defender Firewall (`netsh advfirewall firewall add rule...`).
 - `GET /api/settings`: Returns active profile list and current configuration schema.
 - `POST /api/config`: Patch active configuration and broadcast `SETTINGS_UPDATED`.
 - `POST /api/test`: Trigger a custom sample notification; returns matched template details.
