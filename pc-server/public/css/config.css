@@ -463,12 +463,6 @@ details.collapsible-advanced,
   align-items: center;
 }
 
-.form-group label .val-display {
-  color: var(--accent);
-  font-weight: 700;
-  text-transform: none;
-}
-
 .form-control {
   background: var(--surface-1);
   border: 1px solid var(--border);
@@ -686,6 +680,35 @@ input[type="range"]::-webkit-slider-thumb {
   background: var(--accent);
   cursor: pointer;
   box-shadow: 0 0 8px var(--accent);
+}
+
+.input-unit-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-unit-group .form-control {
+  flex: 1;
+}
+
+.unit-select {
+  flex: 0 0 75px !important;
+  padding: 8px 4px !important;
+  text-align: center;
+  font-weight: 600;
+  background: var(--surface-2);
+}
+
+.unit-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
 }
 
 /* Color Picker Row */

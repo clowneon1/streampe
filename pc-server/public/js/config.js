@@ -162,12 +162,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       subtitleTemplate: base.subtitleTemplate,
       fontFamily: val(`${prefix}-font-family`, base.fontFamily),
       fontSize: numVal(`${prefix}-font-size`, base.fontSize),
+      fontSizeUnit: val(`${prefix}-font-size-unit`, base.fontSizeUnit),
       fontWeight: numVal(`${prefix}-font-weight`, base.fontWeight),
       fontStyle: val(`${prefix}-font-style`, base.fontStyle),
       color: val(`${prefix}-text-color`, base.color),
       textAlign: val(`${prefix}-text-align`, base.textAlign),
       textTransform: val(`${prefix}-text-transform`, base.textTransform),
       letterSpacing: numVal(`${prefix}-letter-spacing`, base.letterSpacing),
+      letterSpacingUnit: val(`${prefix}-letter-spacing-unit`, base.letterSpacingUnit),
       lineHeight: numVal(`${prefix}-line-height`, base.lineHeight)
     }, base);
   }
@@ -188,6 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function writeTextStyle(prefix, text) {
     setSelectVal(`${prefix}-font-family`, text.fontFamily);
     setVal(`${prefix}-font-size`, text.fontSize);
+    setSelectVal(`${prefix}-font-size-unit`, text.fontSizeUnit);
     setVal(`${prefix}-font-weight`, text.fontWeight);
     setVal(`${prefix}-font-style`, text.fontStyle);
     setVal(`${prefix}-text-color`, text.color);
@@ -195,6 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setVal(`${prefix}-text-align`, text.textAlign);
     setVal(`${prefix}-text-transform`, text.textTransform);
     setVal(`${prefix}-letter-spacing`, text.letterSpacing);
+    setSelectVal(`${prefix}-letter-spacing-unit`, text.letterSpacingUnit);
     setVal(`${prefix}-line-height`, text.lineHeight);
   }
 
@@ -332,7 +336,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       template.style = Object.assign({}, template.style, {
         backgroundColor: val('input-bg-color', template.style.backgroundColor),
         backgroundOpacity: numVal('input-bg-opacity', template.style.backgroundOpacity),
-        isTransparent: checked('chk-transparent-bg', template.style.isTransparent),
         accentColor: val('input-accent-color', template.style.accentColor),
         borderRadius: numVal('input-border-radius', template.style.borderRadius),
         borderWidth: numVal('input-border-width', template.style.borderWidth),
@@ -375,7 +378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       fillColor: val('input-goal-fill-color', goal.style.fillColor),
       barColor: val('input-goal-bar-color', goal.style.barColor),
       barHeight: numVal('input-goal-bar-height', goal.style.barHeight),
-      isTransparent: checked('chk-goal-transparent-bg', goal.style.isTransparent)
+      backgroundOpacity: numVal('input-goal-bg-opacity', goal.style.backgroundOpacity)
     });
     goal.code = {
       enableCustomCode: checked('chk-enable-goal-custom-code', true),
@@ -396,7 +399,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     lb.style = Object.assign({}, lb.style, {
       accentColor: val('input-lb-accent-color', lb.style.accentColor),
       rowBgColor: val('input-lb-row-bg-color', lb.style.rowBgColor),
-      isTransparent: checked('chk-lb-transparent-bg', lb.style.isTransparent)
+      backgroundOpacity: numVal('input-lb-bg-opacity', lb.style.backgroundOpacity)
     });
     lb.code = {
       enableCustomCode: checked('chk-enable-lb-custom-code', true),
@@ -434,7 +437,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       setVal('input-bg-color', template.style.backgroundColor);
       setVal('input-bg-color-hex', template.style.backgroundColor);
       setVal('input-bg-opacity', template.style.backgroundOpacity);
-      setChecked('chk-transparent-bg', template.style.isTransparent);
       setVal('input-accent-color', template.style.accentColor);
       setVal('input-accent-color-hex', template.style.accentColor);
       setVal('input-border-radius', template.style.borderRadius);
@@ -471,7 +473,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setVal('input-goal-bar-color', goal.style.barColor);
     setVal('input-goal-bar-color-hex', goal.style.barColor);
     setVal('input-goal-bar-height', goal.style.barHeight);
-    setChecked('chk-goal-transparent-bg', goal.style.isTransparent);
+    setVal('input-goal-bg-opacity', goal.style.backgroundOpacity);
     writeTextStyle(TEXT_PREFIXES.goal, goal.text);
     writeCanvas(TEXT_PREFIXES.goal, goal.canvas);
     setChecked('chk-enable-goal-custom-code', goal.code.enableCustomCode);
@@ -484,11 +486,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     setVal('input-lb-title', lb.text.titleTemplate || lb.title);
     setSelectVal('select-lb-max', lb.maxEntries);
     setChecked('chk-lb-show-amounts', lb.showAmounts);
-    setChecked('chk-lb-transparent-bg', lb.style.isTransparent);
     setVal('input-lb-accent-color', lb.style.accentColor);
     setVal('input-lb-accent-color-hex', lb.style.accentColor);
     setVal('input-lb-row-bg-color', lb.style.rowBgColor);
     setVal('input-lb-row-bg-color-hex', lb.style.rowBgColor);
+    setVal('input-lb-bg-opacity', lb.style.backgroundOpacity);
     writeTextStyle(TEXT_PREFIXES.leaderboard, lb.text);
     writeCanvas(TEXT_PREFIXES.leaderboard, lb.canvas);
     setChecked('chk-enable-lb-custom-code', lb.code.enableCustomCode);
@@ -497,17 +499,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     setVal('input-lb-custom-js', lb.code.customJS);
 
     renderSupportersTable();
-    updateValueDisplays();
 
     suppressSync = false;
     syncLivePreview();
-  }
-
-  function updateValueDisplays() {
-    document.querySelectorAll('.val-display').forEach(node => {
-      const input = el(node.dataset.target);
-      if (input) node.textContent = input.value + (node.dataset.suffix || '');
-    });
   }
 
   function syncLivePreview() {
@@ -672,7 +666,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!select) return;
       select.addEventListener('change', () => {
         writeCanvas(prefix, { preset: select.value });
-        updateValueDisplays();
         syncLivePreview();
       });
     });
@@ -903,7 +896,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.form-control').forEach(input => {
       if (input.closest('#amount-filter-list') || input.id === 'select-template' || input.id === 'select-profile') return;
       ['input', 'change'].forEach(evt => input.addEventListener(evt, () => {
-        updateValueDisplays();
         syncLivePreview();
       }));
     });
@@ -1121,6 +1113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const importedConfig = await StorageHelper.importFromFile(file);
         let defaultName = file.name.replace(/\.json$/i, '').replace(/^profile-/i, '').trim();
         if (!defaultName) defaultName = 'Imported Profile';
+
         const profileName = await AppModal.show({
           title: 'Import Profile',
           message: 'Confirm profile name:',

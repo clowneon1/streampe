@@ -18,18 +18,21 @@
   const DEFAULT_TEXT_STYLE = {
     fontFamily: 'Inter',
     fontSize: 24,
+    fontSizeUnit: 'px',
     fontWeight: 700,
     fontStyle: 'normal',
     color: '#ffffff',
     textAlign: 'center',
     textTransform: 'none',
     letterSpacing: 0,
+    letterSpacingUnit: 'px',
     lineHeight: 1.3
   };
 
   const TEXT_ALIGNS = ['left', 'center', 'right', 'justify'];
   const TEXT_TRANSFORMS = ['none', 'uppercase', 'lowercase', 'capitalize'];
   const FONT_WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
+  const UNITS = ['px', '%', 'em', 'rem', 'vw', 'vh'];
 
   function pickString(value, allowed, fallback) {
     if (typeof value !== 'string') return fallback;
@@ -78,6 +81,7 @@
     TEXT_ALIGNS,
     TEXT_TRANSFORMS,
     FONT_WEIGHTS,
+    UNITS,
 
     defaults(overrides) {
       return Object.assign({}, DEFAULT_TEXT_STYLE, overrides || {});
@@ -98,14 +102,16 @@
         fontFamily: typeof src.fontFamily === 'string' && src.fontFamily.trim()
           ? src.fontFamily.trim()
           : def.fontFamily,
-        fontSize: pickNumber(src.fontSize, def.fontSize, 6, 200),
+        fontSize: pickNumber(src.fontSize, def.fontSize, 0.1, 2000),
+        fontSizeUnit: pickString(src.fontSizeUnit, UNITS, def.fontSizeUnit),
         fontWeight: normalizeFontWeight(src.fontWeight, src.fontBold, def.fontWeight),
         fontStyle: normalizeFontStyle(src.fontStyle, src.fontItalic, def.fontStyle),
         color: pickColor(src.color !== undefined ? src.color : (src.textColor !== undefined ? src.textColor : legacyStyle.textColor), def.color),
         textAlign: pickString(src.textAlign, TEXT_ALIGNS, def.textAlign),
         textTransform: pickString(src.textTransform, TEXT_TRANSFORMS, def.textTransform),
-        letterSpacing: pickNumber(src.letterSpacing, def.letterSpacing, -10, 40),
-        lineHeight: pickNumber(src.lineHeight, def.lineHeight, 0.5, 5)
+        letterSpacing: pickNumber(src.letterSpacing, def.letterSpacing, -100, 1000),
+        letterSpacingUnit: pickString(src.letterSpacingUnit, UNITS, def.letterSpacingUnit),
+        lineHeight: pickNumber(src.lineHeight, def.lineHeight, 0.1, 10)
       };
     },
 
@@ -128,13 +134,13 @@
       const p = prefix ? `--${prefix}-` : '--';
       const vars = {};
       vars[p + 'font-family'] = `'${t.fontFamily}', sans-serif`;
-      vars[p + 'font-size'] = t.fontSize + 'px';
+      vars[p + 'font-size'] = t.fontSize + t.fontSizeUnit;
       vars[p + 'font-weight'] = String(t.fontWeight);
       vars[p + 'font-style'] = t.fontStyle;
       vars[p + 'text-color'] = t.color;
       vars[p + 'text-align'] = t.textAlign;
       vars[p + 'text-transform'] = t.textTransform;
-      vars[p + 'letter-spacing'] = t.letterSpacing + 'px';
+      vars[p + 'letter-spacing'] = t.letterSpacing + t.letterSpacingUnit;
       vars[p + 'line-height'] = String(t.lineHeight);
       return vars;
     },

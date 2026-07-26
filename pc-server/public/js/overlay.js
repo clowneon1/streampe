@@ -35,7 +35,7 @@
     root.style.setProperty('--bg-r', rgb.r);
     root.style.setProperty('--bg-g', rgb.g);
     root.style.setProperty('--bg-b', rgb.b);
-    root.style.setProperty('--bg-opacity', style.isTransparent ? 0 : style.backgroundOpacity);
+    root.style.setProperty('--bg-opacity', style.backgroundOpacity);
     root.style.setProperty('--accent-color', style.accentColor);
     root.style.setProperty('--border-radius', style.borderRadius + 'px');
     root.style.setProperty('--border-width', style.borderWidth + 'px');

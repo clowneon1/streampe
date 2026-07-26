@@ -203,9 +203,8 @@
               </div>
 
               <div class="form-group">
-                <label for="input-sound-volume">Sound Volume <span class="val-display" data-target="input-sound-volume"
-                    data-suffix="%">80%</span></label>
-                <input type="range" id="input-sound-volume" class="form-control" min="0" max="100" value="80" />
+                <label for="input-sound-volume">Sound Volume</label>
+                <input type="number" id="input-sound-volume" class="form-control" min="0" max="100" value="80" />
               </div>
 
               <div class="form-row">
@@ -220,9 +219,11 @@
                 </div>
 
                 <div class="form-group">
-                  <label for="input-media-size">Media Size <span class="val-display" data-target="input-media-size"
-                      data-suffix="px">100px</span></label>
-                  <input type="range" id="input-media-size" class="form-control" min="40" max="250" value="100" />
+                  <label for="input-media-size">Media Size</label>
+                  <div class="input-unit-group">
+                    <input type="number" id="input-media-size" class="form-control" min="10" max="2000" value="100" />
+                    <span class="unit-label">px</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -304,9 +305,18 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label for="tpl-font-size">Font Size <span class="val-display" data-target="tpl-font-size"
-                      data-suffix="px">24px</span></label>
-                  <input type="range" id="tpl-font-size" class="form-control" min="8" max="96" value="24" />
+                  <label for="tpl-font-size">Font Size</label>
+                  <div class="input-unit-group">
+                    <input type="number" id="tpl-font-size" class="form-control" step="0.1" value="24" />
+                    <select id="tpl-font-size-unit" class="form-control unit-select">
+                      <option value="px">px</option>
+                      <option value="%">%</option>
+                      <option value="em">em</option>
+                      <option value="rem">rem</option>
+                      <option value="vw">vw</option>
+                      <option value="vh">vh</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -358,16 +368,19 @@
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="tpl-letter-spacing">Letter Spacing <span class="val-display"
-                      data-target="tpl-letter-spacing" data-suffix="px">0px</span></label>
-                  <input type="range" id="tpl-letter-spacing" class="form-control" min="-5" max="20" step="0.5"
-                    value="0" />
+                  <label for="tpl-letter-spacing">Letter Spacing</label>
+                  <div class="input-unit-group">
+                    <input type="number" id="tpl-letter-spacing" class="form-control" step="0.1" value="0" />
+                    <select id="tpl-letter-spacing-unit" class="form-control unit-select">
+                      <option value="px">px</option>
+                      <option value="em">em</option>
+                      <option value="rem">rem</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="form-group">
-                  <label for="tpl-line-height">Line Height <span class="val-display" data-target="tpl-line-height"
-                      data-suffix="">1.3</span></label>
-                  <input type="range" id="tpl-line-height" class="form-control" min="0.8" max="3" step="0.05"
-                    value="1.3" />
+                  <label for="tpl-line-height">Line Height</label>
+                  <input type="number" id="tpl-line-height" class="form-control" min="0.1" max="10" step="0.05" value="1.3" />
                 </div>
               </div>
 
@@ -404,9 +417,8 @@
               </div>
 
               <div class="form-group">
-                <label for="input-bg-opacity">Background Opacity <span class="val-display"
-                    data-target="input-bg-opacity" data-suffix="%">60%</span></label>
-                <input type="range" id="input-bg-opacity" class="form-control" min="0" max="100" value="60" />
+                <label for="input-bg-opacity">Background Opacity (%)</label>
+                <input type="number" id="input-bg-opacity" class="form-control" min="0" max="100" value="60" />
               </div>
 
               <div class="form-group">
@@ -419,22 +431,19 @@
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="input-border-width">Side Accent Border Width <span class="val-display"
-                      data-target="input-border-width" data-suffix="px">5px</span></label>
-                  <input type="range" id="input-border-width" class="form-control" min="0" max="20" value="5" />
+                  <label for="input-border-width">Side Accent Border Width (px)</label>
+                  <input type="number" id="input-border-width" class="form-control" min="0" max="500" value="5" />
                 </div>
 
                 <div class="form-group">
-                  <label for="input-border-radius">Border Radius <span class="val-display"
-                      data-target="input-border-radius" data-suffix="px">12px</span></label>
-                  <input type="range" id="input-border-radius" class="form-control" min="0" max="40" value="12" />
+                  <label for="input-border-radius">Border Radius (px)</label>
+                  <input type="number" id="input-border-radius" class="form-control" min="0" max="2000" value="12" />
                 </div>
               </div>
 
               <div class="form-group">
-                <label for="input-padding">Card Padding <span class="val-display" data-target="input-padding"
-                    data-suffix="px">20px</span></label>
-                <input type="range" id="input-padding" class="form-control" min="8" max="50" value="20" />
+                <label for="input-padding">Card Padding (px)</label>
+                <input type="number" id="input-padding" class="form-control" min="0" max="2000" value="20" />
               </div>
             </div>
           </details>
@@ -582,16 +591,14 @@
           </div>
 
           <div class="form-group">
-            <label for="input-anim-duration">Animation Speed <span class="val-display" data-target="input-anim-duration"
-                data-suffix="ms">600ms</span></label>
-            <input type="range" id="input-anim-duration" class="form-control" min="200" max="2000" step="50"
+            <label for="input-anim-duration">Animation Speed (ms)</label>
+            <input type="number" id="input-anim-duration" class="form-control" min="0" max="10000" step="10"
               value="600" />
           </div>
 
           <div class="form-group">
-            <label for="input-display-duration">Alert Display Duration <span class="val-display"
-                data-target="input-display-duration" data-suffix="ms">5000ms</span></label>
-            <input type="range" id="input-display-duration" class="form-control" min="1000" max="15000" step="500"
+            <label for="input-display-duration">Alert Display Duration (ms)</label>
+            <input type="number" id="input-display-duration" class="form-control" min="100" max="60000" step="100"
               value="5000" />
           </div>
         </div>
@@ -630,9 +637,18 @@
               </select>
             </div>
             <div class="form-group">
-              <label for="alert-font-size">Font Size <span class="val-display" data-target="alert-font-size"
-                  data-suffix="px">24px</span></label>
-              <input type="range" id="alert-font-size" class="form-control" min="8" max="96" value="24" />
+              <label for="alert-font-size">Font Size</label>
+              <div class="input-unit-group">
+                <input type="number" id="alert-font-size" class="form-control" step="0.1" value="24" />
+                <select id="alert-font-size-unit" class="form-control unit-select">
+                  <option value="px">px</option>
+                  <option value="%">%</option>
+                  <option value="em">em</option>
+                  <option value="rem">rem</option>
+                  <option value="vw">vw</option>
+                  <option value="vh">vh</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -684,16 +700,19 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="alert-letter-spacing">Letter Spacing <span class="val-display"
-                  data-target="alert-letter-spacing" data-suffix="px">0px</span></label>
-              <input type="range" id="alert-letter-spacing" class="form-control" min="-5" max="20" step="0.5"
-                value="0" />
+              <label for="alert-letter-spacing">Letter Spacing</label>
+              <div class="input-unit-group">
+                <input type="number" id="alert-letter-spacing" class="form-control" step="0.1" value="0" />
+                <select id="alert-letter-spacing-unit" class="form-control unit-select">
+                  <option value="px">px</option>
+                  <option value="em">em</option>
+                  <option value="rem">rem</option>
+                </select>
+              </div>
             </div>
             <div class="form-group">
-              <label for="alert-line-height">Line Height <span class="val-display" data-target="alert-line-height"
-                  data-suffix="">1.3</span></label>
-              <input type="range" id="alert-line-height" class="form-control" min="0.8" max="3" step="0.05"
-                value="1.3" />
+              <label for="alert-line-height">Line Height</label>
+              <input type="number" id="alert-line-height" class="form-control" min="0.1" max="10" step="0.05" value="1.3" />
             </div>
           </div>
 
@@ -827,16 +846,13 @@
               </div>
 
               <div class="form-group">
-                <label for="input-goal-bar-height">Bar Height <span class="val-display"
-                    data-target="input-goal-bar-height" data-suffix="px">36px</span></label>
-                <input type="range" id="input-goal-bar-height" class="form-control" min="20" max="70" value="36" />
+                <label for="input-goal-bar-height">Bar Height (px)</label>
+                <input type="number" id="input-goal-bar-height" class="form-control" min="1" max="500" value="36" />
               </div>
 
               <div class="form-group">
-                <label class="checkbox-row">
-                  <input type="checkbox" id="chk-goal-transparent-bg" />
-                  <span>Transparent Card Background</span>
-                </label>
+                <label for="input-goal-bg-opacity">Background Opacity (%)</label>
+                <input type="number" id="input-goal-bg-opacity" class="form-control" min="0" max="100" value="85" />
               </div>
             </div>
           </details>
@@ -862,9 +878,18 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label for="goal-font-size">Font Size <span class="val-display" data-target="goal-font-size"
-                      data-suffix="px">18px</span></label>
-                  <input type="range" id="goal-font-size" class="form-control" min="8" max="96" value="18" />
+                  <label for="goal-font-size">Font Size</label>
+                  <div class="input-unit-group">
+                    <input type="number" id="goal-font-size" class="form-control" step="0.1" value="18" />
+                    <select id="goal-font-size-unit" class="form-control unit-select">
+                      <option value="px">px</option>
+                      <option value="%">%</option>
+                      <option value="em">em</option>
+                      <option value="rem">rem</option>
+                      <option value="vw">vw</option>
+                      <option value="vh">vh</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -916,16 +941,19 @@
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="goal-letter-spacing">Letter Spacing <span class="val-display"
-                      data-target="goal-letter-spacing" data-suffix="px">0px</span></label>
-                  <input type="range" id="goal-letter-spacing" class="form-control" min="-5" max="20" step="0.5"
-                    value="0" />
+                  <label for="goal-letter-spacing">Letter Spacing</label>
+                  <div class="input-unit-group">
+                    <input type="number" id="goal-letter-spacing" class="form-control" step="0.1" value="0" />
+                    <select id="goal-letter-spacing-unit" class="form-control unit-select">
+                      <option value="px">px</option>
+                      <option value="em">em</option>
+                      <option value="rem">rem</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="form-group">
-                  <label for="goal-line-height">Line Height <span class="val-display" data-target="goal-line-height"
-                      data-suffix="">1.3</span></label>
-                  <input type="range" id="goal-line-height" class="form-control" min="0.8" max="3" step="0.05"
-                    value="1.3" />
+                  <label for="goal-line-height">Line Height</label>
+                  <input type="number" id="goal-line-height" class="form-control" min="0.1" max="10" step="0.05" value="1.3" />
                 </div>
               </div>
 
@@ -1104,13 +1132,14 @@
                 <div style="padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
                   <label class="checkbox-row">
                     <input type="checkbox" id="chk-lb-show-amounts" checked />
-                    <span>Show Contribution Amounts (&#8377;)</span>
-                  </label>
-                  <label class="checkbox-row">
-                    <input type="checkbox" id="chk-lb-transparent-bg" />
-                    <span>Transparent Card Background</span>
+                    <span>Show Contribution Amounts (₹)</span>
                   </label>
                 </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 8px;">
+                <label for="input-lb-bg-opacity">Background Opacity (%)</label>
+                <input type="number" id="input-lb-bg-opacity" class="form-control" min="0" max="100" value="88" />
               </div>
             </div>
           </details>
@@ -1136,9 +1165,18 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label for="lb-font-size">Font Size <span class="val-display" data-target="lb-font-size"
-                      data-suffix="px">15px</span></label>
-                  <input type="range" id="lb-font-size" class="form-control" min="8" max="96" value="15" />
+                  <label for="lb-font-size">Font Size</label>
+                  <div class="input-unit-group">
+                    <input type="number" id="lb-font-size" class="form-control" step="0.1" value="15" />
+                    <select id="lb-font-size-unit" class="form-control unit-select">
+                      <option value="px">px</option>
+                      <option value="%">%</option>
+                      <option value="em">em</option>
+                      <option value="rem">rem</option>
+                      <option value="vw">vw</option>
+                      <option value="vh">vh</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -1190,16 +1228,19 @@
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="lb-letter-spacing">Letter Spacing <span class="val-display"
-                      data-target="lb-letter-spacing" data-suffix="px">0px</span></label>
-                  <input type="range" id="lb-letter-spacing" class="form-control" min="-5" max="20" step="0.5"
-                    value="0" />
+                  <label for="lb-letter-spacing">Letter Spacing</label>
+                  <div class="input-unit-group">
+                    <input type="number" id="lb-letter-spacing" class="form-control" step="0.1" value="0" />
+                    <select id="lb-letter-spacing-unit" class="form-control unit-select">
+                      <option value="px">px</option>
+                      <option value="em">em</option>
+                      <option value="rem">rem</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="form-group">
-                  <label for="lb-line-height">Line Height <span class="val-display" data-target="lb-line-height"
-                      data-suffix="">1.3</span></label>
-                  <input type="range" id="lb-line-height" class="form-control" min="0.8" max="3" step="0.05"
-                    value="1.3" />
+                  <label for="lb-line-height">Line Height</label>
+                  <input type="number" id="lb-line-height" class="form-control" min="0.1" max="10" step="0.05" value="1.3" />
                 </div>
               </div>
 

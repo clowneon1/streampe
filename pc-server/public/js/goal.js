@@ -11,6 +11,7 @@
     const goal = config.widgets.goal;
     const root = document.documentElement;
 
+    root.style.setProperty('--goal-bg-opacity', goal.style.backgroundOpacity);
     root.style.setProperty('--goal-bar-color', goal.style.barColor);
     root.style.setProperty('--goal-fill-color', goal.style.fillColor);
     root.style.setProperty('--goal-accent-color', goal.style.accentColor);
@@ -32,10 +33,7 @@
       customStyleEl.id = 'custom-goal-css';
       document.head.appendChild(customStyleEl);
     }
-    const transparentCss = goal.style.isTransparent
-      ? '.goal-card { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }\n'
-      : '';
-    customStyleEl.textContent = transparentCss + (goal.code.enableCustomCode !== false ? (goal.code.customCSS || '') : '');
+    customStyleEl.textContent = (goal.code.enableCustomCode !== false ? (goal.code.customCSS || '') : '');
 
     renderGoalWidget(goal);
   }

@@ -53,7 +53,7 @@ body, html {
 .lb-card {
   width: 100%;
   max-width: var(--lb-width, 450px);
-  background: rgba(10, 14, 23, 0.88);
+  background: rgba(10, 14, 23, calc(var(--lb-bg-opacity, 88) / 100));
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--lb-border-radius, 16px);
   padding: var(--lb-padding, 18px);

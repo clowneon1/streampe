@@ -11,6 +11,7 @@
     const lb = config.widgets.leaderboard;
     const root = document.documentElement;
 
+    root.style.setProperty('--lb-bg-opacity', lb.style.backgroundOpacity);
     root.style.setProperty('--lb-accent-color', lb.style.accentColor);
     root.style.setProperty('--lb-row-bg-color', lb.style.rowBgColor);
     root.style.setProperty('--lb-border-radius', lb.style.borderRadius + 'px');
@@ -30,10 +31,7 @@
       customStyleEl.id = 'custom-lb-css';
       document.head.appendChild(customStyleEl);
     }
-    const transparentCss = lb.style.isTransparent
-      ? '.lb-card { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }\n'
-      : '';
-    customStyleEl.textContent = transparentCss + (lb.code.enableCustomCode !== false ? (lb.code.customCSS || '') : '');
+    customStyleEl.textContent = (lb.code.enableCustomCode !== false ? (lb.code.customCSS || '') : '');
 
     renderLeaderboardWidget(lb);
   }

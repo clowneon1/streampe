@@ -1,35 +1,5 @@
 /**
  * Config schema (version 2).
- *
- * Shape
- * -----
- * {
- *   version: 2,
- *   activeWidget: 'alert' | 'goal' | 'leaderboard',
- *   activeTemplateId: String,              // template selected in the config UI
- *   alertTemplates: [ AlertTemplate ],
- *   widgets: {
- *     alert:       WidgetConfig,
- *     goal:        WidgetConfig & { title, startAmount, currentAmount, targetAmount, endDate },
- *     leaderboard: WidgetConfig & { title, maxEntries, showAmounts, supporters }
- *   },
- *   filter: { allowedAmounts: [Number] }
- * }
- *
- * WidgetConfig = {
- *   enabled, canvas { preset, width, height }, text { titleTemplate, subtitleTemplate, ...textStyle },
- *   style { … }, animation { type, duration, displayDuration },
- *   layout { positionPreset, positionX, positionY, marginX, marginY, width },
- *   code { enableCustomCode, customHTML, customCSS, customJS }
- * }
- *
- * AlertTemplate = WidgetConfig-like, plus:
- *   id, name, enabled, isDefault, priority, amountFilters,
- *   image { imageUrl, gifUrl, position, size }, sound { soundUrl, soundVolume }
- *
- * Nothing is shared between widgets: each one owns its text style and its canvas.
- * At render time an alert template is layered on top of `widgets.alert`
- * (see TemplateMatcher.resolve).
  */
 (function (root, factory) {
   if (typeof module !== 'undefined' && module.exports) {
@@ -68,11 +38,11 @@
       text: {
         titleTemplate: '{{sender}} sent {{amount}}',
         subtitleTemplate: '{{sourceApp}} payment received',
-        fontFamily: 'Inter', fontSize: 24, fontWeight: 700, fontStyle: 'normal',
-        color: '#ffffff', textAlign: 'center', textTransform: 'none', letterSpacing: 0, lineHeight: 1.3
+        fontFamily: 'Inter', fontSize: 24, fontSizeUnit: 'px', fontWeight: 700, fontStyle: 'normal',
+        color: '#ffffff', textAlign: 'center', textTransform: 'none', letterSpacing: 0, letterSpacingUnit: 'px', lineHeight: 1.3
       },
       style: {
-        backgroundColor: '#000000', backgroundOpacity: 60, isTransparent: false,
+        backgroundColor: '#000000', backgroundOpacity: 60,
         accentColor: '#00e5ff', borderRadius: 12, borderWidth: 5, padding: 20
       },
       animation: { type: 'slide-up', duration: 600, displayDuration: 5000 },
@@ -89,11 +59,11 @@
       text: {
         titleTemplate: 'Payment Goal',
         subtitleTemplate: 'Target: ₹{{targetAmount}}',
-        fontFamily: 'Inter', fontSize: 18, fontWeight: 700, fontStyle: 'normal',
-        color: '#ffffff', textAlign: 'left', textTransform: 'none', letterSpacing: 0, lineHeight: 1.3
+        fontFamily: 'Inter', fontSize: 18, fontSizeUnit: 'px', fontWeight: 700, fontStyle: 'normal',
+        color: '#ffffff', textAlign: 'left', textTransform: 'none', letterSpacing: 0, letterSpacingUnit: 'px', lineHeight: 1.3
       },
       style: {
-        backgroundColor: '#0a0e17', backgroundOpacity: 85, isTransparent: false,
+        backgroundColor: '#0a0e17', backgroundOpacity: 85,
         accentColor: '#00e5ff', borderRadius: 14, borderWidth: 1, padding: 16,
         barHeight: 36, barColor: '#1e2433', fillColor: '#00e5ff'
       },
@@ -110,11 +80,11 @@
       text: {
         titleTemplate: 'Top Supporters',
         subtitleTemplate: 'Leaderboard',
-        fontFamily: 'Inter', fontSize: 15, fontWeight: 700, fontStyle: 'normal',
-        color: '#ffffff', textAlign: 'left', textTransform: 'none', letterSpacing: 0, lineHeight: 1.3
+        fontFamily: 'Inter', fontSize: 15, fontSizeUnit: 'px', fontWeight: 700, fontStyle: 'normal',
+        color: '#ffffff', textAlign: 'left', textTransform: 'none', letterSpacing: 0, letterSpacingUnit: 'px', lineHeight: 1.3
       },
       style: {
-        backgroundColor: '#0a0e17', backgroundOpacity: 88, isTransparent: false,
+        backgroundColor: '#0a0e17', backgroundOpacity: 88,
         accentColor: '#00e5ff', borderRadius: 16, borderWidth: 1, padding: 18,
         rowBgColor: '#1a1e2b'
       },
@@ -180,6 +150,14 @@
       else if (typeof def === 'number') out[key] = num(src[key], def);
       else out[key] = str(src[key], def);
     });
+
+    // Migrate legacy isTransparent to backgroundOpacity
+    if (src.isTransparent === true) {
+      out.backgroundOpacity = 0;
+    } else if (src.isTransparent === false && src.backgroundOpacity === undefined) {
+      out.backgroundOpacity = 100;
+    }
+
     return out;
   }
 
