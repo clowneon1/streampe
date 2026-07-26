@@ -462,12 +462,13 @@ app.get('/api/logs', (req, res) => {
   }
 });
 
+// ── Active WebSocket count (also prunes dead entries from the Set) ────
 function getActiveWsCount(clientSet) {
   let count = 0;
   clientSet.forEach(ws => {
     if (ws.readyState === 1) {
       count++;
-    } else if (ws.readyState === 3 || ws.readyState === 2) {
+    } else if (ws.readyState === 2 || ws.readyState === 3) {
       clientSet.delete(ws);
     }
   });
@@ -615,8 +616,9 @@ app.post('/api/test', (req, res) => {
   res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId });
 });
 
+// Fix: use getActiveWsCount() so /health never reports stale/dead sockets
 app.get('/health', (req, res) =>
-  res.json({ status: 'ok', androidClients: androidClients.size, obsClients: obsClients.size })
+  res.json({ status: 'ok', androidClients: getActiveWsCount(androidClients), obsClients: getActiveWsCount(obsClients) })
 );
 
 // ── WebSocket ───────────────────────────────────────────────────────────
@@ -628,6 +630,9 @@ wss.on('connection', (ws, req) => {
   const clientType = url === '/android' ? 'android' : 'obs';
 
   if (clientType === 'android') {
+    // Evict any stale CLOSING/CLOSED sockets before adding the new one
+    // so the count is always accurate from the moment of connection.
+    getActiveWsCount(androidClients);
     androidClients.add(ws);
     log.info('WS', `Android connected (${androidClients.size} total)`);
 
@@ -682,15 +687,22 @@ wss.on('connection', (ws, req) => {
     ws.on('close', () => { androidClients.delete(ws); log.info('WS', 'Android disconnected'); });
 
   } else {
+    // Evict any stale CLOSING/CLOSED OBS sockets before adding the new one
+    getActiveWsCount(obsClients);
     obsClients.add(ws);
     log.info('WS', `OBS overlay connected (${obsClients.size} total)`);
+
+    ws.isAlive = true;
+    ws.on('pong', () => { ws.isAlive = true; });
+
     ws.send(JSON.stringify({ type: 'SETTINGS_UPDATED', payload: alertSettings }));
     ws.send(JSON.stringify({ type: 'config', config: alertSettings }));
     ws.on('close', () => { obsClients.delete(ws); log.info('WS', 'OBS overlay disconnected'); });
   }
 });
 
-const heartbeat = setInterval(() => {
+// Heartbeat for Android clients — terminate unresponsive sockets within 30 s
+const androidHeartbeat = setInterval(() => {
   androidClients.forEach(ws => {
     if (ws.isAlive === false) { androidClients.delete(ws); return ws.terminate(); }
     ws.isAlive = false;
@@ -698,7 +710,19 @@ const heartbeat = setInterval(() => {
   });
 }, 30000);
 
-wss.on('close', () => clearInterval(heartbeat));
+// Heartbeat for OBS browser-source clients — same logic as Android
+const obsHeartbeat = setInterval(() => {
+  obsClients.forEach(ws => {
+    if (ws.isAlive === false) { obsClients.delete(ws); return ws.terminate(); }
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000);
+
+wss.on('close', () => {
+  clearInterval(androidHeartbeat);
+  clearInterval(obsHeartbeat);
+});
 wss.on('error', () => {});
 
 // HTTP and WS share the same underlying server — one port covers both.
