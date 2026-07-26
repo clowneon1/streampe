@@ -1350,14 +1350,13 @@
   <div class="tab-content" id="tab-test-panel">
     <div class="panel-header">
       <h2 class="panel-title">&#129514; Custom Event Simulator &amp; Tester</h2>
-      <p class="panel-desc">Generate, simulate, and inspect custom payment notifications. Test real-time regex parsing,
-        amount matching, alert template overrides, deduplication, and visual overlay alerts.</p>
+      <p class="panel-desc">Simulate realistic Android mobile payment notifications. Select a payment provider, enter sender &amp; amount, and test regex parsing &amp; visual overlay alerts.</p>
     </div>
 
     <!-- Presets toolbar -->
     <div class="form-group"
       style="background: var(--surface); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
-      <label style="font-weight: 600; font-size: 13px;">&#9889; Load Event Preset:</label>
+      <label style="font-weight: 600; font-size: 13px;">&#9889; Quick Presets:</label>
       <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
         <button type="button" class="btn btn-outline btn-sim-preset" data-preset="phonepe"
           style="font-size: 12px;">&#128241; PhonePe (&#8377;500)</button>
@@ -1368,7 +1367,7 @@
         <button type="button" class="btn btn-outline btn-sim-preset" data-preset="amazon"
           style="font-size: 12px;">&#128230; Amazon Pay (&#8377;1,500)</button>
         <button type="button" class="btn btn-outline btn-sim-preset" data-preset="highval"
-          style="font-size: 12px;">&#128081; High Value Support (&#8377;5,000)</button>
+          style="font-size: 12px;">&#128081; High Value (&#8377;5,000)</button>
         <button type="button" class="btn btn-secondary" id="btn-sim-random"
           style="font-size: 12px; margin-left: auto;">&#127922; Random Event</button>
       </div>
@@ -1377,42 +1376,31 @@
     <!-- Simulator Form -->
     <div class="form-row">
       <div class="form-group">
-        <label for="sim-sender">Sender Name</label>
-        <input type="text" id="sim-sender" class="form-control" placeholder="e.g. Rahul Kumar" value="Rahul Kumar" />
+        <label for="sim-app-provider">Payment App Provider</label>
+        <select id="sim-app-provider" class="form-control">
+          <option value="phonepe">📱 PhonePe (com.phonepe.app)</option>
+          <option value="gpay">💳 Google Pay (com.google.android.apps.nbu.paisa.user)</option>
+          <option value="paytm">💰 Paytm (net.one97.paytm)</option>
+          <option value="amazon">📦 Amazon Pay (in.amazon.mShop.android.shopping)</option>
+          <option value="bhim">🏦 BHIM UPI (in.org.npci.upiapp)</option>
+        </select>
       </div>
       <div class="form-group">
-        <label for="sim-amount">Amount (&#8377;)</label>
-        <input type="text" id="sim-amount" class="form-control" placeholder="e.g. 500" value="&#8377;500" />
+        <label for="sim-sender">Sender Name</label>
+        <input type="text" id="sim-sender" class="form-control" placeholder="e.g. Rahul Kumar" value="Rahul Kumar" />
       </div>
     </div>
 
     <div class="form-row">
       <div class="form-group">
-        <label for="sim-app-name">Source App Name</label>
-        <input type="text" id="sim-app-name" class="form-control" placeholder="e.g. PhonePe" value="PhonePe" />
+        <label for="sim-amount">Amount (&#8377;)</label>
+        <input type="text" id="sim-amount" class="form-control" placeholder="e.g. 500" value="500" />
       </div>
       <div class="form-group">
-        <label for="sim-pkg-name">Package Name</label>
-        <input type="text" id="sim-pkg-name" class="form-control" placeholder="e.g. com.phonepe.app"
-          value="com.phonepe.app" />
+        <label for="sim-message">Optional Message / Note</label>
+        <input type="text" id="sim-message" class="form-control" placeholder="e.g. Great stream! &#128640;"
+          value="Awesome stream! &#128640;" />
       </div>
-    </div>
-
-    <div class="form-group">
-      <label for="sim-title">Notification Title</label>
-      <input type="text" id="sim-title" class="form-control" placeholder="e.g. PhonePe" value="PhonePe" />
-    </div>
-
-    <div class="form-group">
-      <label for="sim-text">Notification Text / Body</label>
-      <textarea id="sim-text" class="form-control" style="height: 60px;"
-        placeholder="e.g. Rahul Kumar has sent Rs. 500.00 to your bank account">Rahul Kumar has sent Rs. 500.00 to your bank account</textarea>
-    </div>
-
-    <div class="form-group">
-      <label for="sim-message">Optional Message / Note</label>
-      <input type="text" id="sim-message" class="form-control" placeholder="e.g. Great stream! &#128640;"
-        value="Awesome stream! &#128640;" />
     </div>
 
     <div class="form-row">
@@ -1423,11 +1411,10 @@
         </select>
       </div>
       <div class="form-group">
-        <label for="sim-alert-id">Custom Event / Alert ID (for Dedup Test)</label>
+        <label for="sim-alert-id">Custom Event / Alert ID</label>
         <div class="input-with-button">
           <input type="text" id="sim-alert-id" class="form-control" placeholder="Auto-generated if empty" />
-          <button type="button" class="btn btn-outline" id="btn-sim-gen-id" style="font-size: 11px;">Generate
-            ID</button>
+          <button type="button" class="btn btn-outline" id="btn-sim-gen-id" style="font-size: 11px;">Generate ID</button>
         </div>
       </div>
     </div>

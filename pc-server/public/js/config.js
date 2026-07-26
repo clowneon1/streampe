@@ -1118,53 +1118,84 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setupSimulator() {
-    const SIM_PRESETS = {
-      phonepe: {
-        sender: 'Rahul Kumar', amount: '₹500', appName: 'PhonePe', packageName: 'com.phonepe.app',
-        title: 'PhonePe', text: 'Rahul Kumar has sent Rs. 500.00 to your bank account', message: 'Awesome stream! 🚀'
-      },
-      gpay: {
-        sender: 'Priya Singh', amount: '₹1000', appName: 'Google Pay', packageName: 'com.google.android.apps.nfc.phone',
-        title: 'Google Pay', text: 'Priya Singh sent ₹1,000.00 via Google Pay', message: 'Keep up the great work! ❤️'
-      },
-      paytm: {
-        sender: 'Amit Verma', amount: '₹250', appName: 'Paytm', packageName: 'net.one97.paytm',
-        title: 'Paytm', text: 'Rs 250 received from Amit Verma', message: 'Chai paani subscription ☕'
-      },
-      amazon: {
-        sender: 'Sneha Patel', amount: '₹1500', appName: 'Amazon Pay', packageName: 'in.amazon.mShop.android.shopping',
-        title: 'Amazon Pay', text: 'Money received from Sneha Patel on Amazon Pay', message: 'Thanks for streaming! 🎮'
-      },
-      highval: {
-        sender: 'Vikramaditya', amount: '₹5000', appName: 'PhonePe', packageName: 'com.phonepe.app',
-        title: 'PhonePe', text: 'Vikramaditya has sent Rs. 5,000.00 to your bank account', message: 'ULTRA DONATION! 👑🔥'
+    function buildSimulatedNotification(providerKey, senderName, rawAmount, note) {
+      const sender = (senderName || 'Anonymous').trim();
+      const numAmount = TemplateMatcher.parseAmount(rawAmount) || 100;
+      const formattedAmount = numAmount.toLocaleString('en-IN');
+      const msg = (note || '').trim();
+
+      let appName = 'PhonePe';
+      let packageName = 'com.phonepe.app';
+      let title = 'PhonePe';
+      let text = `${sender} has sent Rs. ${formattedAmount}.00 to your bank account`;
+
+      if (providerKey === 'gpay') {
+        appName = 'Google Pay';
+        packageName = 'com.google.android.apps.nbu.paisa.user';
+        title = 'Google Pay';
+        text = `Received ₹${formattedAmount} from ${sender}`;
+      } else if (providerKey === 'paytm') {
+        appName = 'Paytm';
+        packageName = 'net.one97.paytm';
+        title = 'Paytm';
+        text = `Payment of ₹${formattedAmount} received from ${sender}`;
+      } else if (providerKey === 'amazon') {
+        appName = 'Amazon Pay';
+        packageName = 'in.amazon.mShop.android.shopping';
+        title = `₹${formattedAmount} received`;
+        text = `Money received from ${sender} on Amazon Pay`;
+      } else if (providerKey === 'bhim') {
+        appName = 'BHIM UPI';
+        packageName = 'in.org.npci.upiapp';
+        title = 'UPI Payment';
+        text = `${sender} sent ₹${formattedAmount} via UPI`;
+      } else {
+        appName = 'PhonePe';
+        packageName = 'com.phonepe.app';
+        title = 'PhonePe';
+        text = `${sender} has sent Rs. ${formattedAmount}.00 to your bank account`;
       }
+
+      return {
+        type: 'payment_notification',
+        packageName,
+        appName,
+        title,
+        text,
+        bigText: text,
+        message: msg,
+        timestamp: Date.now()
+      };
+    }
+
+    const SIM_PRESETS = {
+      phonepe: { provider: 'phonepe', sender: 'Rahul Kumar', amount: '500', message: 'Awesome stream! 🚀' },
+      gpay:    { provider: 'gpay',    sender: 'Priya Singh', amount: '1000', message: 'Keep up the great work! ❤️' },
+      paytm:   { provider: 'paytm',   sender: 'Amit Verma',  amount: '250',  message: 'Chai paani subscription ☕' },
+      amazon:  { provider: 'amazon',  sender: 'Sneha Patel', amount: '1500', message: 'Thanks for streaming! 🎮' },
+      highval: { provider: 'phonepe', sender: 'Vikramaditya', amount: '5000', message: 'ULTRA DONATION! 👑🔥' }
     };
 
     document.querySelectorAll('.btn-sim-preset').forEach(btn => {
       btn.addEventListener('click', () => {
         const p = SIM_PRESETS[btn.dataset.preset];
         if (!p) return;
+        setVal('sim-app-provider', p.provider);
         setVal('sim-sender', p.sender);
         setVal('sim-amount', p.amount);
-        setVal('sim-app-name', p.appName);
-        setVal('sim-pkg-name', p.packageName);
-        setVal('sim-title', p.title);
-        setVal('sim-text', p.text);
         setVal('sim-message', p.message);
         setVal('sim-alert-id', `evt_${Date.now()}`);
-        showToast(`✨ Loaded preset "${p.appName}"`);
+        showToast(`✨ Loaded preset "${p.provider.toUpperCase()}"`);
       });
     });
 
     on('btn-sim-random', 'click', () => {
       const sample = sampleAlert();
+      const providers = ['phonepe', 'gpay', 'paytm', 'amazon', 'bhim'];
+      const p = providers[Math.floor(Math.random() * providers.length)];
+      setVal('sim-app-provider', p);
       setVal('sim-sender', sample.sender);
-      setVal('sim-amount', sample.amount);
-      setVal('sim-app-name', sample.sourceApp || 'PhonePe');
-      setVal('sim-pkg-name', 'com.phonepe.app');
-      setVal('sim-title', sample.sourceApp || 'PhonePe');
-      setVal('sim-text', `${sample.sender} has sent ${sample.amount}`);
+      setVal('sim-amount', String(sample.amountVal || 250));
       setVal('sim-message', sample.message || 'Stream support!');
       setVal('sim-alert-id', `evt_${Date.now()}`);
       showToast('🎲 Generated random event');
@@ -1181,25 +1212,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     on('btn-sim-inspect', 'click', () => {
       readFormValues();
-      const rawAmount = val('sim-amount', '0');
-      const numAmount = TemplateMatcher.parseAmount(rawAmount);
+      const provider = val('sim-app-provider', 'phonepe');
+      const sender = val('sim-sender', 'Rahul Kumar');
+      const rawAmount = val('sim-amount', '500');
+      const message = val('sim-message', '');
       const forcedId = val('sim-template-override', '');
+
+      const rawNotif = buildSimulatedNotification(provider, sender, rawAmount, message);
+      const numAmount = TemplateMatcher.parseAmount(rawAmount);
       const resolved = TemplateMatcher.resolve(config, numAmount, forcedId || null);
 
       const logData = {
         inspectTime: new Date().toLocaleTimeString(),
-        simulatedInput: {
-          sender: val('sim-sender', ''),
-          amount: rawAmount,
-          appName: val('sim-app-name', ''),
-          packageName: val('sim-pkg-name', ''),
-          title: val('sim-title', ''),
-          text: val('sim-text', ''),
-          message: val('sim-message', ''),
-          alertId: val('sim-alert-id', '') || `evt_${Date.now()}`
-        },
+        simulatedRawMobileNotification: rawNotif,
         parsedDetails: {
-          numericAmount: numAmount,
+          extractedSender: sender,
+          extractedNumericAmount: numAmount,
           templateOverrideId: forcedId || 'None (Auto-Match)'
         },
         templateMatchOutput: {
@@ -1212,58 +1240,39 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
 
       const c = el('sim-console');
-      if (c) c.textContent = `[EVENT INSPECTION DATA]\n${JSON.stringify(logData, null, 2)}`;
+      if (c) c.textContent = `[SIMULATED RAW MOBILE EVENT & PARSER INSPECTION]\n${JSON.stringify(logData, null, 2)}`;
       showToast(`🔍 Inspected: Matched "${resolved.templateName}"`);
     });
 
     on('btn-sim-dispatch', 'click', async () => {
       readFormValues();
-      const alertId = val('sim-alert-id', '') || `evt_${Date.now()}`;
-      const rawAmount = val('sim-amount', '₹500');
-      const amountVal = TemplateMatcher.parseAmount(rawAmount);
+      const provider = val('sim-app-provider', 'phonepe');
+      const sender = val('sim-sender', 'Rahul Kumar');
+      const rawAmount = val('sim-amount', '500');
+      const message = val('sim-message', '');
       const forcedId = val('sim-template-override', '');
-      const resolved = TemplateMatcher.resolve(config, amountVal, forcedId || null);
+      const alertId = val('sim-alert-id', '') || `evt_${Date.now()}`;
 
-      const eventPayload = {
-        type: 'payment_notification',
-        alertId,
-        sender: val('sim-sender', 'Unknown'),
-        amount: rawAmount,
-        amountValue: amountVal,
-        appName: val('sim-app-name', 'Payment App'),
-        packageName: val('sim-pkg-name', 'com.phonepe.app'),
-        sourceApp: val('sim-app-name', 'Payment App'),
-        title: val('sim-title', 'Payment Received'),
-        text: val('sim-text', ''),
-        bigText: val('sim-text', ''),
-        message: val('sim-message', ''),
-        alertTemplateId: resolved.templateId,
-        timestamp: Date.now()
-      };
-
-      if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({
-          type: 'TRIGGER_TEST_ALERT',
-          data: eventPayload
-        }, '*');
-      }
+      const rawNotif = buildSimulatedNotification(provider, sender, rawAmount, message);
+      rawNotif.alertId = alertId;
+      if (forcedId) rawNotif.alertTemplateId = forcedId;
 
       const c = el('sim-console');
-      if (c) c.textContent = `[DISPATCHING EVENT...]\n${JSON.stringify(eventPayload, null, 2)}`;
+      if (c) c.textContent = `[DISPATCHING RAW MOBILE NOTIFICATION...]\n${JSON.stringify(rawNotif, null, 2)}`;
 
       try {
         const res = await fetch('/api/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(eventPayload)
+          body: JSON.stringify(rawNotif)
         });
         const data = await res.json();
         if (c) {
           c.textContent = `[DISPATCH SUCCESS - ${new Date().toLocaleTimeString()}]\n` +
             `Server Output: ${JSON.stringify(data, null, 2)}\n\n` +
-            `Dispatched Event Payload:\n${JSON.stringify(eventPayload, null, 2)}`;
+            `Raw Mobile Notification Payload Sent:\n${JSON.stringify(rawNotif, null, 2)}`;
         }
-        showToast(`🚀 Dispatched custom event (${rawAmount} → "${resolved.templateName}")`);
+        showToast(`🚀 Dispatched raw event (${provider.toUpperCase()} ₹${rawAmount})`);
       } catch (err) {
         if (c) c.textContent += `\n\n[ERROR]: ${err.message}`;
         showToast(`⚠️ Dispatch failed: ${err.message}`);

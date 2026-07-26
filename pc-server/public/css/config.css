@@ -264,14 +264,15 @@ body {
 
 /* Action Buttons Bar directly below collapsible items */
 .action-bar {
-  margin-top: 24px;
-  padding: 14px 16px;
+  margin-top: 48px !important;
+  margin-bottom: 32px;
+  padding: 18px 20px;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
   width: 100%;
   box-sizing: border-box;
@@ -279,10 +280,11 @@ body {
 }
 
 .action-bar .btn {
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: 12px;
   font-weight: 600;
   flex: 1 1 auto;
+  min-height: 38px;
   text-align: center;
   justify-content: center;
   display: inline-flex;
