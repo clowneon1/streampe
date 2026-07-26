@@ -3,6 +3,8 @@ const { WebSocketServer } = require('ws');
 const http = require('http');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+const { exec } = require('child_process');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,6 +13,10 @@ const wss = new WebSocketServer({ server });
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'config.html'));
+});
 
 // ── Debug Logger ─────────────────────────────────────────────────────
 const LOG_DIR       = path.join(__dirname, 'logs');
@@ -53,6 +59,70 @@ const log = {
   dedup : (tag, msg, data) => writeLog('DEDUP', tag, msg, data),
   parse : (tag, msg, data) => writeLog('PARSE', tag, msg, data),
 };
+
+// ── Network & Windows Utilities ─────────────────────────────────────
+function getLocalIpAddresses() {
+  const interfaces = os.networkInterfaces();
+  const list = [];
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        list.push({ name, address: iface.address });
+      }
+    }
+  }
+  list.sort((a, b) => {
+    const aSelf = a.address.startsWith('169.254');
+    const bSelf = b.address.startsWith('169.254');
+    if (aSelf && !bSelf) return 1;
+    if (!aSelf && bSelf) return -1;
+    return 0;
+  });
+  return list;
+}
+
+function getPrimaryIp() {
+  const list = getLocalIpAddresses();
+  return list.length > 0 ? list[0].address : '127.0.0.1';
+}
+
+function isWindowsStartupEnabled(callback) {
+  if (process.platform !== 'win32') return callback(false);
+  exec('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS"', (err, stdout) => {
+    callback(!err && stdout && stdout.includes('PaymentAlertsOBS'));
+  });
+}
+
+function setWindowsStartup(enable, callback) {
+  if (process.platform !== 'win32') return callback(false, 'Windows platform required');
+  const exePath = process.execPath;
+  if (enable) {
+    const cmd = `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /t REG_SZ /d "\"${exePath}\"" /f`;
+    exec(cmd, (err) => callback(!err, err ? err.message : null));
+  } else {
+    const cmd = 'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /f';
+    exec(cmd, (err) => callback(!err, err ? err.message : null));
+  }
+}
+
+function ensureWindowsFirewallRule(callback) {
+  if (process.platform !== 'win32') {
+    if (callback) callback(false, 'Not Windows');
+    return;
+  }
+  exec('netsh advfirewall firewall show rule name="PaymentAlertsOBS"', (err, stdout) => {
+    if (err || !stdout || stdout.includes('No rules match')) {
+      const psCmd = 'powershell -Command "Start-Process netsh -ArgumentList \'advfirewall firewall add rule name=\\\"PaymentAlertsOBS\\\" protocol=TCP dir=in localport=3000 action=allow\' -Verb RunAs -WindowStyle Hidden"';
+      exec(psCmd, (psErr) => {
+        if (psErr) log.warn('Firewall', 'Firewall auto-rule error:', psErr.message);
+        else log.info('Firewall', 'Windows Firewall rule for port 3000 created successfully');
+        if (callback) callback(!psErr, psErr ? psErr.message : null);
+      });
+    } else {
+      if (callback) callback(true, null);
+    }
+  });
+}
 
 log.info('Server', `Log file: ${LOG_FILE}`);
 
@@ -281,28 +351,15 @@ function decorateWithTemplate(event) {
   };
 }
 
-function isAmountAllowed(num) {
-  const allowed = alertSettings.filter && Array.isArray(alertSettings.filter.allowedAmounts)
-    ? alertSettings.filter.allowedAmounts : [];
-  if (allowed.length === 0) return true;
-  return allowed.some(a => Math.abs(parseFloat(a) - num) < 0.01);
-}
-
 function processPaymentForGoalAndLeaderboard(notification) {
   try {
-    const alertId = notification.alertId || null;
+    const alertId = notification.alertId || notification.eventId || notification.id || (notification.timestamp ? `${notification.packageName || notification.appName || ''}_${notification.timestamp}_${notification.amount || ''}` : null);
     if (alertId && processedAlertIds.has(alertId)) {
       log.dedup('Dedup', `alertId ${alertId} already processed — overlay only`);
       return;
     }
 
     const numAmount = parseAmountNum(notification.amount);
-    if (!isAmountAllowed(numAmount)) {
-      log.warn('Filter', `Amount ₹${numAmount} not in allowed list — skipping`);
-      if (alertId) processedAlertIds.add(alertId);
-      return;
-    }
-
     const effectiveAmount = numAmount > 0 ? numAmount : 500;
     let senderName = (notification.sender || notification.title || 'Unknown').trim();
     if (/received|sent/i.test(senderName))
@@ -321,19 +378,22 @@ function processPaymentForGoalAndLeaderboard(notification) {
     broadcastSettings(alertSettings);
     if (alertId) processedAlertIds.add(alertId);
 
-    log.info('Payment', `₹${effectiveAmount} from "${senderName}" | alertId=${alertId} | Goal: ₹${goalWidget.currentAmount}`);
+    log.info('Payment', `Processed goal & leaderboard for ₹${effectiveAmount} from "${senderName}" | alertId=${alertId} | Goal: ₹${goalWidget.currentAmount}`);
   } catch (e) {
-    log.error('Payment', 'Error: ' + e.message);
+    log.error('Payment', 'Error in processPaymentForGoalAndLeaderboard: ' + e.message);
   }
 }
 
 // ── Routes ───────────────────────────────────────────────────────────
 app.get('/config',              (req, res) => res.sendFile(path.join(__dirname, 'public', 'config.html')));
 app.get('/preview',             (req, res) => res.sendFile(path.join(__dirname, 'public', 'preview.html')));
+app.get('/overlay/alerts',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/overlay/alert',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/overlay/goal',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
 app.get('/overlay/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
 app.get('/overlay',             (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
+app.get('/alerts',              (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
+app.get('/alert',               (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/goal',                (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
 app.get('/leaderboard',         (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
 
@@ -399,11 +459,125 @@ app.post('/api/config', (req, res) => {
 
 app.get('/api/logs', (req, res) => {
   if (fs.existsSync(LOG_FILE)) {
+    const level = (req.query.level || 'ALL').toUpperCase();
+    const content = fs.readFileSync(LOG_FILE, 'utf8');
+    if (level === 'ALL') {
+      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Disposition', 'attachment; filename="events_all.log"');
+      return res.send(content);
+    }
+    const filtered = content.split('\n').filter(line => line.includes(`[${level}]`)).join('\n');
     res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Content-Disposition', 'attachment; filename="events.log"');
-    res.sendFile(LOG_FILE);
+    res.setHeader('Content-Disposition', `attachment; filename="events_${level.toLowerCase()}.log"`);
+    res.send(filtered || `No log entries found for level: ${level}`);
   } else {
     res.json({ ok: false, error: 'No log file yet' });
+  }
+});
+
+function getActiveWsCount(clientSet) {
+  let count = 0;
+  clientSet.forEach(ws => {
+    if (ws.readyState === 1) {
+      count++;
+    } else if (ws.readyState === 3 || ws.readyState === 2) {
+      clientSet.delete(ws);
+    }
+  });
+  return count;
+}
+
+app.get('/api/network-info', (req, res) => {
+  const interfaces = getLocalIpAddresses();
+  const primaryIp = getPrimaryIp();
+  const port = process.env.PORT || 3000;
+  res.json({
+    primaryIp,
+    port,
+    mobileAppUrl: `http://${primaryIp}:${port}`,
+    mobileWsUrl: `ws://${primaryIp}:${port}/android`,
+    configUrl: `http://${primaryIp}:${port}/config`,
+    interfaces,
+    androidClientsCount: getActiveWsCount(androidClients),
+    obsClientsCount: getActiveWsCount(obsClients),
+    serverRunning: isServerListening
+  });
+});
+
+app.get('/api/system/startup', (req, res) => {
+  isWindowsStartupEnabled((enabled) => res.json({ enabled, isWindows: process.platform === 'win32' }));
+});
+
+app.post('/api/system/startup', (req, res) => {
+  const { enabled } = req.body || {};
+  setWindowsStartup(!!enabled, (success, error) => {
+    if (!success && error) return res.status(500).json({ ok: false, error });
+    res.json({ ok: true, enabled: !!enabled });
+  });
+});
+
+let isServerListening = true;
+
+app.get('/api/system/server-status', (req, res) => {
+  res.json({ ok: true, running: isServerListening });
+});
+
+app.post('/api/system/server-stop', (req, res) => {
+  if (isServerListening) {
+    try {
+      server.close(() => {
+        isServerListening = false;
+        log.info('Server', 'Server listener stopped by user control');
+      });
+      isServerListening = false;
+    } catch (e) {
+      log.error('Server', 'Error stopping server: ' + e.message);
+    }
+  }
+  res.json({ ok: true, running: false });
+});
+
+app.post('/api/system/server-start', (req, res) => {
+  if (!isServerListening) {
+    const PORT_NUM = process.env.PORT || 3000;
+    try {
+      server.listen(PORT_NUM, '0.0.0.0', () => {
+        isServerListening = true;
+        log.info('Server', 'Server listener started on port ' + PORT_NUM);
+      });
+      isServerListening = true;
+    } catch (e) {
+      log.error('Server', 'Error starting server: ' + e.message);
+    }
+  }
+  res.json({ ok: true, running: true });
+});
+
+app.post('/api/system/firewall', (req, res) => {
+  ensureWindowsFirewallRule((success, error) => {
+    if (!success && error) return res.status(500).json({ ok: false, error });
+    res.json({ ok: true });
+  });
+});
+
+app.get('/api/logs/live', (req, res) => {
+  try {
+    if (!fs.existsSync(LOG_FILE)) return res.json({ ok: true, lines: [] });
+    const content = fs.readFileSync(LOG_FILE, 'utf8');
+    const allLines = content.split('\n').filter(Boolean);
+    const recent = allLines.slice(-300);
+    res.json({ ok: true, totalLines: allLines.length, lines: recent });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/logs/clear', (req, res) => {
+  try {
+    if (fs.existsSync(LOG_FILE)) fs.writeFileSync(LOG_FILE, '');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 
@@ -416,12 +590,15 @@ function broadcastSample(sample) {
     amount   : parsed ? parsed.amount    : (sample.amount    || ''),
     sourceApp: parsed ? parsed.sourceApp : (sample.sourceApp || sample.appName)
   });
-  const payload       = JSON.stringify({ type: 'payment_notification', ...decorated });
-  const legacyPayload = JSON.stringify({ type: 'notification',         ...decorated });
+  const payload = JSON.stringify({ type: 'payment_notification', ...decorated });
   let count = 0;
   obsClients.forEach(ws => {
-    if (ws.readyState === 1) { ws.send(payload); ws.send(legacyPayload); count++; }
+    if (ws.readyState === 1) { ws.send(payload); count++; }
   });
+  if (count > 0) {
+    processPaymentForGoalAndLeaderboard(decorated);
+  }
+  log.event('TestEvent', `Sample alert triggered: ₹${decorated.amount || '0'} from "${decorated.sender || 'Test'}"`, decorated);
   return { count, templateId: decorated.alertTemplateId, templateName: decorated.alertTemplateName };
 }
 
@@ -481,13 +658,6 @@ wss.on('connection', (ws, req) => {
 
         if (!title && !text) return;
 
-        // ── RAW EVENT LOG
-        log.event('RawEvent', `Incoming from ${appName}`, {
-          _receivedAt: new Date().toISOString(),
-          rawString  : raw,
-          parsed     : notification
-        });
-
         // ── Parse sender + amount on the server
         const parsed = parsePayment(notification);
         const enriched = {
@@ -500,20 +670,26 @@ wss.on('connection', (ws, req) => {
           sourceApp : parsed ? parsed.sourceApp : (notification.sourceApp || appName),
         };
 
-        log.parse('Parser', `sender="${enriched.sender}" amount="${enriched.amount}" sourceApp="${enriched.sourceApp}"`);
+        const decorated = decorateWithTemplate(enriched);
+        const payload   = JSON.stringify({ type: 'payment_notification', ...decorated });
 
-        // ── Forward to OBS
-        const decorated     = decorateWithTemplate(enriched);
-        log.parse('Template', `matched "${decorated.alertTemplateName}" (${decorated.alertTemplateId})`);
-        const payload       = JSON.stringify({ type: 'payment_notification', ...decorated });
-        const legacyPayload = JSON.stringify({ type: 'notification',         ...decorated });
+        // ── Unified Payment Event JSON Logging
+        log.event('PaymentEvent', `Payment received: ₹${decorated.amount || '0'} from "${decorated.sender || 'Unknown'}" via ${decorated.sourceApp} [Template: ${decorated.alertTemplateName || 'Default'}]`, decorated);
 
+        let overlayTriggered = false;
         obsClients.forEach(client => {
-          if (client.readyState === 1) { client.send(payload); client.send(legacyPayload); }
+          if (client.readyState === 1) {
+            client.send(payload);
+            overlayTriggered = true;
+          }
         });
 
-        // ── Goal + leaderboard (deduped)
-        processPaymentForGoalAndLeaderboard(enriched);
+        // ── Goal + leaderboard (processed ONLY when overlay is triggered and event id not processed already)
+        if (overlayTriggered) {
+          processPaymentForGoalAndLeaderboard(decorated);
+        } else {
+          log.info('Payment', `Overlay not connected — skipping goal & leaderboard for alertId ${decorated.alertId || decorated.id || decorated.timestamp}`);
+        }
 
       } catch (e) {
         log.error('WS', 'Parse error: ' + e.message);
@@ -543,8 +719,14 @@ wss.on('close', () => clearInterval(heartbeat));
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  log.info('Server', `\n🚀 Payment Alerts for OBS`);
-  log.info('Server', `   http://localhost:${PORT}/config`);
-  log.info('Server', `   http://localhost:${PORT}/overlay`);
-  log.info('Server', `   http://localhost:${PORT}/api/logs`);
+  ensureWindowsFirewallRule();
+  const primaryIp = getPrimaryIp();
+  const ips = getLocalIpAddresses();
+  log.info('Server', `\n🚀 Payment Alerts for OBS PC Server Running!`);
+  log.info('Server', `   -------------------------------------------------`);
+  log.info('Server', `   📱 Mobile App Connection IP: http://${primaryIp}:${PORT}`);
+  ips.forEach(ip => log.info('Server', `      Network Adapter [${ip.name}]: ${ip.address}`));
+  log.info('Server', `   🖥️ OBS Config Dashboard:   http://${primaryIp}:${PORT}/config`);
+  log.info('Server', `   📡 OBS Alert Overlay:       http://${primaryIp}:${PORT}/overlay/alerts`);
+  log.info('Server', `   -------------------------------------------------`);
 });

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -24,18 +25,19 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       transition: transform 0.15s, background-color 0.15s;
     }
+
     .preview-trigger-btn:hover {
       background: #00b8d4;
       transform: translateY(-1px);
     }
+
     .preview-trigger-btn:active {
       transform: translateY(0);
     }
   </style>
 </head>
-<body>
 
-  <button class="preview-trigger-btn" id="btn-test-preview">⚡ Trigger Test Alert</button>
+<body>
 
   <div id="overlay-container"></div>
 
@@ -49,18 +51,22 @@
   <script src="/js/overlay.js"></script>
 
   <script>
-    document.getElementById('btn-test-preview').addEventListener('click', () => {
-      const sample = {
-        sender: 'Rahul Kumar',
-        amount: '₹500',
-        sourceApp: 'Google Pay',
-        message: 'Payment received for Coffee',
-        timestamp: Date.now()
-      };
-      if (window.OverlayRenderer) {
-        window.OverlayRenderer.triggerAlert(sample);
-      }
-    });
+    const testBtn = document.getElementById('btn-test-preview');
+    if (testBtn) {
+      testBtn.addEventListener('click', () => {
+        const sample = {
+          sender: 'Rahul Kumar',
+          amount: '₹500',
+          sourceApp: 'Google Pay',
+          message: 'Payment received for Coffee',
+          timestamp: Date.now()
+        };
+        if (window.OverlayRenderer) {
+          window.OverlayRenderer.triggerAlert(sample);
+        }
+      });
+    }
   </script>
 </body>
+
 </html>

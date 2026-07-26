@@ -16,6 +16,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   'use strict';
 
   const el = (id) => document.getElementById(id);
+  const on = (id, evt, fn) => {
+    const node = el(id);
+    if (node) node.addEventListener(evt, fn);
+  };
   const TEXT_PREFIXES = { template: 'tpl', alert: 'alert', goal: 'goal', leaderboard: 'lb' };
 
   let config = ConfigSchema.createDefaultConfig();
@@ -187,6 +191,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         ? `${config.alertTemplates.length} template(s). "${t.name}" matches: ${describeFilters(t)}.`
         : '';
     }
+
+    updateSimulatorTemplateOptions();
   }
 
   function describeFilters(template) {
@@ -300,7 +306,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       customJS: val('input-lb-custom-js', '')
     };
 
-    config.filter = { allowedAmounts: allowedAmounts.slice() };
     config = ConfigSchema.normalizeConfig(config);
     return config;
   }
@@ -392,8 +397,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     setVal('input-lb-custom-css', lb.code.customCSS);
     setVal('input-lb-custom-js', lb.code.customJS);
 
-    allowedAmounts = config.filter.allowedAmounts.slice();
-    renderFilterTags();
     renderSupportersTable();
     updateValueDisplays();
 
@@ -449,32 +452,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // ── Alert amount allowlist ───────────────────────────────────
-  let allowedAmounts = [];
 
-  function renderFilterTags() {
-    const container = el('filter-amount-tags');
-    const hint = el('filter-empty-hint');
-    if (!container) return;
-    Array.from(container.querySelectorAll('.filter-tag')).forEach(node => node.remove());
-    if (hint) hint.style.display = allowedAmounts.length ? 'none' : 'inline';
-
-    allowedAmounts.forEach(amount => {
-      const tag = document.createElement('span');
-      tag.className = 'filter-tag';
-      tag.textContent = `₹${amount} `;
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.textContent = '✕';
-      remove.addEventListener('click', () => {
-        allowedAmounts = allowedAmounts.filter(a => a !== amount);
-        renderFilterTags();
-        syncLivePreview();
-      });
-      tag.appendChild(remove);
-      container.appendChild(tag);
-    });
-  }
 
   // ── Server IO ────────────────────────────────────────────────
   async function saveToServer(profileName) {
@@ -628,20 +606,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    const testBtn = el('btn-match-test');
-    if (testBtn) {
-      testBtn.addEventListener('click', () => {
-        readFormValues();
-        const amount = numVal('input-match-test', 0);
-        const winner = TemplateMatcher.select(config.alertTemplates, amount);
-        const result = el('match-test-result');
-        if (result) {
-          result.textContent = winner
-            ? `₹${amount} → "${winner.name}"${winner.id === config.activeTemplateId ? ' (the template you are editing)' : ''}`
-            : `₹${amount} → no template available`;
-        }
+    on('btn-match-test', 'click', () => {
+      const amount = val('input-match-test', '');
+      runTestAlertWithAmount(amount);
+    });
+
+    document.querySelectorAll('.btn-quick-test-amount').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const amt = btn.dataset.amount;
+        setVal('input-match-test', amt);
+        runTestAlertWithAmount(amt);
       });
-    }
+    });
   }
 
   function setupTemplateManager() {
@@ -807,7 +783,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function attachInputListeners() {
     document.querySelectorAll('.form-control').forEach(input => {
-      if (input.closest('#amount-filter-list')) return;
+      if (input.closest('#amount-filter-list') || input.id === 'select-template' || input.id === 'select-profile') return;
       ['input', 'change'].forEach(evt => input.addEventListener(evt, () => {
         updateValueDisplays();
         syncLivePreview();
@@ -822,18 +798,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  function sampleAlert() {
+  function sampleAlert(customAmount) {
     const samples = [
       { sender: 'Rahul Kumar', amount: '₹500', sourceApp: 'PhonePe', message: 'Awesome stream! 🚀' },
       { sender: 'Priya Singh', amount: '₹1000', sourceApp: 'Google Pay', message: 'Keep up the great work! ❤️' },
       { sender: 'Amit Verma', amount: '₹250', sourceApp: 'Paytm', message: 'Chai paani subscription ☕' },
       { sender: 'Sneha Patel', amount: '₹300', sourceApp: 'BHIM UPI', message: 'Great gameplay! 🎮' }
     ];
-    return { ...samples[Math.floor(Math.random() * samples.length)], timestamp: Date.now() };
+    const picked = { ...samples[Math.floor(Math.random() * samples.length)], timestamp: Date.now() };
+    if (customAmount !== undefined && customAmount !== null && customAmount !== '') {
+      const num = parseFloat(customAmount);
+      if (Number.isFinite(num)) {
+        picked.amount = `₹${num}`;
+      }
+    }
+    return picked;
+  }
+
+  async function runTestAlertWithAmount(specificAmount) {
+    syncLivePreview();
+    const testData = sampleAlert(specificAmount);
+    const amountVal = TemplateMatcher.parseAmount(testData.amount);
+    const resolved = TemplateMatcher.resolve(config, amountVal);
+
+    const resultEl = el('match-test-result');
+    if (resultEl) {
+      resultEl.textContent = `₹${amountVal.toLocaleString('en-IN')} → Matched "${resolved.templateName}"${resolved.templateId === config.activeTemplateId ? ' (editing)' : ''}`;
+    }
+
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({
+        type: 'TRIGGER_TEST_ALERT',
+        data: { ...testData, alertTemplateId: resolved.templateId }
+      }, '*');
+    }
+    showToast(`⚡ Test alert (₹${amountVal}) → Matched "${resolved.templateName}"`);
+
+    try {
+      await fetch('/api/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...testData, alertTemplateId: resolved.templateId })
+      });
+    } catch (e) {
+      console.warn('[Config] Live overlay test trigger error:', e.message);
+    }
   }
 
   function setupActionButtons() {
-    el('btn-save').addEventListener('click', async () => {
+    on('btn-save', 'click', async () => {
       try {
         const data = await saveToServer();
         showToast(data.ok ? '💾 Settings saved!' : '⚠️ Save failed');
@@ -842,55 +855,69 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    el('btn-test').addEventListener('click', async () => {
+    on('btn-test', 'click', async () => {
+      readFormValues();
       syncLivePreview();
-      const testData = sampleAlert();
-      const resolved = TemplateMatcher.resolve(config, TemplateMatcher.parseAmount(testData.amount));
+      const loadedTemplate = currentTemplate();
+      const testData = {
+        ...sampleAlert(),
+        alertTemplateId: loadedTemplate ? loadedTemplate.id : null
+      };
       if (iframe && iframe.contentWindow) {
         iframe.contentWindow.postMessage({
           type: 'TRIGGER_TEST_ALERT',
-          data: { ...testData, alertTemplateId: resolved.templateId }
+          data: testData
         }, '*');
       }
-      showToast(`⚡ Test alert via "${resolved.templateName}"`);
+      showToast(`⚡ Test alert via loaded template "${loadedTemplate ? loadedTemplate.name : 'Default'}"`);
       try {
         await fetch('/api/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...testData, alertTemplateId: resolved.templateId })
+          body: JSON.stringify(testData)
         });
       } catch (e) {
         console.warn('[Config] Live overlay test trigger error:', e.message);
       }
     });
 
-    el('btn-export').addEventListener('click', () => {
+    on('btn-export', 'click', () => {
       readFormValues();
       StorageHelper.exportToFile(config, 'alert-theme.json');
       showToast('📤 Exported configuration');
     });
 
-    el('btn-import').addEventListener('click', () => el('file-import-input').click());
-    el('file-import-input').addEventListener('change', async (e) => {
+    on('btn-import', 'click', () => { const f = el('file-import-input'); if (f) f.click(); });
+    on('file-import-input', 'change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       try {
-        populateForm(await StorageHelper.importFromFile(file));
-        showToast('📥 Imported configuration');
+        const importedConfig = await StorageHelper.importFromFile(file);
+        const activeProfile = (el('select-profile') && el('select-profile').value) || 'Default';
+        const res = await fetch('/api/profiles/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: activeProfile, settings: importedConfig })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          populateForm(data.settings);
+          showToast('📥 Imported configuration into current profile');
+        }
       } catch (err) {
         showToast('⚠️ ' + err.message);
       }
       e.target.value = '';
     });
 
-    el('btn-reset').addEventListener('click', () => {
+    on('btn-reset', 'click', () => {
       if (!confirm('Reset all settings in this profile to defaults?')) return;
       populateForm(ConfigSchema.createDefaultConfig());
       showToast('🔄 Reset to defaults');
     });
 
     // ── Profiles
-    el('select-profile').addEventListener('change', async (e) => {
+    on('select-profile', 'change', async (e) => {
       const res = await fetch('/api/profiles/switch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -903,7 +930,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    el('btn-profile-new').addEventListener('click', async () => {
+    on('btn-profile-new', 'click', async () => {
       const name = prompt('New profile name:');
       if (!name) return;
       await saveToServer(name);
@@ -911,9 +938,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast(`👤 Created profile "${name}"`);
     });
 
-    el('btn-profile-rename').addEventListener('click', async () => {
+    on('btn-profile-rename', 'click', async () => {
       const select = el('select-profile');
-      const oldName = select.value;
+      const oldName = select ? select.value : '';
       const name = prompt('Rename profile:', oldName);
       if (!name || name === oldName) return;
       await saveToServer(name);
@@ -928,9 +955,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast(`✏️ Renamed to "${name}"`);
     });
 
-    el('btn-profile-delete').addEventListener('click', async () => {
-      const name = el('select-profile').value;
-      if (!confirm(`Delete profile "${name}"?`)) return;
+    on('btn-profile-delete', 'click', async () => {
+      const select = el('select-profile');
+      const name = select ? select.value : '';
+      if (!name || !confirm(`Delete profile "${name}"?`)) return;
       const res = await fetch('/api/profiles/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -943,19 +971,36 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast('🗑️ Profile deleted');
     });
 
-    el('btn-profile-export').addEventListener('click', () => {
+    on('btn-profile-export', 'click', () => {
       readFormValues();
-      StorageHelper.exportToFile(config, `profile-${el('select-profile').value || 'default'}.json`);
+      const select = el('select-profile');
+      StorageHelper.exportToFile(config, `profile-${(select && select.value) || 'default'}.json`);
     });
 
-    el('btn-profile-import').addEventListener('click', () => el('file-import-profile-input').click());
-    el('file-import-profile-input').addEventListener('change', async (e) => {
+    on('btn-profile-import', 'click', () => { const f = el('file-import-profile-input'); if (f) f.click(); });
+    on('file-import-profile-input', 'change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       try {
-        config = await StorageHelper.importFromFile(file);
-        const data = await saveToServer();
-        if (data.ok) showToast('📥 Profile imported');
+        const importedConfig = await StorageHelper.importFromFile(file);
+        let defaultName = file.name.replace(/\.json$/i, '').replace(/^profile-/i, '').trim();
+        if (!defaultName) defaultName = 'Imported Profile';
+        const profileName = prompt('Import profile as:', defaultName);
+        if (!profileName) { e.target.value = ''; return; }
+
+        const res = await fetch('/api/profiles/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: profileName, settings: importedConfig })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          await loadProfilesList(data.activeProfile);
+          populateForm(data.settings);
+          showToast(`📥 Imported profile "${data.activeProfile}"`);
+        } else {
+          showToast(`⚠️ Import failed: ${data.error || 'Unknown error'}`);
+        }
       } catch (err) {
         showToast('⚠️ ' + err.message);
       }
@@ -963,27 +1008,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // ── Goal helpers
-    el('btn-goal-test-add').addEventListener('click', () => {
+    on('btn-goal-test-add', 'click', () => {
       readFormValues();
       config.widgets.goal.currentAmount += 100;
       populateForm(config);
       showToast('⚡ Added ₹100 to the goal');
     });
 
-    el('btn-goal-reset').addEventListener('click', () => {
+    on('btn-goal-reset', 'click', () => {
       readFormValues();
       config.widgets.goal.currentAmount = 0;
       populateForm(config);
       showToast('🔄 Goal progress reset');
     });
 
-    el('btn-goal-export').addEventListener('click', () => {
+    on('btn-goal-export', 'click', () => {
       readFormValues();
       StorageHelper.exportToFile(config.widgets.goal, 'goal-data.json');
     });
 
-    el('btn-goal-import').addEventListener('click', () => el('file-import-goal-input').click());
-    el('file-import-goal-input').addEventListener('change', (e) => {
+    on('btn-goal-import', 'click', () => { const f = el('file-import-goal-input'); if (f) f.click(); });
+    on('file-import-goal-input', 'change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -1002,13 +1047,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // ── Leaderboard helpers
-    el('btn-lb-export').addEventListener('click', () => {
+    on('btn-lb-export', 'click', () => {
       readFormValues();
       StorageHelper.exportToFile(config.widgets.leaderboard.supporters, 'leaderboard.json');
     });
 
-    el('btn-lb-import').addEventListener('click', () => el('file-import-lb-input').click());
-    el('file-import-lb-input').addEventListener('change', (e) => {
+    on('btn-lb-import', 'click', () => { const f = el('file-import-lb-input'); if (f) f.click(); });
+    on('file-import-lb-input', 'change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -1027,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.target.value = '';
     });
 
-    el('btn-lb-clear-all').addEventListener('click', () => {
+    on('btn-lb-clear-all', 'click', () => {
       if (!confirm('Clear every supporter from the leaderboard?')) return;
       readFormValues();
       config.widgets.leaderboard.supporters = {};
@@ -1040,7 +1085,7 @@ document.addEventListener('DOMContentLoaded', async () => {
      ['btn-reset-goal-code', 'goal', ['input-goal-custom-html', 'input-goal-custom-css', 'input-goal-custom-js']],
      ['btn-reset-lb-code', 'leaderboard', ['input-lb-custom-html', 'input-lb-custom-css', 'input-lb-custom-js']]
     ].forEach(([btnId, kind, ids]) => {
-      el(btnId).addEventListener('click', () => {
+      on(btnId, 'click', () => {
         const defaults = ConfigSchema.DEFAULT_CODE[kind];
         setVal(ids[0], defaults.customHTML);
         setVal(ids[1], defaults.customCSS);
@@ -1052,37 +1097,406 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // ── Sound test
-    el('btn-test-sound').addEventListener('click', () => {
+    on('btn-test-sound', 'click', () => {
       const url = val('input-sound-url', '');
       if (!url) return showToast('⚠️ No sound URL set');
       const audio = new Audio(url);
       audio.volume = Math.max(0, Math.min(1, numVal('input-sound-volume', 80) / 100));
       audio.play().catch(err => showToast('⚠️ ' + err.message));
     });
+  }
 
-    // ── Amount allowlist
-    const addAmount = () => {
-      const input = el('input-filter-new-amount');
-      const parsed = parseFloat(input.value);
-      if (!Number.isFinite(parsed) || parsed < 0) return input.focus();
-      const rounded = Math.round(parsed * 100) / 100;
-      if (allowedAmounts.indexOf(rounded) === -1) {
-        allowedAmounts.push(rounded);
-        allowedAmounts.sort((a, b) => a - b);
-        renderFilterTags();
-        syncLivePreview();
+  // ── Custom Event Simulator ────────────────────────────────────
+  function updateSimulatorTemplateOptions() {
+    const simSelect = el('sim-template-override');
+    if (!simSelect) return;
+    const current = simSelect.value;
+    simSelect.innerHTML = '<option value="">✨ Auto-Match by Amount (Default)</option>' +
+      config.alertTemplates.map(t =>
+        `<option value="${TemplateEngine.escapeHtml(t.id)}"${t.id === current ? ' selected' : ''}>${TemplateEngine.escapeHtml(t.name)} (ID: ${t.id})</option>`
+      ).join('');
+  }
+
+  function setupSimulator() {
+    const SIM_PRESETS = {
+      phonepe: {
+        sender: 'Rahul Kumar', amount: '₹500', appName: 'PhonePe', packageName: 'com.phonepe.app',
+        title: 'PhonePe', text: 'Rahul Kumar has sent Rs. 500.00 to your bank account', message: 'Awesome stream! 🚀'
+      },
+      gpay: {
+        sender: 'Priya Singh', amount: '₹1000', appName: 'Google Pay', packageName: 'com.google.android.apps.nfc.phone',
+        title: 'Google Pay', text: 'Priya Singh sent ₹1,000.00 via Google Pay', message: 'Keep up the great work! ❤️'
+      },
+      paytm: {
+        sender: 'Amit Verma', amount: '₹250', appName: 'Paytm', packageName: 'net.one97.paytm',
+        title: 'Paytm', text: 'Rs 250 received from Amit Verma', message: 'Chai paani subscription ☕'
+      },
+      amazon: {
+        sender: 'Sneha Patel', amount: '₹1500', appName: 'Amazon Pay', packageName: 'in.amazon.mShop.android.shopping',
+        title: 'Amazon Pay', text: 'Money received from Sneha Patel on Amazon Pay', message: 'Thanks for streaming! 🎮'
+      },
+      highval: {
+        sender: 'Vikramaditya', amount: '₹5000', appName: 'PhonePe', packageName: 'com.phonepe.app',
+        title: 'PhonePe', text: 'Vikramaditya has sent Rs. 5,000.00 to your bank account', message: 'ULTRA DONATION! 👑🔥'
       }
-      input.value = '';
-      input.focus();
     };
-    el('btn-filter-add').addEventListener('click', addAmount);
-    el('input-filter-new-amount').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); addAmount(); }
+
+    document.querySelectorAll('.btn-sim-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = SIM_PRESETS[btn.dataset.preset];
+        if (!p) return;
+        setVal('sim-sender', p.sender);
+        setVal('sim-amount', p.amount);
+        setVal('sim-app-name', p.appName);
+        setVal('sim-pkg-name', p.packageName);
+        setVal('sim-title', p.title);
+        setVal('sim-text', p.text);
+        setVal('sim-message', p.message);
+        setVal('sim-alert-id', `evt_${Date.now()}`);
+        showToast(`✨ Loaded preset "${p.appName}"`);
+      });
     });
-    el('btn-filter-clear').addEventListener('click', () => {
-      allowedAmounts = [];
-      renderFilterTags();
-      syncLivePreview();
+
+    on('btn-sim-random', 'click', () => {
+      const sample = sampleAlert();
+      setVal('sim-sender', sample.sender);
+      setVal('sim-amount', sample.amount);
+      setVal('sim-app-name', sample.sourceApp || 'PhonePe');
+      setVal('sim-pkg-name', 'com.phonepe.app');
+      setVal('sim-title', sample.sourceApp || 'PhonePe');
+      setVal('sim-text', `${sample.sender} has sent ${sample.amount}`);
+      setVal('sim-message', sample.message || 'Stream support!');
+      setVal('sim-alert-id', `evt_${Date.now()}`);
+      showToast('🎲 Generated random event');
+    });
+
+    on('btn-sim-gen-id', 'click', () => {
+      setVal('sim-alert-id', `evt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
+    });
+
+    on('btn-sim-clear-console', 'click', () => {
+      const c = el('sim-console');
+      if (c) c.textContent = 'Console cleared. Ready for next simulation.';
+    });
+
+    on('btn-sim-inspect', 'click', () => {
+      readFormValues();
+      const rawAmount = val('sim-amount', '0');
+      const numAmount = TemplateMatcher.parseAmount(rawAmount);
+      const forcedId = val('sim-template-override', '');
+      const resolved = TemplateMatcher.resolve(config, numAmount, forcedId || null);
+
+      const logData = {
+        inspectTime: new Date().toLocaleTimeString(),
+        simulatedInput: {
+          sender: val('sim-sender', ''),
+          amount: rawAmount,
+          appName: val('sim-app-name', ''),
+          packageName: val('sim-pkg-name', ''),
+          title: val('sim-title', ''),
+          text: val('sim-text', ''),
+          message: val('sim-message', ''),
+          alertId: val('sim-alert-id', '') || `evt_${Date.now()}`
+        },
+        parsedDetails: {
+          numericAmount: numAmount,
+          templateOverrideId: forcedId || 'None (Auto-Match)'
+        },
+        templateMatchOutput: {
+          matchedTemplateName: resolved.templateName,
+          matchedTemplateId: resolved.templateId,
+          customCodeEnabled: resolved.code ? resolved.code.enableCustomCode !== false : true,
+          mediaUrl: (resolved.image && (resolved.image.gifUrl || resolved.image.imageUrl)) || 'None',
+          soundUrl: (resolved.sound && resolved.sound.soundUrl) || 'None'
+        }
+      };
+
+      const c = el('sim-console');
+      if (c) c.textContent = `[EVENT INSPECTION DATA]\n${JSON.stringify(logData, null, 2)}`;
+      showToast(`🔍 Inspected: Matched "${resolved.templateName}"`);
+    });
+
+    on('btn-sim-dispatch', 'click', async () => {
+      readFormValues();
+      const alertId = val('sim-alert-id', '') || `evt_${Date.now()}`;
+      const rawAmount = val('sim-amount', '₹500');
+      const amountVal = TemplateMatcher.parseAmount(rawAmount);
+      const forcedId = val('sim-template-override', '');
+      const resolved = TemplateMatcher.resolve(config, amountVal, forcedId || null);
+
+      const eventPayload = {
+        type: 'payment_notification',
+        alertId,
+        sender: val('sim-sender', 'Unknown'),
+        amount: rawAmount,
+        amountValue: amountVal,
+        appName: val('sim-app-name', 'Payment App'),
+        packageName: val('sim-pkg-name', 'com.phonepe.app'),
+        sourceApp: val('sim-app-name', 'Payment App'),
+        title: val('sim-title', 'Payment Received'),
+        text: val('sim-text', ''),
+        bigText: val('sim-text', ''),
+        message: val('sim-message', ''),
+        alertTemplateId: resolved.templateId,
+        timestamp: Date.now()
+      };
+
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'TRIGGER_TEST_ALERT',
+          data: eventPayload
+        }, '*');
+      }
+
+      const c = el('sim-console');
+      if (c) c.textContent = `[DISPATCHING EVENT...]\n${JSON.stringify(eventPayload, null, 2)}`;
+
+      try {
+        const res = await fetch('/api/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(eventPayload)
+        });
+        const data = await res.json();
+        if (c) {
+          c.textContent = `[DISPATCH SUCCESS - ${new Date().toLocaleTimeString()}]\n` +
+            `Server Output: ${JSON.stringify(data, null, 2)}\n\n` +
+            `Dispatched Event Payload:\n${JSON.stringify(eventPayload, null, 2)}`;
+        }
+        showToast(`🚀 Dispatched custom event (${rawAmount} → "${resolved.templateName}")`);
+      } catch (err) {
+        if (c) c.textContent += `\n\n[ERROR]: ${err.message}`;
+        showToast(`⚠️ Dispatch failed: ${err.message}`);
+      }
+    });
+  }
+
+  // ── Network, Live Logs & System Dashboard ───────────────────
+  let cachedNetworkInfo = null;
+
+  async function fetchNetworkInfo() {
+    try {
+      const res = await fetch('/api/network-info');
+      const data = await res.json();
+      cachedNetworkInfo = data;
+
+      const ipEl = el('net-ip-display');
+      if (ipEl) ipEl.textContent = `${data.primaryIp}:${data.port}`;
+
+      const androidDot = el('dot-android-status');
+      const androidLbl = el('lbl-android-status');
+      if (androidLbl && androidDot) {
+        if (data.androidClientsCount > 0) {
+          androidDot.style.background = '#00e676';
+          androidLbl.textContent = `Connected (${data.androidClientsCount})`;
+        } else {
+          androidDot.style.background = '#ff5252';
+          androidLbl.textContent = 'Disconnected (0)';
+        }
+      }
+
+      const obsDot = el('dot-obs-status');
+      const obsLbl = el('lbl-obs-status');
+      if (obsLbl && obsDot) {
+        if (data.obsClientsCount > 0) {
+          obsDot.style.background = '#00e676';
+          obsLbl.textContent = `Connected (${data.obsClientsCount})`;
+        } else {
+          obsDot.style.background = '#ffab00';
+          obsLbl.textContent = 'No OBS client connected';
+        }
+      }
+    } catch (e) {
+      console.warn('[NetworkInfo] Fetch error:', e.message);
+    }
+  }
+
+  async function fetchLiveLogs() {
+    try {
+      const res = await fetch('/api/logs/live');
+      const data = await res.json();
+      if (!data || !Array.isArray(data.lines)) return;
+
+      const filterVal = val('select-log-filter', 'ALL');
+      const lines = data.lines.filter(line => {
+        if (filterVal === 'ALL') return true;
+        return line.includes(`[${filterVal}]`);
+      });
+
+      const term = el('live-logs-terminal');
+      if (term) {
+        term.textContent = lines.length > 0 ? lines.slice(-150).join('\n') : 'No matching log entries.';
+        term.scrollTop = term.scrollHeight;
+      }
+    } catch (e) {
+      console.warn('[LiveLogs] Fetch error:', e.message);
+    }
+  }
+
+  async function initWindowsStartup() {
+    try {
+      const res = await fetch('/api/system/startup');
+      const data = await res.json();
+      setChecked('chk-win-startup', !!data.enabled);
+    } catch (e) {
+      console.warn('[Startup] Query error:', e.message);
+    }
+
+    on('chk-win-startup', 'change', async (e) => {
+      const enabled = e.target.checked;
+      try {
+        const res = await fetch('/api/system/startup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showToast(enabled ? '⚙️ Windows startup enabled' : '⚙️ Windows startup disabled');
+        } else {
+          showToast('⚠️ ' + (data.error || 'Startup update failed'));
+          setChecked('chk-win-startup', !enabled);
+        }
+      } catch (err) {
+        showToast('⚠️ ' + err.message);
+        setChecked('chk-win-startup', !enabled);
+      }
+    });
+  }
+
+  function setupNetworkAndSystem() {
+    fetchNetworkInfo();
+    setInterval(fetchNetworkInfo, 5000);
+
+    initWindowsStartup();
+
+    on('btn-copy-ip', 'click', () => {
+      const ipText = cachedNetworkInfo ? `${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : (el('net-ip-display') ? el('net-ip-display').textContent : '');
+      if (navigator.clipboard && ipText) {
+        navigator.clipboard.writeText(ipText).then(() => {
+          showToast(`📋 Copied Mobile IP: ${ipText}`);
+        }).catch(() => {
+          showToast(`📋 Mobile IP: ${ipText}`);
+        });
+      } else {
+        showToast(`📋 Mobile IP: ${ipText}`);
+      }
+    });
+
+    on('btn-fix-firewall', 'click', async () => {
+      try {
+        const res = await fetch('/api/system/firewall', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          showToast('🛡️ Unblocked Windows Firewall Port 3000!');
+        } else {
+          showToast('⚠️ Firewall update error: ' + (data.error || 'Failed'));
+        }
+      } catch (err) {
+        showToast('⚠️ Firewall update error: ' + err.message);
+      }
+    });
+
+    function copyOverlayUrl(path, label) {
+      const base = cachedNetworkInfo ? `http://${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : location.origin;
+      const fullUrl = `${base}${path}`;
+      if (navigator.clipboard && fullUrl) {
+        navigator.clipboard.writeText(fullUrl).then(() => {
+          showToast(`📋 Copied ${label} URL: ${fullUrl}`);
+        }).catch(() => {
+          showToast(`📋 ${label} URL: ${fullUrl}`);
+        });
+      } else {
+        showToast(`📋 ${label} URL: ${fullUrl}`);
+      }
+    }
+
+    on('btn-copy-alert-url', 'click', () => copyOverlayUrl('/overlay/alerts', 'Alert Overlay'));
+    on('btn-copy-goal-url', 'click', () => copyOverlayUrl('/overlay/goal', 'Goal Overlay'));
+    on('btn-copy-goal-url-preview', 'click', () => copyOverlayUrl('/overlay/goal', 'Goal Overlay'));
+    on('btn-copy-lb-url', 'click', () => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay'));
+    on('btn-copy-lb-url-preview', 'click', () => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay'));
+
+    on('btn-clear-logs', 'click', async () => {
+      try {
+        await fetch('/api/logs/clear', { method: 'POST' });
+        const term = el('live-logs-terminal');
+        if (term) term.textContent = 'Server logs cleared.';
+        showToast('🗑️ Logs cleared');
+      } catch (e) {
+        showToast('⚠️ Clear logs error');
+      }
+    });
+
+    on('btn-download-full-logs', 'click', () => {
+      window.open('/api/logs?level=ALL', '_blank');
+      showToast('📥 Downloading full log file...');
+    });
+
+    on('btn-download-filtered-logs', 'click', () => {
+      const filterVal = val('select-log-filter', 'ALL');
+      window.open(`/api/logs?level=${encodeURIComponent(filterVal)}`, '_blank');
+      showToast(`⬇️ Downloading ${filterVal} filtered logs...`);
+    });
+
+    fetchLiveLogs();
+    setInterval(fetchLiveLogs, 4000);
+
+    on('select-log-filter', 'change', () => fetchLiveLogs());
+    on('btn-refresh-logs', 'click', () => {
+      fetchLiveLogs();
+      showToast('🔄 Logs refreshed');
+    });
+  }
+
+  // ── Panel Split Resizer ─────────────────────────────────────────
+  function setupPanelResizer() {
+    const resizer = el('panel-resizer');
+    const formPanel = document.querySelector('.form-panel');
+    const mainView = document.querySelector('.main-view');
+    const iframeEl = el('preview-iframe');
+    if (!resizer || !formPanel || !mainView) return;
+
+    // Load saved split position
+    const savedWidth = localStorage.getItem('obs_panel_split_width');
+    if (savedWidth) {
+      formPanel.style.flex = `0 0 ${savedWidth}px`;
+    } else {
+      // Default initial width gives plenty of space to live preview
+      const initialWidth = Math.min(520, Math.floor(mainView.clientWidth * 0.48));
+      formPanel.style.flex = `0 0 ${initialWidth}px`;
+    }
+
+    let isDragging = false;
+
+    resizer.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      resizer.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      if (iframeEl) iframeEl.style.pointerEvents = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const mainRect = mainView.getBoundingClientRect();
+      let newWidth = e.clientX - mainRect.left;
+      const minWidth = 340;
+      const maxWidth = mainRect.width - 320;
+      newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
+      formPanel.style.flex = `0 0 ${newWidth}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (iframeEl) iframeEl.style.pointerEvents = '';
+      const currentWidth = formPanel.getBoundingClientRect().width;
+      localStorage.setItem('obs_panel_split_width', Math.round(currentWidth));
     });
   }
 
@@ -1098,6 +1512,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupFileBrowsers();
   setupSnippets();
   setupActionButtons();
+  setupSimulator();
+  setupNetworkAndSystem();
+  setupPanelResizer();
   attachInputListeners();
 
   try {

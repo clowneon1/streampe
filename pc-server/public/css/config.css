@@ -221,13 +221,73 @@ body {
 
 /* Form Panel */
 .form-panel {
-  flex: 1;
-  max-width: 620px;
-  padding: 24px 32px;
+  flex: 0 0 540px;
+  min-width: 360px;
+  max-width: 80%;
+  padding: 24px 28px;
   overflow-y: auto;
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* Draggable Resizer Gutter Bar */
+.resizer-gutter {
+  width: 6px;
+  background: var(--border);
+  cursor: col-resize;
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+  user-select: none;
+}
+
+.resizer-gutter:hover,
+.resizer-gutter.dragging {
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.6);
+}
+
+.resizer-gutter::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 2px;
+}
+
+/* Action Buttons Bar directly below collapsible items */
+.action-bar {
+  margin-top: 24px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+  clear: both;
+}
+
+.action-bar .btn {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  flex: 1 1 auto;
+  text-align: center;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Code Editor Tabs */
@@ -288,13 +348,19 @@ body {
   resize: vertical;
 }
 
-/* Collapsible Advanced Section */
+/* Collapsible Advanced Section Cards Layout */
+details.collapsible-advanced,
 .collapsible-advanced {
-  margin-top: 24px;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  clear: both !important;
+  margin-top: 16px;
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .collapsible-summary {
@@ -764,12 +830,16 @@ input[type="color"]::-webkit-color-swatch {
 
 /* Live Preview Panel */
 .preview-panel {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 340px;
   background: #050608;
   display: flex;
   flex-direction: column;
-  padding: 24px;
+  padding: 20px;
   position: relative;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .preview-header {
@@ -954,4 +1024,54 @@ input[type="color"]::-webkit-color-swatch {
 
 .filter-tag button:hover {
   opacity: 1;
+}
+
+.footer-love-badge {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(11, 15, 25, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: 999px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.footer-love-badge a:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 1020px) {
+  .footer-love-badge {
+    padding: 8px 12px;
+    gap: 0;
+    cursor: pointer;
+  }
+  .footer-love-badge .badge-text-full {
+    display: none !important;
+  }
+  .footer-love-badge .badge-heart-compact {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+  }
+  .footer-love-badge:hover {
+    padding: 8px 14px;
+    gap: 8px;
+  }
+  .footer-love-badge:hover .badge-text-full {
+    display: flex !important;
+  }
 }
