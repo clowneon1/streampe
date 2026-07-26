@@ -27,6 +27,10 @@ object AlertLog {
 
     fun clear() = _entries.clear()
 
+    fun remove(entry: AlertEntry) {
+        _entries.remove(entry)
+    }
+
     fun fromJson(json: JSONObject) = AlertEntry(
         timestamp = json.optLong("timestamp", System.currentTimeMillis()),
         appName   = json.optString("appName",  json.optString("sourceApp", "Unknown")),

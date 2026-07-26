@@ -40,7 +40,7 @@ class AlertLogActivity : AppCompatActivity() {
     }
 
     private fun refresh() {
-        val entries = AlertLog.entries.reversed()   // newest first
+        val entries = AlertLog.entries // Latest first (added at index 0)
         if (entries.isEmpty()) {
             layoutEmpty.visibility = View.VISIBLE
             recycler.visibility    = View.GONE
@@ -51,13 +51,18 @@ class AlertLogActivity : AppCompatActivity() {
             tvCount.visibility     = View.VISIBLE
             tvCount.text           = entries.size.toString()
             recycler.layoutManager = LinearLayoutManager(this)
-            recycler.adapter       = AlertLogAdapter(entries)
+            recycler.adapter       = AlertLogAdapter(entries) { entry ->
+                AlertLog.remove(entry)
+                refresh()
+            }
         }
     }
 }
 
-class AlertLogAdapter(private val items: List<AlertEntry>) :
-    RecyclerView.Adapter<AlertLogAdapter.VH>() {
+class AlertLogAdapter(
+    private val items: List<AlertEntry>,
+    private val onDelete: (AlertEntry) -> Unit
+) : RecyclerView.Adapter<AlertLogAdapter.VH>() {
 
     private val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
@@ -71,6 +76,7 @@ class AlertLogAdapter(private val items: List<AlertEntry>) :
         val tvTitle     : TextView  = view.findViewById(R.id.tvLogTitle)
         val tvText      : TextView  = view.findViewById(R.id.tvLogText)
         val btnRetrig   : Button    = view.findViewById(R.id.btnRetrigger)
+        val btnDelete   : Button    = view.findViewById(R.id.btnDeleteEntry)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
@@ -102,6 +108,11 @@ class AlertLogAdapter(private val items: List<AlertEntry>) :
         holder.btnRetrig.setOnClickListener {
             WebSocketManager.send(entry.fullJson)
             Toast.makeText(it.context, "\uD83D\uDD04 Retriggered!", Toast.LENGTH_SHORT).show()
+        }
+
+        holder.btnDelete.setOnClickListener {
+            onDelete(entry)
+            Toast.makeText(it.context, "\u2715 Entry deleted", Toast.LENGTH_SHORT).show()
         }
     }
 }

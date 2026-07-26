@@ -44,50 +44,58 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Transition from Splash theme immediately to avoid "freeze" feel
+        setTheme(R.style.Theme_PaymentAlertsOBS)
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
-
-        if (prefs.serverUrl.isNotBlank() && prefs.isConnected) {
-            setContentView(R.layout.activity_main)
-            bindViews()
-            setupClickListeners()
-            updateUI()
-            requestPostNotificationPermissionSilently()
-            etServerUrl.setText(prefs.serverUrl)
-            tvStatus.text = "\u23f3 Reconnecting to server..."
-            btnConnect.isEnabled = false
-            btnConnect.alpha = 0.5f
-            HealthCheck.check(prefs.serverUrl) { success, message ->
-                runOnUiThread {
-                    if (success) {
-                        val wsUrl = prefs.serverUrl
-                            .replace("http://", "ws://")
-                            .replace("https://", "wss://") + "/android"
-                        WebSocketManager.connectIfNeeded(wsUrl)
-                        val serviceIntent = Intent(this, NotificationForwarderService::class.java)
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(serviceIntent)
-                        } else {
-                            startService(serviceIntent)
-                        }
-                        goToAppSelector()
-                    } else {
-                        prefs.isConnected = false
-                        tvStatus.text = "\u274c Server offline: $message"
-                        btnConnect.isEnabled = isNotificationAccessGranted()
-                        btnConnect.alpha = if (isNotificationAccessGranted()) 1.0f else 0.5f
-                        updateUI()
-                    }
-                }
-            }
-            return
-        }
 
         setContentView(R.layout.activity_main)
         bindViews()
         requestPostNotificationPermissionSilently()
         setupClickListeners()
         updateUI()
+
+        if (prefs.serverUrl.isNotBlank() && prefs.isConnected) {
+            autoReconnect()
+        }
+    }
+
+    private fun autoReconnect() {
+        etServerUrl.setText(prefs.serverUrl)
+        tvStatus.text = "\u23f3 Reconnecting to server..."
+        btnConnect.isEnabled = false
+        btnConnect.alpha = 0.5f
+
+        HealthCheck.check(prefs.serverUrl) { success, message ->
+            runOnUiThread {
+                if (isFinishing) return@runOnUiThread
+                
+                if (success) {
+                    val wsUrl = prefs.serverUrl
+                        .replace("http://", "ws://")
+                        .replace("https://", "wss://") + "/android"
+                    WebSocketManager.connectIfNeeded(wsUrl)
+                    val serviceIntent = Intent(this, NotificationForwarderService::class.java)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(serviceIntent)
+                    } else {
+                        startService(serviceIntent)
+                    }
+                    goToAppSelector()
+                } else {
+                    prefs.isConnected = false
+                    tvStatus.text = "" // Clear the reconnecting status
+                    
+                    MaterialAlertDialogBuilder(this)
+                        .setTitle("Connection Failed")
+                        .setMessage("Failed to connect to server: ${prefs.serverUrl}\n\n$message")
+                        .setPositiveButton("OK", null)
+                        .show()
+
+                    updateUI()
+                }
+            }
+        }
     }
 
     private fun bindViews() {
