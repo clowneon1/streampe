@@ -131,6 +131,32 @@ body {
 .tab-btn .icon {
   font-size: 16px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lucide {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2px;
+  color: inherit;
+}
+
+.sidebar .lucide {
+  width: 16px;
+  height: 16px;
+}
+
+.btn .lucide {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.5px;
+}
+
+.profile-icon-btn .lucide {
+  width: 14px;
+  height: 14px;
 }
 
 /* Profile Switcher Card */

@@ -30,7 +30,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   function showToast(message, type = 'info') {
     const toast = el('toast');
     if (!toast) return;
-    toast.textContent = message;
+    toast.innerHTML = message;
+    if (window.lucide) lucide.createIcons();
     toast.style.borderColor = type === 'success' ? '#00e676' : (type === 'error' ? '#ff5252' : 'var(--accent)');
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
@@ -120,7 +121,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const originalBg = btn.style.background;
     const originalColor = btn.style.color;
     const originalBorder = btn.style.border;
-    btn.innerHTML = '✓ Copied!';
+    btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;margin-right:4px;"></i> Copied!';
+    if (window.lucide) lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide' });
     btn.style.background = '#00e676';
     btn.style.color = '#000';
     btn.style.border = '1.5px solid #00e676';
@@ -233,7 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <input type="number" class="form-control filter-value" step="any" placeholder="Amount" value="${filter.value}" />
         <input type="number" class="form-control filter-min" step="any" placeholder="Min" value="${filter.min}" />
         <input type="number" class="form-control filter-max" step="any" placeholder="Max" value="${filter.max}" />
-        <button type="button" class="btn btn-danger filter-remove" title="Remove filter">&#10005;</button>
+        <button type="button" class="btn btn-danger filter-remove" title="Remove filter"><i data-lucide="trash-2"></i></button>
       </div>`;
   }
 
@@ -260,6 +262,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       ? filters.map(filterRowHtml).join('')
       : '<p class="panel-desc">No filters &mdash; this template matches every amount.</p>';
     list.querySelectorAll('.amount-filter-row').forEach(updateFilterRowVisibility);
+    if (window.lucide) lucide.createIcons();
   }
 
   function readAmountFilters() {
@@ -282,7 +285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const select = el('select-template');
     if (!select) return;
     select.innerHTML = config.alertTemplates.map(t => {
-      const flags = [t.isDefault ? '⭐ fallback' : '', t.enabled ? '' : 'disabled']
+      const flags = [t.isDefault ? 'fallback' : '', t.enabled ? '' : 'disabled']
         .filter(Boolean).join(', ');
       const label = TemplateEngine.escapeHtml(t.name) + (flags ? ` (${flags})` : '');
       return `<option value="${TemplateEngine.escapeHtml(t.id)}"${t.id === config.activeTemplateId ? ' selected' : ''}>${label}</option>`;
@@ -533,9 +536,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         <td style="padding: 6px;">${TemplateEngine.escapeHtml(r.name)}</td>
         <td style="padding: 6px;">₹${r.amount.toLocaleString('en-IN')}</td>
         <td style="padding: 6px; text-align: right;">
-          <button type="button" class="btn btn-danger btn-remove-supporter" data-name="${TemplateEngine.escapeHtml(r.name)}" style="padding: 2px 8px; font-size: 11px;">Remove</button>
+          <button type="button" class="btn btn-danger btn-remove-supporter" data-name="${TemplateEngine.escapeHtml(r.name)}" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i> Remove</button>
         </td>
       </tr>`).join('');
+
+    if (window.lucide) lucide.createIcons();
 
     body.querySelectorAll('.btn-remove-supporter').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -750,7 +755,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       config.alertTemplates.push(created);
       config.activeTemplateId = created.id;
       populateForm(config);
-      showToast(`✨ Created template "${created.name}"`);
+      showToast('<i data-lucide="sparkles"></i> Created template "' + created.name + '"');
     }));
 
     el('btn-template-rename').addEventListener('click', withTemplate(async (template) => {
@@ -776,7 +781,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }));
       config.alertTemplates.push(copy);
       config.activeTemplateId = copy.id;
-      showToast(`📋 Duplicated as "${copy.name}"`);
+      showToast('<i data-lucide="copy"></i> Duplicated as "' + copy.name + '"');
     }));
 
     el('btn-template-default').addEventListener('click', withTemplate((template) => {
@@ -788,7 +793,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     el('btn-template-delete').addEventListener('click', withTemplate(async (template) => {
       if (!template) return;
       if (config.alertTemplates.length === 1) {
-        showToast('⚠️ At least one template is required');
+        showToast('<i data-lucide="alert-triangle"></i> At least one template is required');
         return;
       }
       const confirmed = await AppModal.show({
@@ -799,7 +804,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       config.alertTemplates = config.alertTemplates.filter(t => t.id !== template.id);
       config.activeTemplateId = config.alertTemplates[0].id;
       populateForm(config);
-      showToast('🗑️ Template deleted');
+      showToast('<i data-lucide="trash-2"></i> Template deleted');
     }));
 
     el('chk-template-enabled').addEventListener('change', () => syncLivePreview());
@@ -858,8 +863,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isImage = file.type.startsWith('image/');
             const isAudio = file.type.startsWith('audio/');
 
-            if (h.kind === 'image' && !isImage) return showToast('⚠️ Please drop an image file');
-            if (h.kind === 'sound' && !isAudio) return showToast('⚠️ Please drop an audio file');
+            if (h.kind === 'image' && !isImage) return showToast('<i data-lucide="alert-triangle"></i> Please drop an image file');
+            if (h.kind === 'sound' && !isAudio) return showToast('<i data-lucide="alert-triangle"></i> Please drop an audio file');
 
             readFile(file, h.url);
           }
@@ -903,10 +908,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const trimmed = snippet.trim();
         if (target.value.includes(trimmed)) {
           target.value = target.value.replace(snippet, '').replace(trimmed, '').trim();
-          showToast('❌ Code snippet removed');
+          showToast('<i data-lucide="x-circle"></i> Code snippet removed');
         } else {
           target.value = (target.value + (target.value.endsWith('\n') || !target.value ? '' : '\n') + snippet).trim();
-          showToast('✨ Code snippet applied!');
+          showToast('<i data-lucide="sparkles"></i> Code snippet applied!');
         }
         updateSnippetButtonStates();
         syncLivePreview();
@@ -928,7 +933,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           textarea.focus();
         }
         copyToClipboard(selector).catch(() => {});
-        showToast(`📋 Copied selector "${selector}"`);
+        showToast('<i data-lucide="copy"></i> Copied selector "' + selector + '"');
       });
     });
   }
@@ -951,8 +956,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function sampleAlert(customAmount) {
     const samples = [
-      { sender: 'Rahul Kumar', amount: '₹500', sourceApp: 'PhonePe', message: 'Awesome stream! 🚀' },
-      { sender: 'Priya Singh', amount: '₹1000', sourceApp: 'Google Pay', message: 'Keep up the great work! ❤️' },
+      { sender: 'Rahul Kumar', amount: '₹500', sourceApp: 'PhonePe', message: 'Awesome stream!' },
+      { sender: 'Priya Singh', amount: '₹1000', sourceApp: 'Google Pay', message: 'Keep up the great work!' },
       { sender: 'Amit Verma', amount: '₹250', sourceApp: 'Paytm', message: 'Chai paani subscription ☕' },
       { sender: 'Sneha Patel', amount: '₹300', sourceApp: 'BHIM UPI', message: 'Great gameplay! 🎮' }
     ];
@@ -983,7 +988,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         data: { ...testData, alertTemplateId: resolved.templateId }
       }, '*');
     }
-    showToast(`⚡ Test alert (₹${amountVal}) → Matched "${resolved.templateName}"`);
+    showToast('<i data-lucide="zap"></i> Test alert (₹' + amountVal + ') → Matched "' + resolved.templateName + '"');
 
     try {
       await fetch('/api/test', {
@@ -1001,12 +1006,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         const data = await saveToServer();
         if (data.ok) {
-          showToast('💾 Settings saved successfully!', 'success');
+          showToast('<i data-lucide="save"></i> Settings saved successfully!', 'success');
         } else {
-          showToast('⚠️ Save failed', 'error');
+          showToast('<i data-lucide="alert-triangle"></i> Save failed', 'error');
         }
       } catch (e) {
-        showToast('⚠️ Save failed: ' + e.message, 'error');
+        showToast('<i data-lucide="alert-triangle"></i> Save failed: ' + e.message, 'error');
       }
     });
 
@@ -1024,7 +1029,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           data: testData
         }, '*');
       }
-      showToast(`⚡ Test alert via loaded template "${loadedTemplate ? loadedTemplate.name : 'Default'}"`);
+      showToast('<i data-lucide="zap"></i> Test alert via loaded template "' + (loadedTemplate ? loadedTemplate.name : 'Default') + '"');
       try {
         await fetch('/api/test', {
           method: 'POST',
@@ -1039,7 +1044,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     on('btn-export', 'click', () => {
       readFormValues();
       StorageHelper.exportToFile(config, 'alert-theme.json');
-      showToast('📤 Exported configuration');
+      showToast('<i data-lucide="upload"></i> Exported configuration');
     });
 
     on('btn-import', 'click', () => { const f = el('file-import-input'); if (f) f.click(); });
@@ -1057,10 +1062,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await res.json();
         if (data.ok) {
           populateForm(data.settings);
-          showToast('📥 Imported configuration into current profile');
+          showToast('<i data-lucide="download"></i> Imported configuration into current profile');
         }
       } catch (err) {
-        showToast('⚠️ ' + err.message);
+        showToast('<i data-lucide="alert-triangle"></i> ' + err.message);
       }
       e.target.value = '';
     });
@@ -1072,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       if (!confirmed) return;
       populateForm(ConfigSchema.createDefaultConfig());
-      showToast('🔄 Reset to defaults');
+      showToast('<i data-lucide="rotate-ccw"></i> Reset to defaults');
     });
 
     // ── Profiles
@@ -1085,7 +1090,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
       if (data.ok) {
         populateForm(data.settings);
-        showToast(`👤 Switched to "${data.activeProfile}"`);
+        showToast('<i data-lucide="user"></i> Switched to "' + data.activeProfile + '"');
       }
     });
 
@@ -1098,7 +1103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!name) return;
       await saveToServer(name);
       await loadProfilesList(name);
-      showToast(`👤 Created profile "${name}"`);
+      showToast('<i data-lucide="user"></i> Created profile "' + name + '"');
     });
 
     on('btn-profile-rename', 'click', async () => {
@@ -1120,7 +1125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       }
       await loadProfilesList(name);
-      showToast(`✏️ Renamed to "${name}"`);
+      showToast('<i data-lucide="pencil"></i> Renamed to "' + name + '"');
     });
 
     on('btn-profile-delete', 'click', async () => {
@@ -1138,10 +1143,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         body: JSON.stringify({ name })
       });
       const data = await res.json();
-      if (!data.ok) return showToast('⚠️ ' + (data.error || 'Delete failed'));
+      if (!data.ok) return showToast('<i data-lucide="alert-triangle"></i> ' + (data.error || 'Delete failed'));
       await loadProfilesList(data.activeProfile);
       populateForm(await StorageHelper.loadServer());
-      showToast('🗑️ Profile deleted');
+      showToast('<i data-lucide="trash-2"></i> Profile deleted');
     });
 
     on('btn-profile-export', 'click', () => {
@@ -1176,12 +1181,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (data.ok) {
           await loadProfilesList(data.activeProfile);
           populateForm(data.settings);
-          showToast(`📥 Imported profile "${data.activeProfile}"`);
+          showToast('<i data-lucide="download"></i> Imported profile "' + data.activeProfile + '"');
         } else {
-          showToast(`⚠️ Import failed: ${data.error || 'Unknown error'}`);
+          showToast('<i data-lucide="alert-triangle"></i> Import failed: ' + (data.error || 'Unknown error'));
         }
       } catch (err) {
-        showToast('⚠️ ' + err.message);
+        showToast('<i data-lucide="alert-triangle"></i> ' + err.message);
       }
       e.target.value = '';
     });
@@ -1191,14 +1196,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       readFormValues();
       config.widgets.goal.currentAmount += 100;
       populateForm(config);
-      showToast('⚡ Added ₹100 to the goal');
+      showToast('<i data-lucide="zap"></i> Added ₹100 to the goal');
     });
 
     on('btn-goal-reset', 'click', () => {
       readFormValues();
       config.widgets.goal.currentAmount = 0;
       populateForm(config);
-      showToast('🔄 Goal progress reset');
+      showToast('<i data-lucide="rotate-ccw"></i> Goal progress reset');
     });
 
     on('btn-goal-export', 'click', () => {
@@ -1216,9 +1221,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           readFormValues();
           config.widgets.goal = ConfigSchema.normalizeWidget('goal', JSON.parse(ev.target.result));
           populateForm(config);
-          showToast('📥 Goal data imported');
+          showToast('<i data-lucide="download"></i> Goal data imported');
         } catch (err) {
-          showToast('⚠️ Invalid goal JSON');
+          showToast('<i data-lucide="alert-triangle"></i> Invalid goal JSON');
         }
       };
       reader.readAsText(file);
@@ -1242,9 +1247,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           const parsed = JSON.parse(ev.target.result);
           config.widgets.leaderboard.supporters = parsed.supporters || parsed;
           populateForm(config);
-          showToast('📥 Leaderboard imported');
+          showToast('<i data-lucide="download"></i> Leaderboard imported');
         } catch (err) {
-          showToast('⚠️ Invalid leaderboard JSON');
+          showToast('<i data-lucide="alert-triangle"></i> Invalid leaderboard JSON');
         }
       };
       reader.readAsText(file);
@@ -1260,7 +1265,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       readFormValues();
       config.widgets.leaderboard.supporters = {};
       await saveToServer();
-      showToast('🗑️ Leaderboard cleared and saved');
+      showToast('<i data-lucide="trash-2"></i> Leaderboard cleared and saved');
     });
 
     // ── Code reset buttons
@@ -1275,17 +1280,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         setVal(ids[2], defaults.customJS);
         updateSnippetButtonStates();
         syncLivePreview();
-        showToast('🔄 Code reset to defaults');
+        showToast('<i data-lucide="rotate-ccw"></i> Code reset to defaults');
       });
     });
 
     // ── Sound test
     on('btn-test-sound', 'click', () => {
       const url = val('input-sound-url', '');
-      if (!url) return showToast('⚠️ No sound URL set');
+      if (!url) return showToast('<i data-lucide="alert-triangle"></i> No sound URL set');
       const audio = new Audio(url);
       audio.volume = Math.max(0, Math.min(1, numVal('input-sound-volume', 80) / 100));
-      audio.play().catch(err => showToast('⚠️ ' + err.message));
+      audio.play().catch(err => showToast('<i data-lucide="alert-triangle"></i> ' + err.message));
     });
   }
 
@@ -1294,7 +1299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const simSelect = el('sim-template-override');
     if (!simSelect) return;
     const current = simSelect.value;
-    simSelect.innerHTML = '<option value="">✨ Auto-Match by Amount (Default)</option>' +
+    simSelect.innerHTML = '<option value="">Auto-Match by Amount (Default)</option>' +
       config.alertTemplates.map(t =>
         `<option value="${TemplateEngine.escapeHtml(t.id)}"${t.id === current ? ' selected' : ''}>${TemplateEngine.escapeHtml(t.name)} (ID: ${t.id})</option>`
       ).join('');
@@ -1352,10 +1357,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const SIM_PRESETS = {
-      phonepe: { provider: 'phonepe', sender: 'Rahul Kumar', amount: '500', message: 'Awesome stream! 🚀' },
-      gpay:    { provider: 'gpay',    sender: 'Priya Singh', amount: '1000', message: 'Keep up the great work! ❤️' },
+      phonepe: { provider: 'phonepe', sender: 'Rahul Kumar', amount: '500', message: 'Awesome stream!' },
+      gpay:    { provider: 'gpay',    sender: 'Priya Singh', amount: '1000', message: 'Keep up the great work!' },
       paytm:   { provider: 'paytm',   sender: 'Amit Verma',  amount: '250',  message: 'Chai paani subscription ☕' },
-      amazon:  { provider: 'amazon',  sender: 'Sneha Patel', amount: '1500', message: 'Thanks for streaming! 🎮' },
+      amazon:  { provider: 'amazon',  sender: 'Sneha Patel', amount: '1500', message: 'Thanks for streaming!' },
       highval: { provider: 'phonepe', sender: 'Vikramaditya', amount: '5000', message: 'ULTRA DONATION! 👑🔥' }
     };
 
@@ -1368,7 +1373,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setVal('sim-amount', p.amount);
         setVal('sim-message', p.message);
         setVal('sim-alert-id', `evt_${Date.now()}`);
-        showToast(`✨ Loaded preset "${p.provider.toUpperCase()}"`);
+        showToast('<i data-lucide="sparkles"></i> Loaded preset "' + p.provider.toUpperCase() + '"');
       });
     });
 
@@ -1381,7 +1386,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       setVal('sim-amount', String(sample.amountVal || 250));
       setVal('sim-message', sample.message || 'Stream support!');
       setVal('sim-alert-id', `evt_${Date.now()}`);
-      showToast('🎲 Generated random event');
+      showToast('<i data-lucide="dices"></i> Generated random event');
     });
 
     on('btn-sim-gen-id', 'click', () => {
@@ -1424,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const c = el('sim-console');
       if (c) c.textContent = `[SIMULATED RAW MOBILE EVENT & PARSER INSPECTION]\n${JSON.stringify(logData, null, 2)}`;
-      showToast(`🔍 Inspected: Matched "${resolved.templateName}"`);
+      showToast('<i data-lucide="search"></i> Inspected: Matched "' + resolved.templateName + '"');
     });
 
     on('btn-sim-dispatch', 'click', async () => {
@@ -1458,10 +1463,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             `Server Output: ${JSON.stringify(data, null, 2)}\n\n` +
             `Raw Mobile Notification Payload Sent:\n${JSON.stringify(rawNotif, null, 2)}`;
         }
-        showToast(`🚀 Dispatched raw event (${provider.toUpperCase()} ₹${rawAmount})`);
+        showToast('<i data-lucide="send"></i> Dispatched raw event (' + provider.toUpperCase() + ' ₹' + rawAmount + ')');
       } catch (err) {
         if (c) c.textContent += `\n\n[ERROR]: ${err.message}`;
-        showToast(`⚠️ Dispatch failed: ${err.message}`);
+        showToast('<i data-lucide="alert-triangle"></i> Dispatch failed: ' + err.message);
       }
     });
   }
@@ -1574,13 +1579,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         const data = await res.json();
         if (data.ok) {
-          showToast(enabled ? '⚙️ Windows startup enabled' : '⚙️ Windows startup disabled');
+          showToast(enabled ? '<i data-lucide="settings"></i> Windows startup enabled' : '<i data-lucide="settings"></i> Windows startup disabled');
         } else {
-          showToast('⚠️ ' + (data.error || 'Startup update failed'));
+          showToast('<i data-lucide="alert-triangle"></i> ' + (data.error || 'Startup update failed'));
           setChecked('chk-win-startup', !enabled);
         }
       } catch (err) {
-        showToast('⚠️ ' + err.message);
+        showToast('<i data-lucide="alert-triangle"></i> ' + err.message);
         setChecked('chk-win-startup', !enabled);
       }
     });
@@ -1596,9 +1601,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       const ipText = cachedNetworkInfo ? `${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : (el('net-ip-display') ? el('net-ip-display').textContent : '');
       if (ipText) {
         copyToClipboard(ipText, e.currentTarget);
-        showToast(`📋 Copied Mobile IP: ${ipText}`);
+        showToast('<i data-lucide="copy"></i> Copied Mobile IP: ' + ipText);
       } else {
-        showToast('⚠️ No IP available yet');
+        showToast('<i data-lucide="alert-triangle"></i> No IP available yet');
       }
     });
 
@@ -1607,12 +1612,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const res = await fetch('/api/system/firewall', { method: 'POST' });
         const data = await res.json();
         if (data.ok) {
-          showToast('🛡️ Unblocked Windows Firewall!');
+          showToast('<i data-lucide="shield"></i> Unblocked Windows Firewall!');
         } else {
-          showToast('⚠️ Firewall update error: ' + (data.error || 'Failed'));
+          showToast('<i data-lucide="alert-triangle"></i> Firewall update error: ' + (data.error || 'Failed'));
         }
       } catch (err) {
-        showToast('⚠️ Firewall update error: ' + err.message);
+        showToast('<i data-lucide="alert-triangle"></i> Firewall update error: ' + err.message);
       }
     });
 
@@ -1620,7 +1625,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const base = cachedNetworkInfo ? `http://${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : location.origin;
       const fullUrl = `${base}${path}`;
       copyToClipboard(fullUrl, btn);
-      showToast(`📋 Copied ${label} URL: ${fullUrl}`);
+      showToast('<i data-lucide="copy"></i> Copied ' + label + ' URL: ' + fullUrl);
     }
 
     on('btn-copy-alert-url', 'click', (e) => copyOverlayUrl('/overlay/alerts', 'Alert Overlay', e.currentTarget));
@@ -1634,21 +1639,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         await fetch('/api/logs/clear', { method: 'POST' });
         const term = el('live-logs-terminal');
         if (term) term.textContent = 'Server logs cleared.';
-        showToast('🗑️ Logs cleared');
+        showToast('<i data-lucide="trash-2"></i> Logs cleared');
       } catch (e) {
-        showToast('⚠️ Clear logs error');
+        showToast('<i data-lucide="alert-triangle"></i> Clear logs error');
       }
     });
 
     on('btn-download-full-logs', 'click', () => {
       window.open('/api/logs?level=ALL', '_blank');
-      showToast('📥 Downloading full log file...');
+      showToast('<i data-lucide="download"></i> Downloading full log file...');
     });
 
     on('btn-download-filtered-logs', 'click', () => {
       const filterVal = val('select-log-filter', 'ALL');
       window.open(`/api/logs?level=${encodeURIComponent(filterVal)}`, '_blank');
-      showToast(`⬇️ Downloading ${filterVal} filtered logs...`);
+      showToast('<i data-lucide="download"></i> Downloading ' + filterVal + ' filtered logs...');
     });
 
     fetchLiveLogs();
@@ -1657,7 +1662,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     on('select-log-filter', 'change', () => fetchLiveLogs());
     on('btn-refresh-logs', 'click', () => {
       fetchLiveLogs();
-      showToast('🔄 Logs refreshed');
+      showToast('<i data-lucide="rotate-ccw"></i> Logs refreshed');
     });
   }
 
@@ -1734,7 +1739,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           // Always seed JS if empty
           if (!val(c.fields[2], '').trim()) setVal(c.fields[2], defaults.customJS);
 
-          showToast(`✨ Restored ${c.kind} baseline code`, 'info');
+          showToast('<i data-lucide="sparkles"></i> Restored ' + c.kind + ' baseline code', 'info');
           syncLivePreview();
         }
       });
