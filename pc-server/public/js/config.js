@@ -35,6 +35,60 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => toast.classList.remove('show'), 2400);
   }
 
+  // ── Universal Modal Controller ───────────────────────────────
+  const AppModal = {
+    overlay: el('app-modal'),
+    title: el('modal-title'),
+    message: el('modal-message'),
+    inputContainer: el('modal-input-container'),
+    input: el('modal-input'),
+    cancelBtn: el('modal-cancel'),
+    confirmBtn: el('modal-confirm'),
+    closeBtn: el('modal-close'),
+    resolver: null,
+
+    show(options = {}) {
+      this.title.textContent = options.title || 'Dialog';
+      this.message.textContent = options.message || '';
+      this.confirmBtn.textContent = options.confirmText || 'Confirm';
+      this.cancelBtn.textContent = options.cancelText || 'Cancel';
+
+      this.inputContainer.style.display = options.showInput ? 'block' : 'none';
+      if (options.showInput) {
+        this.input.value = options.defaultValue || '';
+        setTimeout(() => this.input.focus(), 100);
+      }
+
+      this.cancelBtn.style.display = options.hideCancel ? 'none' : 'inline-block';
+      this.overlay.style.display = 'flex';
+      setTimeout(() => this.overlay.classList.add('active'), 10);
+
+      return new Promise((resolve) => {
+        this.resolver = resolve;
+      });
+    },
+
+    hide(value) {
+      this.overlay.classList.remove('active');
+      setTimeout(() => {
+        this.overlay.style.display = 'none';
+        if (this.resolver) this.resolver(value);
+      }, 200);
+    }
+  };
+
+  on('modal-confirm', 'click', () => {
+    const isInputVisible = AppModal.inputContainer.style.display !== 'none';
+    AppModal.hide(isInputVisible ? AppModal.input.value : true);
+  });
+  on('modal-cancel', 'click', () => AppModal.hide(null));
+  on('modal-close', 'click', () => AppModal.hide(null));
+  AppModal.overlay.addEventListener('click', (e) => { if (e.target === AppModal.overlay) AppModal.hide(null); });
+  AppModal.input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') el('modal-confirm').click();
+    if (e.key === 'Escape') AppModal.hide(null);
+  });
+
   // Works in both HTTPS (navigator.clipboard) and plain HTTP / OBS browser sources (execCommand fallback).
   // Pass the originating button element as the second argument to get a visual "✓ Copied!" flash animation.
   function copyToClipboard(text, triggerBtn) {
@@ -681,8 +735,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       populateForm(config);
     };
 
-    el('btn-template-new').addEventListener('click', withTemplate(() => {
-      const name = prompt('New template name:', `Alert Template ${config.alertTemplates.length + 1}`);
+    el('btn-template-new').addEventListener('click', withTemplate(async () => {
+      const name = await AppModal.show({
+        title: 'New Template',
+        message: 'Enter a name for the new alert template:',
+        showInput: true,
+        defaultValue: `Alert Template ${config.alertTemplates.length + 1}`
+      });
       if (!name) return;
       const base = config.widgets.alert;
       const created = ConfigSchema.createTemplate({
@@ -696,13 +755,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       config.alertTemplates.push(created);
       config.activeTemplateId = created.id;
+      populateForm(config);
       showToast(`✨ Created template "${created.name}"`);
     }));
 
-    el('btn-template-rename').addEventListener('click', withTemplate((template) => {
+    el('btn-template-rename').addEventListener('click', withTemplate(async (template) => {
       if (!template) return;
-      const name = prompt('Rename template:', template.name);
-      if (name) template.name = name;
+      const name = await AppModal.show({
+        title: 'Rename Template',
+        message: 'Enter new name:',
+        showInput: true,
+        defaultValue: template.name
+      });
+      if (name) {
+        template.name = name;
+        populateForm(config);
+      }
     }));
 
     el('btn-template-duplicate').addEventListener('click', withTemplate((template) => {
@@ -723,15 +791,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast(`⭐ "${template.name}" is now the fallback template`);
     }));
 
-    el('btn-template-delete').addEventListener('click', withTemplate((template) => {
+    el('btn-template-delete').addEventListener('click', withTemplate(async (template) => {
       if (!template) return;
       if (config.alertTemplates.length === 1) {
         showToast('⚠️ At least one template is required');
         return;
       }
-      if (!confirm(`Delete template "${template.name}"?`)) return;
+      const confirmed = await AppModal.show({
+        title: 'Delete Template',
+        message: `Are you sure you want to delete "${template.name}"?`
+      });
+      if (!confirmed) return;
       config.alertTemplates = config.alertTemplates.filter(t => t.id !== template.id);
       config.activeTemplateId = config.alertTemplates[0].id;
+      populateForm(config);
       showToast('🗑️ Template deleted');
     }));
 
@@ -955,8 +1028,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.target.value = '';
     });
 
-    on('btn-reset', 'click', () => {
-      if (!confirm('Reset all settings in this profile to defaults?')) return;
+    on('btn-reset', 'click', async () => {
+      const confirmed = await AppModal.show({
+        title: 'Reset Defaults',
+        message: 'Reset all settings in this profile to defaults?'
+      });
+      if (!confirmed) return;
       populateForm(ConfigSchema.createDefaultConfig());
       showToast('🔄 Reset to defaults');
     });
@@ -976,7 +1053,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     on('btn-profile-new', 'click', async () => {
-      const name = prompt('New profile name:');
+      const name = await AppModal.show({
+        title: 'New Profile',
+        message: 'Enter a name for the new profile:',
+        showInput: true
+      });
       if (!name) return;
       await saveToServer(name);
       await loadProfilesList(name);
@@ -986,7 +1067,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     on('btn-profile-rename', 'click', async () => {
       const select = el('select-profile');
       const oldName = select ? select.value : '';
-      const name = prompt('Rename profile:', oldName);
+      const name = await AppModal.show({
+        title: 'Rename Profile',
+        message: 'Enter new name:',
+        showInput: true,
+        defaultValue: oldName
+      });
       if (!name || name === oldName) return;
       await saveToServer(name);
       if (oldName !== 'Default') {
@@ -1003,7 +1089,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     on('btn-profile-delete', 'click', async () => {
       const select = el('select-profile');
       const name = select ? select.value : '';
-      if (!name || !confirm(`Delete profile "${name}"?`)) return;
+      if (!name) return;
+      const confirmed = await AppModal.show({
+        title: 'Delete Profile',
+        message: `Are you sure you want to delete profile "${name}"?`
+      });
+      if (!confirmed) return;
       const res = await fetch('/api/profiles/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1030,7 +1121,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const importedConfig = await StorageHelper.importFromFile(file);
         let defaultName = file.name.replace(/\.json$/i, '').replace(/^profile-/i, '').trim();
         if (!defaultName) defaultName = 'Imported Profile';
-        const profileName = prompt('Import profile as:', defaultName);
+        const profileName = await AppModal.show({
+          title: 'Import Profile',
+          message: 'Confirm profile name:',
+          showInput: true,
+          defaultValue: defaultName
+        });
         if (!profileName) { e.target.value = ''; return; }
 
         const res = await fetch('/api/profiles/save', {
@@ -1118,7 +1214,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     on('btn-lb-clear-all', 'click', async () => {
-      if (!confirm('Clear every supporter from the leaderboard?')) return;
+      const confirmed = await AppModal.show({
+        title: 'Clear Leaderboard',
+        message: 'Clear every supporter from the leaderboard? This cannot be undone.'
+      });
+      if (!confirmed) return;
       readFormValues();
       config.widgets.leaderboard.supporters = {};
       await saveToServer();

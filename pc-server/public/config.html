@@ -1542,6 +1542,26 @@
     </div>
   </div>
 
+  <!-- ══ UNIVERSAL MODAL SYSTEM ════════════════════════════════════ -->
+  <div id="app-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">Dialog</h3>
+        <button id="modal-close" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="modal-message"></p>
+        <div id="modal-input-container" style="display: none; margin-top: 12px;">
+          <input type="text" id="modal-input" class="form-control" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="modal-confirm" class="btn btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/template-engine.js"></script>
   <script src="/js/lib/canvas-presets.js"></script>
   <script src="/js/lib/widget-style.js"></script>
