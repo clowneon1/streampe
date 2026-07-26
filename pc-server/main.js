@@ -15,6 +15,58 @@ let mainWindow = null;
 let tray = null;
 let isQuitting = false;
 
+// Track the actual port the server started on
+let serverPort = 2907; // default, will be updated once server is ready
+
+/**
+ * Resolves the actual port the embedded server is listening on.
+ * Tries /api/network-info first; falls back to the module-exported
+ * address() if available, then to the default 2907.
+ */
+function resolveServerPort(callback) {
+  // If the server module exposes its http.Server instance we can ask directly
+  if (server && server.address && typeof server.address === 'function') {
+    const addr = server.address();
+    if (addr && addr.port) {
+      serverPort = addr.port;
+      return callback(serverPort);
+    }
+  }
+
+  // Otherwise poll /api/network-info until the server is up (max ~5 s)
+  const http = require('http');
+  let attempts = 0;
+  const MAX_ATTEMPTS = 10;
+
+  function tryFetch(port) {
+    attempts++;
+    const req = http.get(`http://127.0.0.1:${port}/api/network-info`, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json && json.port) {
+            serverPort = json.port;
+            return callback(serverPort);
+          }
+        } catch (_) {}
+        callback(port);
+      });
+    });
+    req.on('error', () => {
+      if (attempts < MAX_ATTEMPTS) {
+        setTimeout(() => tryFetch(port), 500);
+      } else {
+        callback(port);
+      }
+    });
+    req.setTimeout(1000, () => req.destroy());
+  }
+
+  tryFetch(serverPort);
+}
+
 function getPrimaryIp() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
@@ -47,7 +99,7 @@ function setWindowsStartup(enable, callback) {
   if (process.platform === 'win32') {
     const exePath = process.execPath;
     const cmd = enable
-      ? `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /t REG_SZ /d "\"${exePath}\"" /f`
+      ? `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /t REG_SZ /d "\\"${exePath}\\"" /f`
       : `reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /f`;
     exec(cmd, () => { if (callback) callback(); });
   } else if (callback) {
@@ -71,7 +123,11 @@ function createMainWindow() {
   });
 
   createApplicationMenu();
-  mainWindow.loadURL('http://127.0.0.1:3000/config');
+
+  // Load on the actual port the server spun up on (not a hardcoded default)
+  resolveServerPort((port) => {
+    mainWindow.loadURL(`http://127.0.0.1:${port}/config`);
+  });
 
   // Minimize to tray instead of closing when user clicks X
   mainWindow.on('close', (event) => {
@@ -112,14 +168,15 @@ function createTray() {
 function createApplicationMenu() {
   isWindowsStartupEnabled((startupEnabled) => {
     const primaryIp = getPrimaryIp();
-    const connectUrl = `http://${primaryIp}:3000`;
+    const port = serverPort;
+    const connectUrl = `http://${primaryIp}:${port}`;
 
     const template = [
       {
         label: 'File',
         submenu: [
           {
-            label: `📋 Copy Mobile Connection IP (${primaryIp}:3000)`,
+            label: `📋 Copy Mobile Connection IP (${primaryIp}:${port})`,
             click: () => {
               clipboard.writeText(connectUrl);
               if (mainWindow && mainWindow.webContents) {
@@ -131,7 +188,7 @@ function createApplicationMenu() {
           },
           {
             label: '📡 Open OBS Overlay in Browser',
-            click: () => shell.openExternal(`http://${getPrimaryIp()}:3000/overlay/alerts`)
+            click: () => shell.openExternal(`http://${getPrimaryIp()}:${port}/overlay/alerts`)
           },
           { type: 'separator' },
           {
@@ -160,15 +217,6 @@ function createApplicationMenu() {
         ]
       },
       {
-        label: 'Logs',
-        submenu: [
-          {
-            label: '📋 Open Live Server Logs',
-            click: () => shell.openExternal(`http://${getPrimaryIp()}:3000/api/logs`)
-          }
-        ]
-      },
-      {
         label: 'View',
         submenu: [
           { role: 'reload' },
@@ -193,7 +241,7 @@ function createApplicationMenu() {
                 type: 'info',
                 title: 'About Payment Alerts for OBS',
                 message: 'Payment Alerts for OBS v1.0.0',
-                detail: `Author: clowneon1\nMobile Connection IP: ${connectUrl}\nLocal Port: 3000 (TCP)`
+                detail: `Author: clowneon1\nMobile Connection IP: ${connectUrl}\nLocal Port: ${port} (TCP)`
               });
             }
           }
@@ -209,62 +257,44 @@ function createApplicationMenu() {
 function updateTrayMenu() {
   if (!tray) return;
 
-  isWindowsStartupEnabled((startupEnabled) => {
-    const primaryIp = getPrimaryIp();
-    const connectUrl = `http://${primaryIp}:3000`;
+  const primaryIp = getPrimaryIp();
+  const port = serverPort;
+  const connectUrl = `http://${primaryIp}:${port}`;
 
-    const contextMenu = Menu.buildFromTemplate([
-      {
-        label: '🖥️ Open Dashboard Window',
-        click: () => {
-          if (mainWindow) {
-            mainWindow.show();
-            mainWindow.focus();
-          } else {
-            createMainWindow();
-          }
-        }
-      },
-      {
-        label: `📋 Copy Mobile IP (${primaryIp}:3000)`,
-        click: () => {
-          clipboard.writeText(connectUrl);
-          if (mainWindow && mainWindow.webContents) {
-            mainWindow.webContents.executeJavaScript(`
-              if (window.showToast) window.showToast('📋 Copied Mobile IP: ${connectUrl}');
-            `);
-          }
-        }
-      },
-      { type: 'separator' },
-      {
-        label: '📄 Open Live Logs',
-        click: () => {
-          shell.openExternal(`http://${getPrimaryIp()}:3000/api/logs`);
-        }
-      },
-      {
-        label: '⚙️ Start on Windows Boot',
-        type: 'checkbox',
-        checked: startupEnabled,
-        click: (menuItem) => {
-          setWindowsStartup(menuItem.checked, () => {
-            updateTrayMenu();
-          });
-        }
-      },
-      { type: 'separator' },
-      {
-        label: '❌ Quit Payment Alerts',
-        click: () => {
-          isQuitting = true;
-          app.quit();
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '🖥️ Open Dashboard Window',
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        } else {
+          createMainWindow();
         }
       }
-    ]);
+    },
+    {
+      label: `📋 Copy Mobile IP (${primaryIp}:${port})`,
+      click: () => {
+        clipboard.writeText(connectUrl);
+        if (mainWindow && mainWindow.webContents) {
+          mainWindow.webContents.executeJavaScript(`
+            if (window.showToast) window.showToast('📋 Copied Mobile IP: ${connectUrl}');
+          `);
+        }
+      }
+    },
+    { type: 'separator' },
+    {
+      label: '❌ Quit Payment Alerts',
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      }
+    }
+  ]);
 
-    tray.setContextMenu(contextMenu);
-  });
+  tray.setContextMenu(contextMenu);
 }
 
 // ── Single Instance Lock ──────────────────────────────────────
@@ -281,8 +311,12 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(() => {
-    createMainWindow();
-    createTray();
+    // Resolve the real port before creating the window so loadURL is correct
+    resolveServerPort((port) => {
+      serverPort = port;
+      createMainWindow();
+      createTray();
+    });
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
