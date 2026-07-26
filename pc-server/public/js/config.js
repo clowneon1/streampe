@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const node = el(id);
     if (node) node.addEventListener(evt, fn);
   };
-  const TEXT_PREFIXES = { template: 'tpl', alert: 'alert', goal: 'goal', leaderboard: 'lb' };
+  const TEXT_PREFIXES = { template: 'tpl', alert: 'alert', goal: 'goal', leaderboard: 'lb', recent: 'recent' };
 
   let config = ConfigSchema.createDefaultConfig();
   let suppressSync = false;
@@ -394,7 +394,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const lb = config.widgets.leaderboard;
     lb.enabled = checked('chk-enable-lb', lb.enabled);
     lb.title = val('input-lb-title', lb.title);
-    lb.maxEntries = numVal('select-lb-max', lb.maxEntries);
+    const lbMaxPreset = val('select-lb-max', '5');
+    lb.maxEntries = lbMaxPreset === 'custom' ? numVal('input-lb-max-custom', 5) : parseInt(lbMaxPreset, 10);
     lb.showAmounts = checked('chk-lb-show-amounts', lb.showAmounts);
     lb.text = Object.assign(readTextStyle(TEXT_PREFIXES.leaderboard, lb.text), {
       titleTemplate: val('input-lb-title', lb.text.titleTemplate)
@@ -410,6 +411,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       customHTML: val('input-lb-custom-html', ''),
       customCSS: val('input-lb-custom-css', ''),
       customJS: val('input-lb-custom-js', '')
+    };
+
+    const recent = config.widgets.recent;
+    recent.enabled = checked('chk-enable-recent', recent.enabled);
+    recent.title = val('input-recent-title', recent.title);
+    const recentMaxPreset = val('select-recent-max', '5');
+    recent.maxEntries = recentMaxPreset === 'custom' ? numVal('input-recent-max-custom', 5) : parseInt(recentMaxPreset, 10);
+    recent.showAmounts = checked('chk-recent-show-amounts', recent.showAmounts);
+    recent.text = Object.assign(readTextStyle(TEXT_PREFIXES.recent, recent.text), {
+      titleTemplate: val('input-recent-title', recent.text.titleTemplate)
+    });
+    recent.canvas = readCanvas(TEXT_PREFIXES.recent, recent.canvas);
+    recent.style = Object.assign({}, recent.style, {
+      accentColor: val('input-recent-accent-color', recent.style.accentColor),
+      rowBgColor: val('input-recent-row-bg-color', recent.style.rowBgColor),
+      backgroundOpacity: numVal('input-recent-bg-opacity', recent.style.backgroundOpacity)
+    });
+    recent.code = {
+      enableCustomCode: checked('chk-enable-recent-custom-code', false),
+      customHTML: val('input-recent-custom-html', ''),
+      customCSS: val('input-recent-custom-css', ''),
+      customJS: val('input-recent-custom-js', '')
     };
 
     config = ConfigSchema.normalizeConfig(config);
@@ -488,7 +511,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const lb = config.widgets.leaderboard;
     setChecked('chk-enable-lb', lb.enabled);
     setVal('input-lb-title', lb.text.titleTemplate || lb.title);
-    setSelectVal('select-lb-max', lb.maxEntries);
+    const lbPresets = ['3', '5', '10', '20'];
+    if (lbPresets.indexOf(String(lb.maxEntries)) !== -1) {
+      setVal('select-lb-max', String(lb.maxEntries));
+      el('input-lb-max-custom').style.display = 'none';
+    } else {
+      setVal('select-lb-max', 'custom');
+      setVal('input-lb-max-custom', lb.maxEntries);
+      el('input-lb-max-custom').style.display = 'block';
+    }
     setChecked('chk-lb-show-amounts', lb.showAmounts);
     setVal('input-lb-accent-color', lb.style.accentColor);
     setVal('input-lb-accent-color-hex', lb.style.accentColor);
@@ -502,7 +533,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     setVal('input-lb-custom-css', lb.code.customCSS);
     setVal('input-lb-custom-js', lb.code.customJS);
 
+    const recent = config.widgets.recent;
+    setChecked('chk-enable-recent', recent.enabled);
+    setVal('input-recent-title', recent.text.titleTemplate || recent.title);
+    const recentPresets = ['3', '5', '10', '20'];
+    if (recentPresets.indexOf(String(recent.maxEntries)) !== -1) {
+      setVal('select-recent-max', String(recent.maxEntries));
+      el('input-recent-max-custom').style.display = 'none';
+    } else {
+      setVal('select-recent-max', 'custom');
+      setVal('input-recent-max-custom', recent.maxEntries);
+      el('input-recent-max-custom').style.display = 'block';
+    }
+    setChecked('chk-recent-show-amounts', recent.showAmounts);
+    setVal('input-recent-accent-color', recent.style.accentColor);
+    setVal('input-recent-accent-color-hex', recent.style.accentColor);
+    setVal('input-recent-row-bg-color', recent.style.rowBgColor);
+    setVal('input-recent-row-bg-color-hex', recent.style.rowBgColor);
+    setVal('input-recent-bg-opacity', recent.style.backgroundOpacity);
+    writeTextStyle(TEXT_PREFIXES.recent, recent.text);
+    writeCanvas(TEXT_PREFIXES.recent, recent.canvas);
+    setChecked('chk-enable-recent-custom-code', recent.code.enableCustomCode);
+    setVal('input-recent-custom-html', recent.code.customHTML);
+    setVal('input-recent-custom-css', recent.code.customCSS);
+    setVal('input-recent-custom-js', recent.code.customJS);
+
     renderSupportersTable();
+    renderRecentTable();
 
     suppressSync = false;
     syncLivePreview();
@@ -551,6 +608,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  function renderRecentTable() {
+    const body = el('recent-table-body');
+    if (!body) return;
+    const history = config.widgets.recent.recentDonations || [];
+
+    if (!history.length) {
+      body.innerHTML = '<tr><td colspan="4" style="padding: 10px; color: var(--text-muted);">No donation history yet</td></tr>';
+      return;
+    }
+
+    body.innerHTML = history.map((r, idx) => `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 6px;">${TemplateEngine.escapeHtml(r.sender)}</td>
+        <td style="padding: 6px;">₹${(parseFloat(r.amountValue) || 0).toLocaleString('en-IN')}</td>
+        <td style="padding: 6px; color: var(--text-muted);">${new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+        <td style="padding: 6px; text-align: right;">
+          <button type="button" class="btn btn-danger btn-remove-recent" data-idx="${idx}" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i> Remove</button>
+        </td>
+      </tr>`).join('');
+
+    if (window.lucide) lucide.createIcons();
+
+    body.querySelectorAll('.btn-remove-recent').forEach(btn => {
+      btn.addEventListener('click', () => {
+        config.widgets.recent.recentDonations.splice(parseInt(btn.dataset.idx, 10), 1);
+        renderRecentTable();
+        syncLivePreview();
+      });
+    });
+  }
+
 
 
   // ── Server IO ────────────────────────────────────────────────
@@ -583,7 +671,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ── Wiring ───────────────────────────────────────────────────
-  const TAB_PREVIEW_URLS = { goal: '/overlay/goal', leaderboard: '/overlay/leaderboard' };
+  const TAB_PREVIEW_URLS = { goal: '/overlay/goal', leaderboard: '/overlay/leaderboard', recent: '/overlay/recent' };
 
   function setupTabs() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1268,10 +1356,56 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast('<i data-lucide="trash-2"></i> Leaderboard cleared and saved');
     });
 
+    // ── Recent helpers
+    on('btn-recent-export', 'click', () => {
+      readFormValues();
+      StorageHelper.exportToFile(config.widgets.recent.recentDonations, 'donation-history.json');
+    });
+
+    on('btn-recent-import', 'click', () => { const f = el('file-import-recent-input'); if (f) f.click(); });
+    on('file-import-recent-input', 'change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          readFormValues();
+          const parsed = JSON.parse(ev.target.result);
+          config.widgets.recent.recentDonations = Array.isArray(parsed) ? parsed : (parsed.recentDonations || []);
+          populateForm(config);
+          showToast('<i data-lucide="download"></i> Recent history imported');
+        } catch (err) {
+          showToast('<i data-lucide="alert-triangle"></i> Invalid JSON');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    on('btn-recent-clear', 'click', () => {
+      readFormValues();
+      config.widgets.recent.recentDonations = [];
+      populateForm(config);
+      showToast('<i data-lucide="trash-2"></i> Local history cleared');
+    });
+
+    on('btn-recent-clear-all', 'click', async () => {
+      const confirmed = await AppModal.show({
+        title: 'Clear Recent History',
+        message: 'Clear every donation from the history? This cannot be undone.'
+      });
+      if (!confirmed) return;
+      readFormValues();
+      config.widgets.recent.recentDonations = [];
+      await saveToServer();
+      showToast('<i data-lucide="trash-2"></i> History cleared and saved');
+    });
+
     // ── Code reset buttons
     [['btn-reset-alert-code', 'alert', ['input-custom-html', 'input-custom-css', 'input-custom-js']],
      ['btn-reset-goal-code', 'goal', ['input-goal-custom-html', 'input-goal-custom-css', 'input-goal-custom-js']],
-     ['btn-reset-lb-code', 'leaderboard', ['input-lb-custom-html', 'input-lb-custom-css', 'input-lb-custom-js']]
+     ['btn-reset-lb-code', 'leaderboard', ['input-lb-custom-html', 'input-lb-custom-css', 'input-lb-custom-js']],
+     ['btn-reset-recent-code', 'recent', ['input-recent-custom-html', 'input-recent-custom-css', 'input-recent-custom-js']]
     ].forEach(([btnId, kind, ids]) => {
       on(btnId, 'click', () => {
         const defaults = ConfigSchema.DEFAULT_CODE[kind];
@@ -1487,10 +1621,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Sync ONLY live goal/leaderboard data to avoid overwriting active user edits in other fields
             config.widgets.goal.currentAmount = newConfig.widgets.goal.currentAmount;
             config.widgets.leaderboard.supporters = newConfig.widgets.leaderboard.supporters;
+            config.widgets.recent.recentDonations = newConfig.widgets.recent.recentDonations;
 
             // Refresh UI components for live data
             setVal('input-goal-current', config.widgets.goal.currentAmount);
             renderSupportersTable();
+            renderRecentTable();
             syncLivePreview();
           }
         } catch (e) {}
@@ -1633,6 +1769,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     on('btn-copy-goal-url-preview', 'click', (e) => copyOverlayUrl('/overlay/goal', 'Goal Overlay', e.currentTarget));
     on('btn-copy-lb-url', 'click', (e) => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay', e.currentTarget));
     on('btn-copy-lb-url-preview', 'click', (e) => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay', e.currentTarget));
+    on('btn-copy-recent-url', 'click', (e) => copyOverlayUrl('/overlay/recent', 'Recent Overlay', e.currentTarget));
+    on('btn-copy-recent-url-preview', 'click', (e) => copyOverlayUrl('/overlay/recent', 'Recent Overlay', e.currentTarget));
+
+    // ── Custom Max Entry Toggles
+    ['lb', 'recent'].forEach(key => {
+      on(`select-${key}-max`, 'change', (e) => {
+        el(`input-${key}-max-custom`).style.display = e.target.value === 'custom' ? 'block' : 'none';
+        syncLivePreview();
+      });
+    });
 
     on('btn-clear-logs', 'click', async () => {
       try {

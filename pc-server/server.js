@@ -369,10 +369,24 @@ function processPaymentForGoalAndLeaderboard(notification) {
 
     const goalWidget = alertSettings.widgets.goal;
     const leaderboardWidget = alertSettings.widgets.leaderboard;
+    const recentWidget = alertSettings.widgets.recent;
 
     goalWidget.currentAmount = (parseFloat(goalWidget.currentAmount) || 0) + effectiveAmount;
     leaderboardWidget.supporters[senderName] =
       (parseFloat(leaderboardWidget.supporters[senderName]) || 0) + effectiveAmount;
+
+    // Add to recent donations (limit to 50 items for history)
+    if (!recentWidget.recentDonations) recentWidget.recentDonations = [];
+    recentWidget.recentDonations.unshift({
+      sender: senderName,
+      amount: notification.amount,
+      amountValue: effectiveAmount,
+      sourceApp: notification.sourceApp,
+      timestamp: notification.timestamp || Date.now()
+    });
+    if (recentWidget.recentDonations.length > 50) {
+      recentWidget.recentDonations = recentWidget.recentDonations.slice(0, 50);
+    }
 
     saveSettings(alertSettings);
     profilesStore.profiles[profilesStore.activeProfile] = alertSettings;
@@ -393,6 +407,7 @@ app.get('/overlay/alerts',      (req, res) => res.sendFile(path.join(__dirname, 
 app.get('/overlay/alert',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/overlay/goal',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
 app.get('/overlay/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
+app.get('/overlay/recent',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'recent.html')));
 app.get('/overlay',             (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/alerts',              (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/alert',               (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));

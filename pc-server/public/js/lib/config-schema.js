@@ -11,7 +11,7 @@
   'use strict';
 
   const CONFIG_VERSION = 2;
-  const WIDGET_KINDS = ['alert', 'goal', 'leaderboard'];
+  const WIDGET_KINDS = ['alert', 'goal', 'leaderboard', 'recent'];
 
   // ── Full Source Default Code ──────────────────────────────────────
   const DEFAULT_CODE = {
@@ -124,6 +124,33 @@
 .rank-1 .lb-badge { background: #ffd700; color: #000; box-shadow: 0 0 10px #ffd700; }
 .lb-amount { font-weight: 700; color: var(--lb-accent-color); font-family: monospace; }`,
       customJS: `console.log('[Leaderboard Sync]');`
+    },
+    recent: {
+      customHTML: `<div class="lb-card">
+  <div class="lb-header">
+    <i data-lucide="history" style="width: 22px; height: 22px; color: var(--recent-accent-color);"></i>
+    <div class="lb-title">{{title}}</div>
+  </div>
+  <div class="lb-list">
+    <!-- Rows are injected by the renderer -->
+  </div>
+</div>`,
+      customCSS: `.lb-card {
+  width: 100%; background: rgba(10, 14, 23, calc(var(--recent-bg-opacity, 88) / 100));
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: var(--recent-border-radius, 16px);
+  padding: var(--recent-border-radius, 18px); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+}
+.lb-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.lb-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--recent-row-bg-color, rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px;
+  padding: 8px 14px; margin-bottom: 8px;
+}
+.lb-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; background: rgba(255,255,255,0.1); }
+.lb-amount { font-weight: 700; color: var(--recent-accent-color); font-family: monospace; }`,
+      customJS: `console.log('[Recent Sync]');`
     }
   };
 
@@ -178,6 +205,28 @@
       text: {
         titleTemplate: 'Top Supporters',
         subtitleTemplate: 'Leaderboard',
+        fontFamily: 'Inter', fontSize: 15, fontSizeUnit: 'px', fontWeight: 700, fontStyle: 'normal',
+        color: '#ffffff', textAlign: 'left', textTransform: 'none', letterSpacing: 0, letterSpacingUnit: 'px', lineHeight: 1.3
+      },
+      style: {
+        backgroundColor: '#0a0e17', backgroundOpacity: 88,
+        accentColor: '#00e5ff', borderRadius: 16, borderWidth: 1, padding: 18,
+        rowBgColor: '#1a1e2b'
+      },
+      animation: { type: 'fade-in', duration: 400, displayDuration: 5000 },
+      layout: { positionPreset: 'center', positionX: 50, positionY: 50, marginX: 0, marginY: 0, width: 450 },
+      code: { enableCustomCode: false, customHTML: '', customCSS: '', customJS: '' }
+    },
+    recent: {
+      enabled: true,
+      title: 'Recent Donations',
+      maxEntries: 5,
+      showAmounts: true,
+      recentDonations: [],
+      canvas: { preset: '1080p', width: 1920, height: 1080 },
+      text: {
+        titleTemplate: 'Recent Donations',
+        subtitleTemplate: 'Last {{count}} payments',
         fontFamily: 'Inter', fontSize: 15, fontSizeUnit: 'px', fontWeight: 700, fontStyle: 'normal',
         color: '#ffffff', textAlign: 'left', textTransform: 'none', letterSpacing: 0, letterSpacingUnit: 'px', lineHeight: 1.3
       },
@@ -397,6 +446,12 @@
         widget.showAmounts = bool(src.showAmounts, defaults.showAmounts);
         widget.supporters = normalizeSupporters(src.supporters);
       }
+      if (kind === 'recent') {
+        widget.title = str(src.title, defaults.title);
+        widget.maxEntries = int(src.maxEntries, defaults.maxEntries, 1, 100);
+        widget.showAmounts = bool(src.showAmounts, defaults.showAmounts);
+        widget.recentDonations = Array.isArray(src.recentDonations) ? src.recentDonations : [];
+      }
       return widget;
     },
 
@@ -410,7 +465,8 @@
         widgets: {
           alert: this.normalizeWidget('alert', WIDGET_DEFAULTS.alert),
           goal: this.normalizeWidget('goal', WIDGET_DEFAULTS.goal),
-          leaderboard: this.normalizeWidget('leaderboard', WIDGET_DEFAULTS.leaderboard)
+          leaderboard: this.normalizeWidget('leaderboard', WIDGET_DEFAULTS.leaderboard),
+          recent: this.normalizeWidget('recent', WIDGET_DEFAULTS.recent)
         },
         filter: { allowedAmounts: [] }
       };
@@ -453,7 +509,8 @@
         widgets: {
           alert: this.normalizeWidget('alert', src.widgets && src.widgets.alert),
           goal: this.normalizeWidget('goal', src.widgets && src.widgets.goal),
-          leaderboard: this.normalizeWidget('leaderboard', src.widgets && src.widgets.leaderboard)
+          leaderboard: this.normalizeWidget('leaderboard', src.widgets && src.widgets.leaderboard),
+          recent: this.normalizeWidget('recent', src.widgets && src.widgets.recent)
         },
         filter: { allowedAmounts }
       };

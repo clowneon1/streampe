@@ -1,0 +1,118 @@
+:root {
+  --recent-bg-opacity: 0.88;
+  --recent-accent-color: #00e5ff;
+  --recent-row-bg-color: rgba(255, 255, 255, 0.04);
+  --recent-border-radius: 16px;
+  --recent-padding: 18px;
+  --recent-width: 450px;
+  --recent-position-x: 50;
+  --recent-position-y: 50;
+  --recent-margin-x: 0px;
+  --recent-margin-y: 0px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+}
+
+#recent-container {
+  position: absolute;
+  left: calc(var(--recent-position-x) * 1%);
+  top: calc(var(--recent-position-y) * 1%);
+  transform: translate(-50%, -50%);
+  margin-left: var(--recent-margin-x);
+  margin-top: var(--recent-margin-y);
+  width: var(--recent-width);
+}
+
+.lb-card {
+  width: 100%;
+  background: rgba(10, 14, 23, var(--recent-bg-opacity));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--recent-border-radius);
+  padding: var(--recent-padding);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  color: #fff;
+}
+
+.lb-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.lb-title {
+  font-family: var(--recent-font-family);
+  font-size: var(--recent-font-size);
+  font-weight: var(--recent-font-weight);
+  font-style: var(--recent-font-style);
+  color: var(--recent-text-color);
+  text-align: var(--recent-text-align);
+  text-transform: var(--recent-text-transform);
+  letter-spacing: var(--recent-letter-spacing);
+  line-height: var(--recent-line-height);
+}
+
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--recent-row-bg-color);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 16px;
+  transition: transform 0.2s ease;
+}
+
+.lb-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lb-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--recent-accent-color);
+}
+
+.lb-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.lb-amount {
+  font-weight: 700;
+  color: var(--recent-accent-color);
+  font-family: 'Fira Code', monospace;
+  font-size: 14px;
+}
+
+.lb-empty {
+  text-align: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+}
