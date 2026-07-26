@@ -15,6 +15,10 @@
         <item name="textInputStyle">@style/Widget.App.TextInputLayout</item>
     </style>
 
+    <style name="Theme.PaymentAlertsOBS.Splash" parent="Theme.PaymentAlertsOBS">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
+
     <style name="Widget.App.Button" parent="Widget.MaterialComponents.Button">
         <item name="android:textAllCaps">false</item>
         <item name="android:letterSpacing">0</item>
