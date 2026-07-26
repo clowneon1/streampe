@@ -362,7 +362,7 @@ function processPaymentForGoalAndLeaderboard(notification) {
     }
 
     const numAmount = parseAmountNum(notification.amount);
-    const effectiveAmount = numAmount > 0 ? numAmount : 500;
+    const effectiveAmount = numAmount > 0 ? numAmount : 0;
     let senderName = (notification.sender || notification.title || 'Unknown').trim();
     if (/received|sent/i.test(senderName))
       senderName = senderName.split(/sent|received/i)[0].trim() || 'Unknown';
@@ -680,19 +680,14 @@ wss.on('connection', (ws, req) => {
 
         log.event('PaymentEvent', `Payment received: ₹${decorated.amount || '0'} from "${decorated.sender || 'Unknown'}" via ${decorated.sourceApp} [Template: ${decorated.alertTemplateName || 'Default'}]`, decorated);
 
-        let overlayTriggered = false;
         obsClients.forEach(client => {
           if (client.readyState === 1) {
             client.send(payload);
-            overlayTriggered = true;
           }
         });
 
-        if (overlayTriggered) {
-          processPaymentForGoalAndLeaderboard(decorated);
-        } else {
-          log.info('Payment', `Overlay not connected — skipping goal & leaderboard for alertId ${decorated.alertId || decorated.id || decorated.timestamp}`);
-        }
+        // Always process for leaderboard/goal regardless of overlay status
+        processPaymentForGoalAndLeaderboard(decorated);
 
       } catch (e) {
         log.error('WS', 'Parse error: ' + e.message);

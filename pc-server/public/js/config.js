@@ -1117,12 +1117,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.target.value = '';
     });
 
-    on('btn-lb-clear-all', 'click', () => {
+    on('btn-lb-clear-all', 'click', async () => {
       if (!confirm('Clear every supporter from the leaderboard?')) return;
       readFormValues();
       config.widgets.leaderboard.supporters = {};
-      populateForm(config);
-      showToast('🗑️ Leaderboard cleared');
+      await saveToServer();
+      showToast('🗑️ Leaderboard cleared and saved');
     });
 
     // ── Code reset buttons
@@ -1296,7 +1296,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       const rawAmount = val('sim-amount', '500');
       const message = val('sim-message', '');
       const forcedId = val('sim-template-override', '');
-      const alertId = val('sim-alert-id', '') || `evt_${Date.now()}`;
+
+      // Generate a fresh unique ID for every dispatch so the server counts it for goal/leaderboard
+      const alertId = `sim_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      setVal('sim-alert-id', alertId);
 
       const rawNotif = buildSimulatedNotification(provider, sender, rawAmount, message);
       rawNotif.alertId = alertId;
@@ -1327,6 +1330,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Network, Live Logs & System Dashboard ───────────────────
   let cachedNetworkInfo = null;
+  let dashboardWs = null;
+
+  function connectDashboardWebSocket() {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    try {
+      dashboardWs = new WebSocket(`${protocol}//${location.host}/obs`);
+      dashboardWs.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'SETTINGS_UPDATED' && msg.payload) {
+            const newConfig = msg.payload;
+            // Sync ONLY live goal/leaderboard data to avoid overwriting active user edits in other fields
+            config.widgets.goal.currentAmount = newConfig.widgets.goal.currentAmount;
+            config.widgets.leaderboard.supporters = newConfig.widgets.leaderboard.supporters;
+
+            // Refresh UI components for live data
+            setVal('input-goal-current', config.widgets.goal.currentAmount);
+            renderSupportersTable();
+            syncLivePreview();
+          }
+        } catch (e) {}
+      };
+      dashboardWs.onclose = () => setTimeout(connectDashboardWebSocket, 3000);
+    } catch (e) {
+      console.warn('[DashboardWS] Failed to connect:', e.message);
+    }
+  }
 
   async function fetchNetworkInfo() {
     try {
@@ -1560,6 +1590,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupNetworkAndSystem();
   setupPanelResizer();
   attachInputListeners();
+  connectDashboardWebSocket();
 
   try {
     const res = await fetch('/api/settings');
