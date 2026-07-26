@@ -43,8 +43,12 @@ No coding required! Follow these simple steps to get started in minutes.
 
 ### 2. Launch the Application
 - Double-click **`Payment Alerts for OBS.exe`** to start the app.
-- The **Widget Customizer Dashboard** will open automatically at `http://127.0.0.1:3000/config`.
-- Take note of your **Mobile Connection IP** displayed at the top header (e.g., `192.168.1.100:3000`).
+- The app starts on **port 2709** by default. If port 2709 is already in use, it automatically picks a random available port.
+- The **Widget Customizer Dashboard** will open at `http://127.0.0.1:<PORT>/config` (port is shown in the **Mobile Connection IP** header inside the app).
+- The exact **Mobile Connection IP** (e.g., `192.168.1.100:2709`) is always displayed in the top header — copy this to connect your Android phone.
+
+> [!NOTE]
+> If the app started on a port other than 2709, check the **Mobile Connection IP** header inside the dashboard for the correct address. Use that same port in your OBS Browser Source URL.
 
 ### 3. Connect Your Android Phone
 - Download and install the companion **Android App APK** on your phone.

@@ -35,6 +35,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => toast.classList.remove('show'), 2400);
   }
 
+  // Works in both HTTPS (navigator.clipboard) and plain HTTP / OBS browser sources (execCommand fallback).
+  // Pass the originating button element as the second argument to get a visual "✓ Copied!" flash animation.
+  function copyToClipboard(text, triggerBtn) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(() => _execCommandCopy(text));
+    } else {
+      _execCommandCopy(text);
+    }
+    if (triggerBtn) _flashCopied(triggerBtn);
+    return Promise.resolve();
+  }
+  function _execCommandCopy(text) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch (_) {}
+  }
+  function _flashCopied(btn) {
+    if (!btn || btn._copying) return;
+    btn._copying = true;
+    const original = btn.innerHTML;
+    const originalBg = btn.style.background;
+    const originalColor = btn.style.color;
+    const originalBorder = btn.style.border;
+    btn.innerHTML = '✓ Copied!';
+    btn.style.background = '#00e676';
+    btn.style.color = '#000';
+    btn.style.border = '1.5px solid #00e676';
+    btn.classList.add('btn-copy-flash');
+    setTimeout(() => {
+      btn.innerHTML = original;
+      btn.style.background = originalBg;
+      btn.style.color = originalColor;
+      btn.style.border = originalBorder;
+      btn.classList.remove('btn-copy-flash');
+      btn._copying = false;
+    }, 1600);
+  }
+
   // ── Generic field helpers ────────────────────────────────────
   const val = (id, fallback) => {
     const node = el(id);
@@ -775,7 +820,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           textarea.value = textarea.value.substring(0, start) + insert + textarea.value.substring(start);
           textarea.focus();
         }
-        if (navigator.clipboard) navigator.clipboard.writeText(selector).catch(() => {});
+        copyToClipboard(selector).catch(() => {});
         showToast(`📋 Copied selector "${selector}"`);
       });
     });
@@ -1379,16 +1424,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initWindowsStartup();
 
-    on('btn-copy-ip', 'click', () => {
+    on('btn-copy-ip', 'click', (e) => {
       const ipText = cachedNetworkInfo ? `${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : (el('net-ip-display') ? el('net-ip-display').textContent : '');
-      if (navigator.clipboard && ipText) {
-        navigator.clipboard.writeText(ipText).then(() => {
-          showToast(`📋 Copied Mobile IP: ${ipText}`);
-        }).catch(() => {
-          showToast(`📋 Mobile IP: ${ipText}`);
-        });
+      if (ipText) {
+        copyToClipboard(ipText, e.currentTarget);
+        showToast(`📋 Copied Mobile IP: ${ipText}`);
       } else {
-        showToast(`📋 Mobile IP: ${ipText}`);
+        showToast('⚠️ No IP available yet');
       }
     });
 
@@ -1397,7 +1439,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const res = await fetch('/api/system/firewall', { method: 'POST' });
         const data = await res.json();
         if (data.ok) {
-          showToast('🛡️ Unblocked Windows Firewall Port 3000!');
+          showToast('🛡️ Unblocked Windows Firewall!');
         } else {
           showToast('⚠️ Firewall update error: ' + (data.error || 'Failed'));
         }
@@ -1406,25 +1448,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    function copyOverlayUrl(path, label) {
+    function copyOverlayUrl(path, label, btn) {
       const base = cachedNetworkInfo ? `http://${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : location.origin;
       const fullUrl = `${base}${path}`;
-      if (navigator.clipboard && fullUrl) {
-        navigator.clipboard.writeText(fullUrl).then(() => {
-          showToast(`📋 Copied ${label} URL: ${fullUrl}`);
-        }).catch(() => {
-          showToast(`📋 ${label} URL: ${fullUrl}`);
-        });
-      } else {
-        showToast(`📋 ${label} URL: ${fullUrl}`);
-      }
+      copyToClipboard(fullUrl, btn);
+      showToast(`📋 Copied ${label} URL: ${fullUrl}`);
     }
 
-    on('btn-copy-alert-url', 'click', () => copyOverlayUrl('/overlay/alerts', 'Alert Overlay'));
-    on('btn-copy-goal-url', 'click', () => copyOverlayUrl('/overlay/goal', 'Goal Overlay'));
-    on('btn-copy-goal-url-preview', 'click', () => copyOverlayUrl('/overlay/goal', 'Goal Overlay'));
-    on('btn-copy-lb-url', 'click', () => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay'));
-    on('btn-copy-lb-url-preview', 'click', () => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay'));
+    on('btn-copy-alert-url', 'click', (e) => copyOverlayUrl('/overlay/alerts', 'Alert Overlay', e.currentTarget));
+    on('btn-copy-goal-url', 'click', (e) => copyOverlayUrl('/overlay/goal', 'Goal Overlay', e.currentTarget));
+    on('btn-copy-goal-url-preview', 'click', (e) => copyOverlayUrl('/overlay/goal', 'Goal Overlay', e.currentTarget));
+    on('btn-copy-lb-url', 'click', (e) => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay', e.currentTarget));
+    on('btn-copy-lb-url-preview', 'click', (e) => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay', e.currentTarget));
 
     on('btn-clear-logs', 'click', async () => {
       try {
@@ -1471,8 +1506,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (savedWidth) {
       formPanel.style.flex = `0 0 ${savedWidth}px`;
     } else {
-      // Default initial width gives plenty of space to live preview
-      const initialWidth = Math.min(520, Math.floor(mainView.clientWidth * 0.48));
+      // Default initial width — generous form space, preview still visible
+      const initialWidth = Math.min(620, Math.floor(mainView.clientWidth * 0.52));
       formPanel.style.flex = `0 0 ${initialWidth}px`;
     }
 

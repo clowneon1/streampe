@@ -494,7 +494,7 @@ function getActiveWsCount(clientSet) {
 app.get('/api/network-info', (req, res) => {
   const interfaces = getLocalIpAddresses();
   const primaryIp = getPrimaryIp();
-  const port = process.env.PORT || 3000;
+  const port = server.address() ? server.address().port : (process.env.PORT || 3000);
   res.json({
     primaryIp,
     port,
@@ -721,16 +721,42 @@ const heartbeat = setInterval(() => {
 
 wss.on('close', () => clearInterval(heartbeat));
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-  ensureWindowsFirewallRule();
-  const primaryIp = getPrimaryIp();
-  const ips = getLocalIpAddresses();
-  log.info('Server', `\n🚀 Payment Alerts for OBS PC Server Running!`);
-  log.info('Server', `   -------------------------------------------------`);
-  log.info('Server', `   📱 Mobile App Connection IP: http://${primaryIp}:${PORT}`);
-  ips.forEach(ip => log.info('Server', `      Network Adapter [${ip.name}]: ${ip.address}`));
-  log.info('Server', `   🖥️ OBS Config Dashboard:   http://${primaryIp}:${PORT}/config`);
-  log.info('Server', `   📡 OBS Alert Overlay:       http://${primaryIp}:${PORT}/overlay/alerts`);
-  log.info('Server', `   -------------------------------------------------`);
-});
+// Absorb errors forwarded from the http server to the WebSocketServer
+// so they don't become unhandled rejections before our http error handler fires.
+wss.on('error', () => {});
+
+// HTTP and WS share the same underlying server — one port covers both.
+const PREFERRED_PORT = parseInt(process.env.PORT || '2709', 10);
+
+function startServer(port) {
+  server.listen(port, '0.0.0.0');
+
+  server.once('listening', () => {
+    const actualPort = server.address().port;
+    if (actualPort !== PREFERRED_PORT) {
+      log.warn('Server', `⚠️  Port ${PREFERRED_PORT} was in use — started on fallback port ${actualPort}`);
+    }
+    ensureWindowsFirewallRule();
+    const primaryIp = getPrimaryIp();
+    const ips = getLocalIpAddresses();
+    log.info('Server', `\n🚀 Payment Alerts for OBS PC Server Running!`);
+    log.info('Server', `   -------------------------------------------------`);
+    log.info('Server', `   📱 Mobile App Connection IP: http://${primaryIp}:${actualPort}`);
+    ips.forEach(ip => log.info('Server', `      Network Adapter [${ip.name}]: ${ip.address}`));
+    log.info('Server', `   🖥️ OBS Config Dashboard:   http://${primaryIp}:${actualPort}/config`);
+    log.info('Server', `   📡 OBS Alert Overlay:       http://${primaryIp}:${actualPort}/overlay/alerts`);
+    log.info('Server', `   -------------------------------------------------`);
+  });
+
+  server.once('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      log.warn('Server', `Port ${port} is already in use — retrying on a random available port...`);
+      server.close(() => startServer(0));
+    } else {
+      log.error('Server', `Failed to start server: ${err.message}`);
+      process.exit(1);
+    }
+  });
+}
+
+startServer(PREFERRED_PORT);
