@@ -57,8 +57,9 @@ body, html {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--lb-border-radius, 16px);
   padding: var(--lb-padding, 18px);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 229, 255, 0.15);
-  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, calc(var(--lb-bg-opacity, 88) / 100 * 0.5)), 0 0 20px rgba(0, 229, 255, calc(var(--lb-bg-opacity, 88) / 100 * 0.15));
+  backdrop-filter: blur(calc(var(--lb-bg-opacity, 88) / 100 * 12px));
+  -webkit-backdrop-filter: blur(calc(var(--lb-bg-opacity, 88) / 100 * 12px));
   pointer-events: auto;
 }
 

@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const node = el(id);
     if (node) node.addEventListener(evt, fn);
   };
-  const TEXT_PREFIXES = { template: 'tpl', alert: 'alert', goal: 'goal', leaderboard: 'lb', recent: 'recent' };
+  const TEXT_PREFIXES = { template: 'tpl', alert: 'alert', goal: 'goal', leaderboard: 'lb', recent: 'recent', cycling: 'cycling' };
 
   let config = ConfigSchema.createDefaultConfig();
   let suppressSync = false;
@@ -41,7 +41,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       { id: 'input-lb-custom-js', mode: 'javascript' },
       { id: 'input-recent-custom-html', mode: 'htmlmixed' },
       { id: 'input-recent-custom-css', mode: 'css' },
-      { id: 'input-recent-custom-js', mode: 'javascript' }
+      { id: 'input-recent-custom-js', mode: 'javascript' },
+      { id: 'input-cycling-custom-html', mode: 'htmlmixed' },
+      { id: 'input-cycling-custom-css', mode: 'css' },
+      { id: 'input-cycling-custom-js', mode: 'javascript' }
     ];
 
     editorConfigs.forEach(conf => {
@@ -517,6 +520,51 @@ document.addEventListener('DOMContentLoaded', async () => {
       customJS: val('input-recent-custom-js', '')
     };
 
+    const cycling = config.widgets.cycling || {};
+    cycling.enabled = checked('chk-enable-cycling', !!cycling.enabled);
+    cycling.cycleDuration = numVal('input-cycling-duration', 5000);
+    cycling.transitionIn = val('select-cycling-in-effect', 'slide-up');
+    cycling.transitionOut = val('select-cycling-out-effect', 'slide-up');
+    cycling.transitionInDuration = numVal('input-cycling-in-duration', 500);
+    cycling.transitionOutDuration = numVal('input-cycling-out-duration', 400);
+    cycling.transitionEffect = cycling.transitionIn;
+    cycling.items = readCyclingItems();
+    cycling.text = Object.assign(readTextStyle(TEXT_PREFIXES.cycling, cycling.text || {}), {
+      labelFontSize: numVal('cycling-label-font-size', 11),
+      labelColor: val('cycling-label-color-hex') || val('cycling-label-color', '#00e5ff'),
+      labelTransform: val('cycling-label-transform', 'uppercase')
+    });
+    cycling.canvas = readCanvas(TEXT_PREFIXES.cycling, cycling.canvas || {});
+    cycling.style = Object.assign({}, cycling.style || {}, {
+      backgroundColor: val('input-cycling-bg-color-hex') || val('input-cycling-bg-color', '#0a0e17'),
+      backgroundOpacity: numVal('input-cycling-bg-opacity', 85),
+      accentColor: val('input-cycling-accent-color-hex') || val('input-cycling-accent-color', '#00e5ff'),
+      borderColor: val('input-cycling-border-color-hex') || val('input-cycling-border-color', '#ffffff22'),
+      borderWidth: numVal('input-cycling-border-width', 1),
+      borderRadius: numVal('input-cycling-border-radius', 14),
+      padding: numVal('input-cycling-padding', 16),
+      mediaSize: numVal('input-cycling-media-size', 32),
+      mediaBgColor: val('input-cycling-media-bg-hex') || val('input-cycling-media-bg', '#00e5ff1a'),
+      mediaRadius: numVal('input-cycling-media-radius', 8)
+    });
+
+    const cyclingPreset = val('cycling-position-preset', 'bottom-left');
+    const cyclingAnchor = ConfigSchema.POSITION_PRESETS[cyclingPreset] || { x: 10, y: 90 };
+    cycling.layout = {
+      positionPreset: cyclingPreset,
+      positionX: cyclingAnchor.x,
+      positionY: cyclingAnchor.y,
+      width: numVal('cycling-layout-width', 350)
+    };
+
+    cycling.code = {
+      enableCustomCode: checked('chk-enable-cycling-custom-code', false),
+      customHTML: val('input-cycling-custom-html', ''),
+      customCSS: val('input-cycling-custom-css', ''),
+      customJS: val('input-cycling-custom-js', '')
+    };
+
+    config.widgets.cycling = cycling;
     config = ConfigSchema.normalizeConfig(config);
     return config;
   }
@@ -652,6 +700,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     setVal('input-recent-custom-css', recent.code.customCSS);
     setVal('input-recent-custom-js', recent.code.customJS);
 
+    const cycling = config.widgets.cycling;
+    if (cycling) {
+      setChecked('chk-enable-cycling', cycling.enabled);
+      setVal('input-cycling-duration', cycling.cycleDuration);
+      setSelectVal('select-cycling-in-effect', cycling.transitionIn || cycling.transitionEffect || 'slide-up');
+      setSelectVal('select-cycling-out-effect', cycling.transitionOut || cycling.transitionEffect || 'slide-up');
+      setVal('input-cycling-in-duration', cycling.transitionInDuration || 500);
+      setVal('input-cycling-out-duration', cycling.transitionOutDuration || 400);
+      renderCyclingItems(cycling.items || []);
+      if (cycling.text) {
+        writeTextStyle(TEXT_PREFIXES.cycling, cycling.text);
+        setVal('cycling-label-font-size', cycling.text.labelFontSize || 11);
+        setVal('cycling-label-color', cycling.text.labelColor || cycling.style?.accentColor || '#00e5ff');
+        setVal('cycling-label-color-hex', cycling.text.labelColor || cycling.style?.accentColor || '#00e5ff');
+        setSelectVal('cycling-label-transform', cycling.text.labelTransform || 'uppercase');
+      }
+      if (cycling.canvas) writeCanvas(TEXT_PREFIXES.cycling, cycling.canvas);
+      if (cycling.style) {
+        setVal('input-cycling-bg-color', cycling.style.backgroundColor);
+        setVal('input-cycling-bg-color-hex', cycling.style.backgroundColor);
+        setVal('input-cycling-bg-opacity', cycling.style.backgroundOpacity);
+        setVal('input-cycling-accent-color', cycling.style.accentColor);
+        setVal('input-cycling-accent-color-hex', cycling.style.accentColor);
+        setVal('input-cycling-border-color', cycling.style.borderColor || '#ffffff22');
+        setVal('input-cycling-border-color-hex', cycling.style.borderColor || '#ffffff22');
+        setVal('input-cycling-border-width', cycling.style.borderWidth ?? 1);
+        setVal('input-cycling-border-radius', cycling.style.borderRadius);
+        setVal('input-cycling-padding', cycling.style.padding);
+        setVal('input-cycling-media-size', cycling.style.mediaSize ?? 32);
+        setVal('input-cycling-media-bg', cycling.style.mediaBgColor || '#00e5ff1a');
+        setVal('input-cycling-media-bg-hex', cycling.style.mediaBgColor || '#00e5ff1a');
+        setVal('input-cycling-media-radius', cycling.style.mediaRadius ?? 8);
+      }
+      if (cycling.layout) {
+        setSelectVal('cycling-position-preset', cycling.layout.positionPreset);
+        setVal('cycling-layout-width', cycling.layout.width);
+      }
+      if (cycling.code) {
+        setChecked('chk-enable-cycling-custom-code', cycling.code.enableCustomCode);
+        setVal('input-cycling-custom-html', cycling.code.customHTML);
+        setVal('input-cycling-custom-css', cycling.code.customCSS);
+        setVal('input-cycling-custom-js', cycling.code.customJS);
+      }
+    }
+
     renderSupportersTable();
     renderRecentTable();
 
@@ -665,7 +758,170 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderTemplateList();
     if (iframe && iframe.contentWindow) {
       iframe.contentWindow.postMessage({ type: 'SETTINGS_UPDATED', payload: config }, '*');
+      iframe.contentWindow.postMessage({ type: 'config', config: config }, '*');
     }
+  }
+
+  // ── Cycling Widget Item Manager ──────────────────────────────
+  function renderCyclingItems(items) {
+    const list = el('cycling-items-list');
+    if (!list) return;
+
+    if (!items || !items.length) {
+      list.innerHTML = '<p class="panel-desc">No items added to cycle. Click the buttons below to add items like Top Supporter, Recent Donation, or Custom Social links.</p>';
+      return;
+    }
+
+    list.innerHTML = items.map((item, idx) => {
+      const isCustom = item.type === 'custom' || item.type === 'social';
+      const typeLabel = isCustom ? 'Custom Item' : (item.type === 'top_supporter' ? 'Top Supporter' : 'Recent Donation');
+      const placeholderText = isCustom ? 'Text to display' : 'Label (e.g. Top Supporter)';
+      const mediaType = item.mediaType || (item.imageUrl ? 'image' : 'icon');
+
+      return `
+        <div class="cycling-item-row" data-type="${item.type}" data-idx="${idx}" style="display: flex; flex-direction: column; gap: 8px; padding: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="item-type-badge">${typeLabel}</div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <select class="form-control item-media-type" style="width: 110px; font-size: 11px; padding: 3px 6px;">
+                <option value="icon"${mediaType === 'icon' ? ' selected' : ''}>Lucide Icon</option>
+                <option value="image"${mediaType === 'image' ? ' selected' : ''}>Custom Image</option>
+              </select>
+              <button type="button" class="btn btn-danger btn-remove-cycling-item" style="padding: 3px 8px;" title="Remove item"><i data-lucide="trash-2"></i></button>
+            </div>
+          </div>
+          <div class="item-fields" style="display: flex; gap: 8px; align-items: center;">
+            <div class="item-icon-wrapper" style="display: ${mediaType === 'image' ? 'none' : 'flex'}; flex: 0 0 160px; gap: 4px;">
+              <input type="text" class="form-control item-icon" placeholder="Icon name" value="${TemplateEngine.escapeHtml(item.icon || 'star')}" style="flex: 1;" title="Lucide icon name" />
+              <button type="button" class="btn btn-secondary btn-open-icon-picker" style="padding: 4px 8px;" title="Pick icon from library"><i data-lucide="grid"></i></button>
+            </div>
+            <div class="item-image-wrapper" style="display: ${mediaType === 'image' ? 'flex' : 'none'}; flex: 1; gap: 6px; align-items: center;">
+              <input type="text" class="form-control item-image-url" placeholder="Image URL or Base64 data" value="${TemplateEngine.escapeHtml(item.imageUrl || '')}" style="flex: 1;" />
+              <button type="button" class="btn btn-secondary btn-upload-item-img" style="font-size: 11px; padding: 4px 8px; white-space: nowrap;"><i data-lucide="image"></i> Browse</button>
+              <input type="file" class="item-img-file-input" accept="image/*" style="display: none;" />
+            </div>
+            <input type="text" class="form-control item-text-field" placeholder="${placeholderText}" value="${TemplateEngine.escapeHtml(isCustom ? (item.text || '') : (item.label || ''))}" style="flex: 1;" />
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons();
+
+    list.querySelectorAll('.cycling-item-row').forEach(row => {
+      const mediaSelect = row.querySelector('.item-media-type');
+      const iconWrapper = row.querySelector('.item-icon-wrapper');
+      const imageWrapper = row.querySelector('.item-image-wrapper');
+      const iconInput = row.querySelector('.item-icon');
+      const iconPickerBtn = row.querySelector('.btn-open-icon-picker');
+      const browseBtn = row.querySelector('.btn-upload-item-img');
+      const fileInput = row.querySelector('.item-img-file-input');
+      const imgUrlInput = row.querySelector('.item-image-url');
+
+      if (iconPickerBtn && iconInput) {
+        iconPickerBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          openIconPicker(iconInput);
+        });
+      }
+
+      mediaSelect.addEventListener('change', (e) => {
+        const showImage = e.target.value === 'image';
+        iconWrapper.style.display = showImage ? 'none' : 'flex';
+        imageWrapper.style.display = showImage ? 'flex' : 'none';
+        syncLivePreview();
+      });
+
+      browseBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          imgUrlInput.value = ev.target.result;
+          syncLivePreview();
+          showToast(`📁 Loaded image for item: ${file.name}`);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    list.querySelectorAll('.btn-remove-cycling-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.closest('.cycling-item-row').remove();
+        syncLivePreview();
+      });
+    });
+
+    list.querySelectorAll('input, select').forEach(input => {
+      input.addEventListener('input', () => syncLivePreview());
+      input.addEventListener('change', () => syncLivePreview());
+    });
+  }
+
+  function readCyclingItems() {
+    const list = el('cycling-items-list');
+    if (!list) return [];
+    return Array.from(list.querySelectorAll('.cycling-item-row')).map(row => {
+      const type = row.dataset.type;
+      const isCustom = type === 'custom' || type === 'social';
+      const mediaType = row.querySelector('.item-media-type')?.value || 'icon';
+      const rawIcon = row.querySelector('.item-icon')?.value || '';
+      const imageUrl = row.querySelector('.item-image-url')?.value || '';
+      const rawVal = row.querySelector('.item-text-field')?.value || '';
+
+      const defaultIcon = type === 'top_supporter' ? 'trophy' : (type === 'recent_donation' ? 'history' : 'star');
+      const defaultLabel = type === 'top_supporter' ? 'Top Supporter' : (type === 'recent_donation' ? 'Recent Donation' : '');
+
+      const item = {
+        type,
+        mediaType,
+        icon: rawIcon.trim() || defaultIcon,
+        imageUrl
+      };
+      if (isCustom) {
+        item.text = rawVal;
+      } else {
+        item.label = rawVal.trim() || defaultLabel;
+      }
+      return item;
+    });
+  }
+
+  function setupCyclingWidgetEditor() {
+    document.querySelectorAll('.btn-add-cycling-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.type;
+        const items = readCyclingItems();
+        const newItem = { type, icon: 'star' };
+
+        if (type === 'top_supporter') {
+          newItem.label = 'Top Supporter';
+          newItem.icon = 'trophy';
+        } else if (type === 'recent_donation') {
+          newItem.label = 'Recent Donation';
+          newItem.icon = 'history';
+        } else {
+          newItem.text = 'Follow @yourname';
+          newItem.icon = 'share-2';
+        }
+
+        items.push(newItem);
+        renderCyclingItems(items);
+        syncLivePreview();
+      });
+    });
+
+    on('btn-copy-cycling-url', 'click', (e) => {
+      const base = cachedNetworkInfo ? `http://${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : location.origin;
+      const url = `${base}/overlay/cycling-widget`;
+      copyToClipboard(url, e.currentTarget);
+      showToast('<i data-lucide="copy"></i> Copied Cycling Widget URL');
+    });
   }
 
   // ── Supporters table ─────────────────────────────────────────
@@ -737,35 +993,57 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Server IO ────────────────────────────────────────────────
   async function saveToServer(profileName) {
+    console.log('[Server IO] Saving profile to server:', profileName);
     readFormValues();
-    const res = await fetch('/api/profiles/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: profileName || el('select-profile').value || 'Default', settings: config })
-    });
-    const data = await res.json();
-    if (data.ok) populateForm(data.settings);
-    return data;
+    const targetName = profileName || (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+    try {
+      const res = await fetch('/api/profiles/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: targetName, settings: config })
+      });
+      const data = await res.json();
+      console.log('[Server IO] Save response:', data);
+      if (data.ok && data.settings) {
+        populateForm(data.settings);
+        if (data.profiles) await loadProfilesList(data.activeProfile);
+      }
+      return data;
+    } catch (err) {
+      console.error('[Server IO] Save profile error:', err);
+      return { ok: false, error: err.message };
+    }
   }
 
   async function loadProfilesList(activeProfile) {
     const select = el('select-profile');
     if (!select) return;
     try {
+      console.log('[Profiles] Requesting profile list from /api/profiles...');
       const res = await fetch('/api/profiles');
       const data = await res.json();
+      console.log('[Profiles] Received profiles data:', data);
       if (!data || !data.profiles) return;
-      const active = activeProfile || data.activeProfile;
-      select.innerHTML = Object.keys(data.profiles).map(name =>
+      const profileNames = Array.isArray(data.profiles)
+        ? data.profiles
+        : Object.keys(data.profiles);
+      const active = activeProfile || data.activeProfile || profileNames[0] || 'Default';
+      console.log('[Profiles] Populating select dropdown with profiles:', profileNames, '| Active:', active);
+      select.innerHTML = profileNames.map(name =>
         `<option value="${TemplateEngine.escapeHtml(name)}"${name === active ? ' selected' : ''}>${TemplateEngine.escapeHtml(name)}</option>`
       ).join('');
     } catch (e) {
-      console.warn('[Profiles] Failed to load profiles list:', e.message);
+      console.error('[Profiles] Failed to load profiles list:', e);
     }
   }
 
   // ── Wiring ───────────────────────────────────────────────────
-  const TAB_PREVIEW_URLS = { goal: '/overlay/goal', leaderboard: '/overlay/leaderboard', recent: '/overlay/recent' };
+  const TAB_PREVIEW_URLS = {
+    goal: '/overlay/goal',
+    leaderboard: '/overlay/leaderboard',
+    recent: '/overlay/recent',
+    cycling: '/overlay/cycling-widget'
+  };
 
   function setupTabs() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -844,6 +1122,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       ['input-goal-fill-color2', 'input-goal-fill-color2-hex'],
       ['input-goal-bar-color', 'input-goal-bar-color-hex'],
       ['input-goal-bg-color', 'input-goal-bg-color-hex'],
+      ['input-cycling-bg-color', 'input-cycling-bg-color-hex'],
+      ['input-cycling-accent-color', 'input-cycling-accent-color-hex'],
+      ['input-cycling-border-color', 'input-cycling-border-color-hex'],
+      ['input-cycling-media-bg', 'input-cycling-media-bg-hex'],
+      ['cycling-label-color', 'cycling-label-color-hex'],
       ['input-lb-accent-color', 'input-lb-accent-color-hex'],
       ['input-lb-row-bg-color', 'input-lb-row-bg-color-hex'],
       ...Object.keys(TEXT_PREFIXES).map(k => [`${TEXT_PREFIXES[k]}-text-color`, `${TEXT_PREFIXES[k]}-text-color-hex`])
@@ -854,8 +1137,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       const hex = el(hexId);
       if (!picker || !hex) return;
       picker.addEventListener('input', () => { hex.value = picker.value; syncLivePreview(); });
-      hex.addEventListener('change', () => {
-        if (/^#[0-9a-f]{6}$/i.test(hex.value)) { picker.value = hex.value; syncLivePreview(); }
+      ['input', 'change'].forEach(evt => {
+        hex.addEventListener(evt, () => {
+          let valStr = hex.value.trim();
+          if (!valStr.startsWith('#')) valStr = '#' + valStr;
+          if (/^#[0-9a-f]{6}$/i.test(valStr)) { picker.value = valStr; }
+          syncLivePreview();
+        });
       });
     });
   }
@@ -1135,14 +1423,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function attachInputListeners() {
-    document.querySelectorAll('.form-control').forEach(input => {
-      if (input.closest('#amount-filter-list') || input.id === 'select-template' || input.id === 'select-profile') return;
+    document.querySelectorAll('.form-control, .color-picker, input, select, textarea').forEach(input => {
+      if (input.closest('#amount-filter-list') || input.id === 'select-template' || input.id === 'select-profile' || input.id === 'icon-search-input') return;
       ['input', 'change'].forEach(evt => input.addEventListener(evt, () => {
         syncLivePreview();
       }));
-    });
-    document.querySelectorAll('input[type="checkbox"]').forEach(input => {
-      input.addEventListener('change', () => syncLivePreview());
     });
     ['input-custom-html', 'input-custom-css', 'input-custom-js'].forEach(id => {
       const node = el(id);
@@ -1530,7 +1815,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     [['btn-reset-alert-code', 'alert', ['input-custom-html', 'input-custom-css', 'input-custom-js']],
      ['btn-reset-goal-code', 'goal', ['input-goal-custom-html', 'input-goal-custom-css', 'input-goal-custom-js']],
      ['btn-reset-lb-code', 'leaderboard', ['input-lb-custom-html', 'input-lb-custom-css', 'input-lb-custom-js']],
-     ['btn-reset-recent-code', 'recent', ['input-recent-custom-html', 'input-recent-custom-css', 'input-recent-custom-js']]
+     ['btn-reset-recent-code', 'recent', ['input-recent-custom-html', 'input-recent-custom-css', 'input-recent-custom-js']],
+     ['btn-reset-cycling-code', 'cycling', ['input-cycling-custom-html', 'input-cycling-custom-css', 'input-cycling-custom-js']]
     ].forEach(([btnId, kind, ids]) => {
       on(btnId, 'click', () => {
         const defaults = ConfigSchema.DEFAULT_CODE[kind];
@@ -1893,6 +2179,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     on('btn-copy-goal-url', 'click', (e) => copyOverlayUrl('/overlay/goal', 'Goal Overlay', e.currentTarget));
     on('btn-copy-lb-url', 'click', (e) => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay', e.currentTarget));
     on('btn-copy-recent-url', 'click', (e) => copyOverlayUrl('/overlay/recent', 'Recent Overlay', e.currentTarget));
+    on('btn-copy-cycling-url', 'click', (e) => copyOverlayUrl('/overlay/cycling-widget', 'Cycling Overlay', e.currentTarget));
 
     on('btn-copy-current-url', 'click', (e) => {
       if (!iframe) return;
@@ -2035,11 +2322,81 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  let activeIconInput = null;
+  const LUCIDE_ICONS_LIST = [
+    'trophy', 'star', 'crown', 'gamepad-2', 'tv', 'monitor', 'headphones', 'mic', 'music', 'video', 'camera',
+    'sparkles', 'flame', 'zap', 'history', 'heart', 'gift', 'award', 'dollar-sign', 'credit-card', 'coins',
+    'banknote', 'wallet', 'piggy-bank', 'shopping-bag', 'shopping-cart', 'share-2', 'send', 'message-square',
+    'message-circle', 'mail', 'globe', 'thumbs-up', 'smile', 'user', 'users', 'user-check', 'user-plus',
+    'shield', 'badge-check', 'bell', 'coffee', 'compass', 'flag', 'home', 'image', 'info', 'key', 'link',
+    'list', 'map-pin', 'rocket', 'search', 'settings', 'target', 'check', 'hash', 'at-sign', 'sun', 'moon',
+    'circle', 'check-circle', 'alert-circle', 'box', 'layers', 'package'
+  ];
+
+  function openIconPicker(targetInput) {
+    activeIconInput = targetInput;
+    const modal = el('icon-picker-modal');
+    const searchInput = el('icon-search-input');
+    const grid = el('icon-grid');
+    if (!modal || !grid) return;
+    if (searchInput) searchInput.value = '';
+    modal.style.display = 'flex';
+    renderIconGrid('');
+  }
+
+  function renderIconGrid(query) {
+    const grid = el('icon-grid');
+    const modal = el('icon-picker-modal');
+    if (!grid) return;
+    const q = (query || '').toLowerCase().trim();
+    const filtered = q ? LUCIDE_ICONS_LIST.filter(name => name.includes(q)) : LUCIDE_ICONS_LIST;
+
+    if (!filtered.length) {
+      grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 16px;">No icons found matching your search.</div>';
+      return;
+    }
+
+    grid.innerHTML = filtered.map(name => `
+      <button type="button" class="btn btn-secondary icon-picker-item" data-icon="${name}" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px 4px; font-size: 11px;">
+        <i data-lucide="${name}" style="width: 20px; height: 20px;"></i>
+        <span style="font-size: 10px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;">${name}</span>
+      </button>
+    `).join('');
+
+    if (window.lucide) lucide.createIcons();
+
+    grid.querySelectorAll('.icon-picker-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (activeIconInput) {
+          activeIconInput.value = btn.dataset.icon;
+          syncLivePreview();
+          showToast(`Selected icon: ${btn.dataset.icon}`);
+        }
+        if (modal) modal.style.display = 'none';
+      });
+    });
+  }
+
+  function setupIconPicker() {
+    const modal = el('icon-picker-modal');
+    const closeBtn = el('icon-picker-close');
+    const searchInput = el('icon-search-input');
+    if (!modal) return;
+    if (closeBtn) closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.style.display = 'none';
+    });
+    if (searchInput) {
+      searchInput.addEventListener('input', () => renderIconGrid(searchInput.value));
+    }
+  }
+
   function setupBoxExpanders() {
-    // CSS-based vertical resize is used instead of JS toggle
+    console.log('[Config] Initializing box expanders');
   }
 
   // ── Boot ─────────────────────────────────────────────────────
+  console.log('[Config] Starting dashboard boot sequence...');
   initCodeEditors();
   setupTabs();
   setupCodeEditorTabs();
@@ -2049,6 +2406,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupCanvasPresets();
   setupAmountFilterEditor();
   setupTemplateManager();
+  setupCyclingWidgetEditor();
+  setupIconPicker();
   setupFileBrowsers();
   setupSnippets();
   setupCodeAutoSeeding();
@@ -2061,12 +2420,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   connectDashboardWebSocket();
 
   try {
+    console.log('[Config] Fetching settings from /api/settings...');
     const res = await fetch('/api/settings');
     const data = await res.json();
+    console.log('[Config] Loaded settings payload:', data);
     await loadProfilesList(data.activeProfile);
     populateForm(data.settings || data);
+    console.log('[Config] Dashboard boot sequence completed successfully.');
   } catch (e) {
-    console.error('[Config] Failed to load settings, using defaults:', e);
+    console.error('[Config] Failed to load settings from server, falling back to defaults:', e);
     populateForm(ConfigSchema.createDefaultConfig());
   }
   updateSnippetButtonStates();

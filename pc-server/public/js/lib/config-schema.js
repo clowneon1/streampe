@@ -11,7 +11,7 @@
   'use strict';
 
   const CONFIG_VERSION = 2;
-  const WIDGET_KINDS = ['alert', 'goal', 'leaderboard', 'recent'];
+  const WIDGET_KINDS = ['alert', 'goal', 'leaderboard', 'recent', 'cycling'];
 
   // ── Full Source Default Code ──────────────────────────────────────
   const DEFAULT_CODE = {
@@ -151,6 +151,27 @@
 .lb-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; background: rgba(255,255,255,0.1); }
 .lb-amount { font-weight: 700; color: var(--recent-accent-color); font-family: monospace; }`,
       customJS: `console.log('[Recent Sync]');`
+    },
+    cycling: {
+      customHTML: `<div class="cycling-card effect-in-{{transitionIn}}">
+  <div class="cycling-icon">{{mediaHtml}}</div>
+  <div class="cycling-content">
+    <div class="cycling-label">{{label}}</div>
+    <div class="cycling-text">{{text}}</div>
+  </div>
+</div>`,
+      customCSS: `.cycling-card {
+  background: var(--cycling-bg-color);
+  border: var(--cycling-border-width, 1px) solid var(--cycling-border-color, rgba(255, 255, 255, 0.1));
+  border-radius: var(--cycling-border-radius, 14px);
+  padding: var(--cycling-padding, 16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, var(--cycling-bg-opacity, 0.85));
+  backdrop-filter: blur(calc(var(--cycling-bg-opacity, 0.85) * 10px));
+  -webkit-backdrop-filter: blur(calc(var(--cycling-bg-opacity, 0.85) * 10px));
+}
+.cycling-label { font-size: 11px; text-transform: uppercase; color: var(--cycling-accent-color); font-weight: 800; }
+.cycling-text { font-size: var(--cycling-font-size, 18px); color: var(--cycling-text-color, #ffffff); font-weight: 700; }`,
+      customJS: `console.log('[Cycling Widget Sync]');`
     }
   };
 
@@ -240,6 +261,34 @@
       animation: { type: 'fade-in', duration: 400, displayDuration: 5000 },
       layout: { positionPreset: 'center', positionX: 50, positionY: 50, marginX: 0, marginY: 0, width: 450 },
       code: { enableCustomCode: false, customHTML: '', customCSS: '', customJS: '' }
+    },
+    cycling: {
+      enabled: true,
+      cycleDuration: 5000,
+      transitionIn: 'slide-up',
+      transitionOut: 'slide-up',
+      transitionInDuration: 500,
+      transitionOutDuration: 400,
+      transitionEffect: 'slide-up',
+      items: [
+        { type: 'top_supporter', label: 'Top Supporter', mediaType: 'icon', icon: 'trophy', imageUrl: '' },
+        { type: 'recent_donation', label: 'Recent Donation', mediaType: 'icon', icon: 'history', imageUrl: '' }
+      ],
+      canvas: { preset: '1080p', width: 1920, height: 1080 },
+      text: {
+        titleTemplate: '', subtitleTemplate: '',
+        fontFamily: 'Inter', fontSize: 18, fontSizeUnit: 'px', fontWeight: 700, fontStyle: 'normal',
+        color: '#ffffff', textAlign: 'left', textTransform: 'none', letterSpacing: 0, letterSpacingUnit: 'px', lineHeight: 1.3,
+        labelFontSize: 11, labelFontSizeUnit: 'px', labelFontWeight: 800, labelColor: '#00e5ff', labelTransform: 'uppercase'
+      },
+      style: {
+        backgroundColor: '#0a0e17', backgroundOpacity: 85,
+        accentColor: '#00e5ff', borderColor: '#ffffff22', borderRadius: 14, borderWidth: 1, padding: 16,
+        mediaSize: 32, mediaBgColor: '#00e5ff1a', mediaRadius: 8
+      },
+      animation: { type: 'fade-in', duration: 400, displayDuration: 5000 },
+      layout: { positionPreset: 'bottom-left', positionX: 10, positionY: 90, marginX: 0, marginY: 0, width: 350 },
+      code: { enableCustomCode: false, customHTML: '', customCSS: '', customJS: '' }
     }
   };
 
@@ -317,10 +366,11 @@
 
   function normalizeAnimation(raw, defaults) {
     const src = raw && typeof raw === 'object' ? raw : {};
+    const def = defaults || { type: 'fade-in', duration: 400, displayDuration: 5000 };
     return {
-      type: str(src.type, defaults.type),
-      duration: int(src.duration, defaults.duration, 0, 10000),
-      displayDuration: int(src.displayDuration, defaults.displayDuration, 200, 120000)
+      type: str(src.type, def.type),
+      duration: int(src.duration, def.duration, 0, 10000),
+      displayDuration: int(src.displayDuration, def.displayDuration, 200, 120000)
     };
   }
 
@@ -458,6 +508,28 @@
         widget.showAmounts = bool(src.showAmounts, defaults.showAmounts);
         widget.recentDonations = Array.isArray(src.recentDonations) ? src.recentDonations : [];
       }
+      if (kind === 'cycling') {
+        widget.cycleDuration = num(src.cycleDuration, defaults.cycleDuration, 1000, 300000);
+        widget.transitionIn = str(src.transitionIn || src.transitionEffect, defaults.transitionIn || 'slide-up');
+        widget.transitionOut = str(src.transitionOut || src.transitionEffect, defaults.transitionOut || 'slide-up');
+        widget.transitionInDuration = num(src.transitionInDuration, defaults.transitionInDuration || 500, 100, 5000);
+        widget.transitionOutDuration = num(src.transitionOutDuration, defaults.transitionOutDuration || 400, 100, 5000);
+        widget.transitionEffect = widget.transitionIn;
+        const rawItems = Array.isArray(src.items) && src.items.length ? src.items : defaults.items;
+        widget.items = rawItems.map(item => {
+          const type = str(item.type, 'custom');
+          const defaultLabel = type === 'top_supporter' ? 'Top Supporter' : (type === 'recent_donation' ? 'Recent Donation' : '');
+          const defaultIcon = type === 'top_supporter' ? 'trophy' : (type === 'recent_donation' ? 'history' : 'star');
+          return {
+            type,
+            label: str(item.label, defaultLabel) || defaultLabel,
+            text: str(item.text, ''),
+            mediaType: str(item.mediaType, item.imageUrl ? 'image' : 'icon'),
+            icon: str(item.icon, defaultIcon) || defaultIcon,
+            imageUrl: str(item.imageUrl, '')
+          };
+        });
+      }
       return widget;
     },
 
@@ -472,7 +544,8 @@
           alert: this.normalizeWidget('alert', WIDGET_DEFAULTS.alert),
           goal: this.normalizeWidget('goal', WIDGET_DEFAULTS.goal),
           leaderboard: this.normalizeWidget('leaderboard', WIDGET_DEFAULTS.leaderboard),
-          recent: this.normalizeWidget('recent', WIDGET_DEFAULTS.recent)
+          recent: this.normalizeWidget('recent', WIDGET_DEFAULTS.recent),
+          cycling: this.normalizeWidget('cycling', WIDGET_DEFAULTS.cycling)
         },
         filter: { allowedAmounts: [] }
       };
@@ -516,7 +589,8 @@
           alert: this.normalizeWidget('alert', src.widgets && src.widgets.alert),
           goal: this.normalizeWidget('goal', src.widgets && src.widgets.goal),
           leaderboard: this.normalizeWidget('leaderboard', src.widgets && src.widgets.leaderboard),
-          recent: this.normalizeWidget('recent', src.widgets && src.widgets.recent)
+          recent: this.normalizeWidget('recent', src.widgets && src.widgets.recent),
+          cycling: this.normalizeWidget('cycling', src.widgets && src.widgets.cycling)
         },
         filter: { allowedAmounts }
       };

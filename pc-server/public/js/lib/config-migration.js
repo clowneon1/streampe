@@ -231,12 +231,21 @@
       code: Object.assign({}, lbAdvanced.code, legacyCode(legacyLb))
     };
 
+    const recentWidgetData = (src.widgets && src.widgets.recent) || {};
+    const cyclingWidgetData = (src.widgets && src.widgets.cycling) || {};
+
     return {
       version: ConfigSchema.CONFIG_VERSION,
       activeWidget: src.activeWidget,
       activeTemplateId: defaultTemplate.id,
       alertTemplates: [defaultTemplate],
-      widgets: { alert: alertWidget, goal: goalWidget, leaderboard: leaderboardWidget },
+      widgets: {
+        alert: alertWidget,
+        goal: goalWidget,
+        leaderboard: leaderboardWidget,
+        recent: ConfigSchema.normalizeWidget('recent', recentWidgetData),
+        cycling: ConfigSchema.normalizeWidget('cycling', cyclingWidgetData)
+      },
       filter: isObject(src.filter) ? src.filter : { allowedAmounts: [] }
     };
   }

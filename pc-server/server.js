@@ -409,6 +409,7 @@ app.get('/overlay/alert',       (req, res) => res.sendFile(path.join(__dirname, 
 app.get('/overlay/goal',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
 app.get('/overlay/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
 app.get('/overlay/recent',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'recent.html')));
+app.get('/overlay/cycling-widget', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cycling-widget.html')));
 app.get('/overlay',             (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/alerts',              (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/alert',               (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
@@ -429,7 +430,7 @@ app.post('/api/settings', (req, res) => {
 });
 
 app.get('/api/profiles', (req, res) => {
-  res.json({ activeProfile: profilesStore.activeProfile, profiles: profilesStore.profiles });
+  res.json({ activeProfile: profilesStore.activeProfile, profiles: Object.keys(profilesStore.profiles), profilesMap: profilesStore.profiles });
 });
 
 app.post('/api/profiles/switch', (req, res) => {

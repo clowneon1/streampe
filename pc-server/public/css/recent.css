@@ -36,12 +36,13 @@ body {
 
 .lb-card {
   width: 100%;
-  background: rgba(10, 14, 23, var(--recent-bg-opacity));
+  background: rgba(10, 14, 23, var(--recent-bg-opacity, 0.85));
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--recent-border-radius);
   padding: var(--recent-padding);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, var(--recent-bg-opacity, 0.85));
+  backdrop-filter: blur(calc(var(--recent-bg-opacity, 0.85) * 12px));
+  -webkit-backdrop-filter: blur(calc(var(--recent-bg-opacity, 0.85) * 12px));
   color: #fff;
 }
 
