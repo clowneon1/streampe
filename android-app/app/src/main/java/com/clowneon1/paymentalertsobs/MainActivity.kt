@@ -179,12 +179,25 @@ class MainActivity : AppCompatActivity() {
         MaterialAlertDialogBuilder(this)
             .setTitle("Notification Access Required")
             .setMessage(
-                "Payment Alerts for OBS needs Notification Access to read your phone\u2019s " +
-                "notifications and forward them to your stream overlay.\n\n" +
-                "On the next screen, find \u201cPayment Alerts for OBS\u201d and turn it ON."
+                "Payment Alerts for OBS needs Notification Access to forward alerts to your stream overlay.\n\n" +
+                "📱 If Android says 'Restricted Setting':\n" +
+                "1. Tap 'App Info' below (or go to Settings ➔ Apps ➔ Payment Alerts for OBS)\n" +
+                "2. Tap the 3 dots (⋮) in the top-right corner\n" +
+                "3. Tap 'Allow restricted settings'\n\n" +
+                "Then come back here and turn ON Notification Access."
             )
             .setPositiveButton("Open Settings") { _, _ ->
                 startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            }
+            .setNeutralButton("App Info") { _, _ ->
+                try {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    showToast("Open Settings ➔ Apps ➔ Payment Alerts for OBS")
+                }
             }
             .setNegativeButton("Not Now", null)
             .show()

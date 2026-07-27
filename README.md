@@ -86,10 +86,11 @@ In OBS Studio, click **+ (Add Source)** ➔ **Browser**:
 
 ---
 
-## 🐛 Report Issues & Feedback
+## 🐛 Report Issues, FAQ & Feedback
 
-Found a bug or have a feature request? We welcome all feedback!
+Check our **[Frequently Asked Questions (FAQ) & Troubleshooting Guide](FAQ.md)** for step-by-step help with Android Play Protect, Android 13+ Restricted Settings, battery optimization, and network setup!
 
+- ❓ **FAQ & Troubleshooting**: [Read FAQ.md](FAQ.md)
 - 🐛 **Report a Bug**: [Submit an Issue on GitHub](https://github.com/clowneon1/payment-alerts-for-obs/issues)
 - 💡 **Feature Requests**: [Propose a Feature](https://github.com/clowneon1/payment-alerts-for-obs/issues/new?title=[Feature]+Your+Feature+Idea)
 - 💬 **Discord Support**: Join our [Discord Community Server](https://partially-practical.codepenguin.in/) for live setup assistance.
