@@ -487,9 +487,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     lb.canvas = readCanvas(TEXT_PREFIXES.leaderboard, lb.canvas);
     lb.style = Object.assign({}, lb.style, {
-      accentColor: val('input-lb-accent-color', lb.style.accentColor),
-      rowBgColor: val('input-lb-row-bg-color', lb.style.rowBgColor),
-      backgroundOpacity: numVal('input-lb-bg-opacity', lb.style.backgroundOpacity)
+      backgroundColor: val('input-lb-bg-color-hex') || val('input-lb-bg-color', lb.style.backgroundColor || '#0a0e17'),
+      accentColor: val('input-lb-accent-color-hex') || val('input-lb-accent-color', lb.style.accentColor),
+      rowBgColor: val('input-lb-row-bg-color-hex') || val('input-lb-row-bg-color', lb.style.rowBgColor),
+      backgroundOpacity: numVal('input-lb-bg-opacity', lb.style.backgroundOpacity),
+      borderWidth: numVal('input-lb-border-width', lb.style.borderWidth ?? 1),
+      borderColor: val('input-lb-border-color-hex') || val('input-lb-border-color', lb.style.borderColor || '#ffffff22')
     });
     lb.code = {
       enableCustomCode: checked('chk-enable-lb-custom-code', false),
@@ -509,9 +512,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     recent.canvas = readCanvas(TEXT_PREFIXES.recent, recent.canvas);
     recent.style = Object.assign({}, recent.style, {
-      accentColor: val('input-recent-accent-color', recent.style.accentColor),
-      rowBgColor: val('input-recent-row-bg-color', recent.style.rowBgColor),
-      backgroundOpacity: numVal('input-recent-bg-opacity', recent.style.backgroundOpacity)
+      backgroundColor: val('input-recent-bg-color-hex') || val('input-recent-bg-color', recent.style.backgroundColor || '#0a0e17'),
+      accentColor: val('input-recent-accent-color-hex') || val('input-recent-accent-color', recent.style.accentColor),
+      rowBgColor: val('input-recent-row-bg-color-hex') || val('input-recent-row-bg-color', recent.style.rowBgColor),
+      backgroundOpacity: numVal('input-recent-bg-opacity', recent.style.backgroundOpacity),
+      borderWidth: numVal('input-recent-border-width', recent.style.borderWidth ?? 1),
+      borderColor: val('input-recent-border-color-hex') || val('input-recent-border-color', recent.style.borderColor || '#ffffff22')
     });
     recent.code = {
       enableCustomCode: checked('chk-enable-recent-custom-code', false),
@@ -663,11 +669,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       el('input-lb-max-custom').style.display = 'block';
     }
     setChecked('chk-lb-show-amounts', lb.showAmounts);
+    setVal('input-lb-bg-color', lb.style.backgroundColor || '#0a0e17');
+    setVal('input-lb-bg-color-hex', lb.style.backgroundColor || '#0a0e17');
     setVal('input-lb-accent-color', lb.style.accentColor);
     setVal('input-lb-accent-color-hex', lb.style.accentColor);
     setVal('input-lb-row-bg-color', lb.style.rowBgColor);
     setVal('input-lb-row-bg-color-hex', lb.style.rowBgColor);
     setVal('input-lb-bg-opacity', lb.style.backgroundOpacity);
+    setVal('input-lb-border-width', lb.style.borderWidth ?? 1);
+    setVal('input-lb-border-color', lb.style.borderColor || '#ffffff22');
+    setVal('input-lb-border-color-hex', lb.style.borderColor || '#ffffff22');
     writeTextStyle(TEXT_PREFIXES.leaderboard, lb.text);
     writeCanvas(TEXT_PREFIXES.leaderboard, lb.canvas);
     setChecked('chk-enable-lb-custom-code', lb.code.enableCustomCode);
@@ -688,11 +699,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       el('input-recent-max-custom').style.display = 'block';
     }
     setChecked('chk-recent-show-amounts', recent.showAmounts);
+    setVal('input-recent-bg-color', recent.style.backgroundColor || '#0a0e17');
+    setVal('input-recent-bg-color-hex', recent.style.backgroundColor || '#0a0e17');
     setVal('input-recent-accent-color', recent.style.accentColor);
     setVal('input-recent-accent-color-hex', recent.style.accentColor);
     setVal('input-recent-row-bg-color', recent.style.rowBgColor);
     setVal('input-recent-row-bg-color-hex', recent.style.rowBgColor);
     setVal('input-recent-bg-opacity', recent.style.backgroundOpacity);
+    setVal('input-recent-border-width', recent.style.borderWidth ?? 1);
+    setVal('input-recent-border-color', recent.style.borderColor || '#ffffff22');
+    setVal('input-recent-border-color-hex', recent.style.borderColor || '#ffffff22');
     writeTextStyle(TEXT_PREFIXES.recent, recent.text);
     writeCanvas(TEXT_PREFIXES.recent, recent.canvas);
     setChecked('chk-enable-recent-custom-code', recent.code.enableCustomCode);
@@ -1127,8 +1143,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       ['input-cycling-border-color', 'input-cycling-border-color-hex'],
       ['input-cycling-media-bg', 'input-cycling-media-bg-hex'],
       ['cycling-label-color', 'cycling-label-color-hex'],
+      ['input-lb-bg-color', 'input-lb-bg-color-hex'],
       ['input-lb-accent-color', 'input-lb-accent-color-hex'],
       ['input-lb-row-bg-color', 'input-lb-row-bg-color-hex'],
+      ['input-lb-border-color', 'input-lb-border-color-hex'],
+      ['input-recent-bg-color', 'input-recent-bg-color-hex'],
+      ['input-recent-accent-color', 'input-recent-accent-color-hex'],
+      ['input-recent-row-bg-color', 'input-recent-row-bg-color-hex'],
+      ['input-recent-border-color', 'input-recent-border-color-hex'],
       ...Object.keys(TEXT_PREFIXES).map(k => [`${TEXT_PREFIXES[k]}-text-color`, `${TEXT_PREFIXES[k]}-text-color-hex`])
     ];
 

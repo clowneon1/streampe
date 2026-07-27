@@ -6,15 +6,35 @@
   let config = StorageHelper.getDefaultSettings();
   let ws = null;
 
+  function hexToRgb(hex) {
+    if (!hex || typeof hex !== 'string') return [10, 14, 23];
+    const clean = hex.trim();
+    if (clean.startsWith('rgba') || clean.startsWith('rgb')) {
+      const nums = clean.match(/\d+/g);
+      if (nums && nums.length >= 3) return [parseInt(nums[0], 10), parseInt(nums[1], 10), parseInt(nums[2], 10)];
+    }
+    const match = clean.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+    if (match) return [parseInt(match[1], 16), parseInt(match[2], 16), parseInt(match[3], 16)];
+    const shortMatch = clean.match(/^#?([a-f\d])([a-f\d])([a-f\d])$/i);
+    if (shortMatch) return [parseInt(shortMatch[1] + shortMatch[1], 16), parseInt(shortMatch[2] + shortMatch[2], 16), parseInt(shortMatch[3] + shortMatch[3], 16)];
+    return [10, 14, 23];
+  }
+
   function applyLeaderboardSettings(newSettings) {
     config = StorageHelper.mergeWithDefaults(newSettings);
     const lb = config.widgets.leaderboard;
     const root = document.documentElement;
 
-    root.style.setProperty('--lb-bg-opacity', lb.style.backgroundOpacity);
+    const [r, g, b] = hexToRgb(lb.style.backgroundColor || '#0a0e17');
+    const opacityVal = Number.isFinite(parseFloat(lb.style?.backgroundOpacity)) ? parseFloat(lb.style.backgroundOpacity) : 88;
+    const bgOpacity = opacityVal / 100;
+    root.style.setProperty('--lb-bg-color', `rgba(${r}, ${g}, ${b}, ${bgOpacity})`);
+    root.style.setProperty('--lb-bg-opacity', bgOpacity);
     root.style.setProperty('--lb-accent-color', lb.style.accentColor);
     root.style.setProperty('--lb-row-bg-color', lb.style.rowBgColor);
-    root.style.setProperty('--lb-border-radius', lb.style.borderRadius + 'px');
+    root.style.setProperty('--lb-border-radius', (lb.style.borderRadius ?? 16) + 'px');
+    root.style.setProperty('--lb-border-width', (lb.style.borderWidth ?? 1) + 'px');
+    root.style.setProperty('--lb-border-color', lb.style.borderColor || 'rgba(255, 255, 255, 0.12)');
     root.style.setProperty('--lb-padding', lb.style.padding + 'px');
     root.style.setProperty('--lb-width', lb.layout.width + 'px');
     root.style.setProperty('--lb-position-x', lb.layout.positionX);

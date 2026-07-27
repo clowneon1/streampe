@@ -108,9 +108,10 @@
 </div>`,
       customCSS: `.lb-card {
   width: 100%; background: rgba(10, 14, 23, calc(var(--lb-bg-opacity, 88) / 100));
-  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: var(--lb-border-radius, 16px);
-  padding: var(--lb-padding, 18px); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(12px);
+  border: var(--lb-border-width, 1px) solid var(--lb-border-color, rgba(255, 255, 255, 0.12)); border-radius: var(--lb-border-radius, 16px);
+  padding: var(--lb-padding, 18px); box-shadow: 0 12px 36px rgba(0, 0, 0, calc(var(--lb-bg-opacity, 88) / 100 * 0.5));
+  backdrop-filter: blur(calc(var(--lb-bg-opacity, 88) / 100 * 12px));
+  -webkit-backdrop-filter: blur(calc(var(--lb-bg-opacity, 88) / 100 * 12px));
 }
 .lb-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .lb-row {
@@ -137,9 +138,10 @@
 </div>`,
       customCSS: `.lb-card {
   width: 100%; background: rgba(10, 14, 23, calc(var(--recent-bg-opacity, 88) / 100));
-  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: var(--recent-border-radius, 16px);
-  padding: var(--recent-border-radius, 18px); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(12px);
+  border: var(--recent-border-width, 1px) solid var(--recent-border-color, rgba(255, 255, 255, 0.12)); border-radius: var(--recent-border-radius, 16px);
+  padding: var(--recent-padding, 18px); box-shadow: 0 12px 36px rgba(0, 0, 0, calc(var(--recent-bg-opacity, 88) / 100 * 0.5));
+  backdrop-filter: blur(calc(var(--recent-bg-opacity, 88) / 100 * 12px));
+  -webkit-backdrop-filter: blur(calc(var(--recent-bg-opacity, 88) / 100 * 12px));
 }
 .lb-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .lb-row {

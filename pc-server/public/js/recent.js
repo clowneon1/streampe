@@ -6,15 +6,35 @@
   let config = StorageHelper.getDefaultSettings();
   let ws = null;
 
+  function hexToRgb(hex) {
+    if (!hex || typeof hex !== 'string') return [10, 14, 23];
+    const clean = hex.trim();
+    if (clean.startsWith('rgba') || clean.startsWith('rgb')) {
+      const nums = clean.match(/\d+/g);
+      if (nums && nums.length >= 3) return [parseInt(nums[0], 10), parseInt(nums[1], 10), parseInt(nums[2], 10)];
+    }
+    const match = clean.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+    if (match) return [parseInt(match[1], 16), parseInt(match[2], 16), parseInt(match[3], 16)];
+    const shortMatch = clean.match(/^#?([a-f\d])([a-f\d])([a-f\d])$/i);
+    if (shortMatch) return [parseInt(shortMatch[1] + shortMatch[1], 16), parseInt(shortMatch[2] + shortMatch[2], 16), parseInt(shortMatch[3] + shortMatch[3], 16)];
+    return [10, 14, 23];
+  }
+
   function applyRecentSettings(newSettings) {
     config = StorageHelper.mergeWithDefaults(newSettings);
     const recent = config.widgets.recent;
     const root = document.documentElement;
 
-    root.style.setProperty('--recent-bg-opacity', recent.style.backgroundOpacity);
+    const [r, g, b] = hexToRgb(recent.style.backgroundColor || '#0a0e17');
+    const opacityVal = Number.isFinite(parseFloat(recent.style?.backgroundOpacity)) ? parseFloat(recent.style.backgroundOpacity) : 88;
+    const bgOpacity = opacityVal / 100;
+    root.style.setProperty('--recent-bg-color', `rgba(${r}, ${g}, ${b}, ${bgOpacity})`);
+    root.style.setProperty('--recent-bg-opacity', bgOpacity);
     root.style.setProperty('--recent-accent-color', recent.style.accentColor);
     root.style.setProperty('--recent-row-bg-color', recent.style.rowBgColor);
-    root.style.setProperty('--recent-border-radius', recent.style.borderRadius + 'px');
+    root.style.setProperty('--recent-border-radius', (recent.style.borderRadius ?? 16) + 'px');
+    root.style.setProperty('--recent-border-width', (recent.style.borderWidth ?? 1) + 'px');
+    root.style.setProperty('--recent-border-color', recent.style.borderColor || 'rgba(255, 255, 255, 0.12)');
     root.style.setProperty('--recent-padding', recent.style.padding + 'px');
     root.style.setProperty('--recent-width', recent.layout.width + 'px');
     root.style.setProperty('--recent-position-x', recent.layout.positionX);
