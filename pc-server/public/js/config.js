@@ -2341,12 +2341,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!modal || !grid) return;
     if (searchInput) searchInput.value = '';
     modal.style.display = 'flex';
+    requestAnimationFrame(() => {
+      modal.classList.add('active');
+    });
     renderIconGrid('');
+  }
+
+  function closeIconPicker() {
+    const modal = el('icon-picker-modal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    setTimeout(() => {
+      modal.style.display = 'none';
+    }, 200);
   }
 
   function renderIconGrid(query) {
     const grid = el('icon-grid');
-    const modal = el('icon-picker-modal');
     if (!grid) return;
     const q = (query || '').toLowerCase().trim();
     const filtered = q ? LUCIDE_ICONS_LIST.filter(name => name.includes(q)) : LUCIDE_ICONS_LIST;
@@ -2358,12 +2369,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     grid.innerHTML = filtered.map(name => `
       <button type="button" class="btn btn-secondary icon-picker-item" data-icon="${name}" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px 4px; font-size: 11px;">
-        <i data-lucide="${name}" style="width: 20px; height: 20px;"></i>
+        <i data-lucide="${name}" style="width: 22px; height: 22px;"></i>
         <span style="font-size: 10px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;">${name}</span>
       </button>
     `).join('');
 
-    if (window.lucide) lucide.createIcons();
+    setTimeout(() => {
+      if (window.lucide) {
+        try { lucide.createIcons(); } catch (e) {}
+      }
+    }, 20);
 
     grid.querySelectorAll('.icon-picker-item').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2372,7 +2387,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           syncLivePreview();
           showToast(`Selected icon: ${btn.dataset.icon}`);
         }
-        if (modal) modal.style.display = 'none';
+        closeIconPicker();
       });
     });
   }
@@ -2382,9 +2397,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const closeBtn = el('icon-picker-close');
     const searchInput = el('icon-search-input');
     if (!modal) return;
-    if (closeBtn) closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+    if (closeBtn) closeBtn.addEventListener('click', closeIconPicker);
     modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.style.display = 'none';
+      if (e.target === modal) closeIconPicker();
     });
     if (searchInput) {
       searchInput.addEventListener('input', () => renderIconGrid(searchInput.value));

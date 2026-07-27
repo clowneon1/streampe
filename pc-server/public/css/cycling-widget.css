@@ -67,9 +67,11 @@ body, html {
   overflow: hidden;
 }
 
-.cycling-icon i {
+.cycling-icon i, .cycling-icon svg {
   width: calc(var(--cycling-media-size, 32px) * 0.6);
   height: calc(var(--cycling-media-size, 32px) * 0.6);
+  stroke: var(--cycling-accent-color);
+  stroke-width: 2.2;
 }
 
 .cycling-media-img {
