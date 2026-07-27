@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+dist-portable/
+out/
+build/
+
+# Server logs and runtime data
+logs/
+*.log
+config.json
+
+# System and Environment files
+.DS_Store
+Thumbs.db
+.env

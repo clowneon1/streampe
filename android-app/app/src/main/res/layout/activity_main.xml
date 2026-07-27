@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0a0c14">
+
+    <!-- ══ TOP APP BAR ══════════════════════════════════════════════ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="#12151f"
+        android:elevation="8dp">
+
+        <!-- App icon -->
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@mipmap/ic_launcher"
+            android:scaleType="centerInside"
+            android:background="#1a1d2b"
+            android:padding="4dp"
+            android:contentDescription="App Logo" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Payment Alerts for OBS"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#F0F2FF"
+            android:paddingStart="10dp" />
+
+    </LinearLayout>
+
+    <!-- ══ SCROLLABLE CONTENT ═══════════════════════════════════════ -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- ── SERVER CONNECTION CARD ──────────────────────────── -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="SERVER CONNECTION"
+                android:textSize="10sp"
+                android:textColor="#555D7A"
+                android:letterSpacing="0.15"
+                android:layout_marginBottom="8dp"
+                android:layout_marginTop="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#12151f"
+                android:padding="16dp"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PC Server URL"
+                    android:textSize="12sp"
+                    android:textColor="#8890AA"
+                    android:layout_marginBottom="8dp" />
+
+                <EditText
+                    android:id="@+id/etServerUrl"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:hint="http://192.168.1.x:2907"
+                    android:inputType="text"
+                    android:background="#1a1d2b"
+                    android:textColor="#F0F2FF"
+                    android:textColorHint="#555D7A"
+                    android:textSize="14sp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:layout_marginBottom="12dp" />
+
+                <Button
+                    android:id="@+id/btnConnect"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="Connect to Server"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:backgroundTint="#6C63FF"
+                    android:enabled="false"
+                    android:alpha="0.5"
+                    android:stateListAnimator="@null" />
+
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="12sp"
+                    android:textColor="#F87171"
+                    android:gravity="center"
+                    android:layout_marginTop="8dp" />
+
+            </LinearLayout>
+
+            <!-- ── PERMISSIONS CARD ────────────────────────────────── -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="PERMISSIONS"
+                android:textSize="10sp"
+                android:textColor="#555D7A"
+                android:letterSpacing="0.15"
+                android:layout_marginBottom="8dp"
+                android:layout_marginTop="20dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#12151f"
+                android:padding="16dp"
+                android:layout_marginBottom="4dp">
+
+                <!-- Step 1: Notification Access -->
+                <TextView
+                    android:id="@+id/tvNotifAccess"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Checking…"
+                    android:textSize="13sp"
+                    android:textColor="#F0F2FF"
+                    android:background="#1a1d2b"
+                    android:padding="12dp"
+                    android:layout_marginBottom="8dp" />
+
+                <Button
+                    android:id="@+id/btnPermission"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:text="Grant Notification Access"
+                    android:textSize="13sp"
+                    android:textColor="#6C63FF"
+                    android:backgroundTint="#1a1830"
+                    android:layout_marginBottom="4dp"
+                    android:stateListAnimator="@null" />
+
+                <!-- POST_NOTIFICATIONS status -->
+                <TextView
+                    android:id="@+id/tvPermStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="12sp"
+                    android:textColor="#FBBF24"
+                    android:background="#1c1800"
+                    android:padding="10dp"
+                    android:layout_marginBottom="4dp"
+                    android:visibility="gone" />
+
+                <!-- Battery Optimization status -->
+                <TextView
+                    android:id="@+id/tvBatteryStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textSize="12sp"
+                    android:textColor="#FBBF24"
+                    android:background="#1c1800"
+                    android:padding="10dp"
+                    android:layout_marginBottom="8dp"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/btnBatteryOptimization"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:text="Disable Battery Optimization"
+                    android:textSize="13sp"
+                    android:textColor="#FBBF24"
+                    android:backgroundTint="#1c1800"
+                    android:stateListAnimator="@null" />
+
+            </LinearLayout>
+
+            <!-- ── ACCESSIBILITY (OPTIONAL / WARNING) ─────────────── -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ACCESSIBILITY  •  OPTIONAL"
+                android:textSize="10sp"
+                android:textColor="#555D7A"
+                android:letterSpacing="0.15"
+                android:layout_marginBottom="8dp"
+                android:layout_marginTop="20dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#0f1208"
+                android:padding="16dp"
+                android:layout_marginBottom="4dp">
+
+                <!-- Warning banner -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="#1c1900"
+                    android:padding="10dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="10dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⚠️"
+                        android:textSize="16sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Accessibility may interfere with some payment apps (e.g. blocking transactions). Only enable if you need the Android 15 notification fix."
+                        android:textSize="12sp"
+                        android:textColor="#FBBF24" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvAccessibilityStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Checking…"
+                    android:textSize="13sp"
+                    android:textColor="#F0F2FF"
+                    android:background="#1a1d2b"
+                    android:padding="12dp"
+                    android:layout_marginBottom="8dp" />
+
+                <Button
+                    android:id="@+id/btnAccessibility"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:text="Enable Accessibility (Optional)"
+                    android:textSize="13sp"
+                    android:textColor="#FBBF24"
+                    android:backgroundTint="#1c1900"
+                    android:stateListAnimator="@null" />
+
+            </LinearLayout>
+
+            <!-- ── INFO FOOTER ──────────────────────────────────────── -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Works with PhonePe, Google Pay, Paytm and more."
+                android:textSize="12sp"
+                android:textColor="#555D7A"
+                android:gravity="center"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

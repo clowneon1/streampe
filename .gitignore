@@ -1,0 +1,95 @@
+# ══════════════════════════════════════════════════════════════
+#  .gitignore — payment-alerts-for-obs
+#  Covers: Node.js server (pc-server/) + Android app (android-app/)
+# ══════════════════════════════════════════════════════════════
+
+# ── Node.js / npm ─────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm
+.pnp
+.pnp.js
+.yarn/
+
+# ── Runtime & logs ────────────────────────────────────────────
+*.log
+logs/
+pids/
+*.pid
+*.seed
+
+# ── Server user config & saved settings ───────────────────────
+pc-server/config/
+config/settings.json
+pc-server/config/settings.json
+pc-server/config/profiles.json
+widget-config.json
+pc-server/widget-config.json
+
+# ── Uploaded media (user-specific, can be large) ──────────────
+pc-server/public/uploads/
+
+# ── Build outputs ─────────────────────────────────────────────
+dist/
+build/
+out/
+*.exe
+*.tgz
+
+# ── Environment variables ─────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# ── Android / Gradle ──────────────────────────────────────────
+android-app/.gradle/
+android-app/local.properties
+android-app/.idea/
+android-app/*/build/
+android-app/build/
+android-app/captures/
+android-app/.externalNativeBuild/
+android-app/.cxx/
+
+# Android keystore & signing (never commit these)
+*.jks
+*.keystore
+*.pepk
+google-services.json
+android-app/*/google-services.json
+
+# Android generated files
+android-app/*/src/main/assets/dexopt/
+android-app/**/R.java
+android-app/**/*.class
+android-app/**/output-metadata.json
+android-app/**/*.apk
+android-app/**/*.aab
+android-app/**/release/
+
+# ProGuard
+android-app/*/proguard/
+
+# Kotlin build cache
+android-app/.kotlin/
+
+# ── IDE / OS metadata ─────────────────────────────────────────
+.artifacts/
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

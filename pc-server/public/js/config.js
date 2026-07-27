@@ -1,0 +1,2483 @@
+/**
+ * Configuration dashboard controller.
+ *
+ * The form is a view over one v2 config object:
+ *   - the alert-facing tabs edit the *selected alert template*
+ *     (`alertTemplates[activeTemplateId]`),
+ *   - the "Alert Widget Base", "Payment Goal" and "Top Leaderboard" tabs edit
+ *     `widgets.alert` / `widgets.goal` / `widgets.leaderboard`.
+ *
+ * Text style and canvas controls follow one id convention per section, so a
+ * single pair of read/write helpers drives all four of them:
+ *   `<prefix>-font-family`, `<prefix>-font-size`, … , `<prefix>-canvas-preset`, …
+ * with prefixes `tpl` (template), `alert`, `goal`, `lb`.
+ */
+document.addEventListener('DOMContentLoaded', async () => {
+  'use strict';
+
+  const el = (id) => document.getElementById(id);
+  const on = (id, evt, fn) => {
+    const node = el(id);
+    if (node) node.addEventListener(evt, fn);
+  };
+  const TEXT_PREFIXES = { template: 'tpl', alert: 'alert', goal: 'goal', leaderboard: 'lb', recent: 'recent', cycling: 'cycling' };
+
+  let config = ConfigSchema.createDefaultConfig();
+  let suppressSync = false;
+  const editors = {};
+
+  const iframe = el('preview-iframe');
+
+  function initCodeEditors() {
+    const editorConfigs = [
+      { id: 'input-custom-html', mode: 'htmlmixed' },
+      { id: 'input-custom-css', mode: 'css' },
+      { id: 'input-custom-js', mode: 'javascript' },
+      { id: 'input-goal-custom-html', mode: 'htmlmixed' },
+      { id: 'input-goal-custom-css', mode: 'css' },
+      { id: 'input-goal-custom-js', mode: 'javascript' },
+      { id: 'input-lb-custom-html', mode: 'htmlmixed' },
+      { id: 'input-lb-custom-css', mode: 'css' },
+      { id: 'input-lb-custom-js', mode: 'javascript' },
+      { id: 'input-recent-custom-html', mode: 'htmlmixed' },
+      { id: 'input-recent-custom-css', mode: 'css' },
+      { id: 'input-recent-custom-js', mode: 'javascript' },
+      { id: 'input-cycling-custom-html', mode: 'htmlmixed' },
+      { id: 'input-cycling-custom-css', mode: 'css' },
+      { id: 'input-cycling-custom-js', mode: 'javascript' }
+    ];
+
+    editorConfigs.forEach(conf => {
+      const textarea = el(conf.id);
+      if (!textarea) return;
+
+      const editor = CodeMirror.fromTextArea(textarea, {
+        mode: conf.mode,
+        theme: 'dracula',
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        tabSize: 2,
+        indentUnit: 2,
+        viewportMargin: Infinity,
+        lineWrapping: true
+      });
+
+      editor.on('change', () => {
+        if (!suppressSync) syncLivePreview();
+      });
+
+      editors[conf.id] = editor;
+    });
+  }
+
+  async function formatCode(editorId) {
+    const editor = editors[editorId];
+    if (!editor || !window.prettier) return;
+
+    const code = editor.getValue();
+    const mode = editor.getOption('mode');
+
+    let parser = 'babel';
+    if (mode === 'htmlmixed') parser = 'html';
+    if (mode === 'css') parser = 'css';
+
+    try {
+      const formatted = prettier.format(code, {
+        parser: parser,
+        plugins: prettierPlugins,
+        printWidth: 100,
+        tabWidth: 2,
+        semi: true,
+        singleQuote: true
+      });
+      editor.setValue(formatted);
+      showToast('<i data-lucide="check"></i> Code formatted');
+    } catch (err) {
+      console.warn('[Prettier] Formatting error:', err);
+      showToast('<i data-lucide="alert-triangle"></i> Format failed: ' + err.message.split('\n')[0], 'error');
+    }
+  }
+
+  function showToast(message, type = 'info') {
+    const toast = el('toast');
+    if (!toast) return;
+    toast.innerHTML = message;
+    if (window.lucide) lucide.createIcons();
+    toast.style.borderColor = type === 'success' ? '#00e676' : (type === 'error' ? '#ff5252' : 'var(--accent)');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  // ── Universal Modal Controller ───────────────────────────────
+  const AppModal = {
+    overlay: el('app-modal'),
+    title: el('modal-title'),
+    message: el('modal-message'),
+    inputContainer: el('modal-input-container'),
+    input: el('modal-input'),
+    cancelBtn: el('modal-cancel'),
+    confirmBtn: el('modal-confirm'),
+    closeBtn: el('modal-close'),
+    resolver: null,
+
+    show(options = {}) {
+      this.title.textContent = options.title || 'Dialog';
+      this.message.textContent = options.message || '';
+      this.confirmBtn.textContent = options.confirmText || 'Confirm';
+      this.cancelBtn.textContent = options.cancelText || 'Cancel';
+
+      this.inputContainer.style.display = options.showInput ? 'block' : 'none';
+      if (options.showInput) {
+        this.input.value = options.defaultValue || '';
+        setTimeout(() => this.input.focus(), 100);
+      }
+
+      this.cancelBtn.style.display = options.hideCancel ? 'none' : 'inline-block';
+      this.overlay.style.display = 'flex';
+      setTimeout(() => this.overlay.classList.add('active'), 10);
+
+      return new Promise((resolve) => {
+        this.resolver = resolve;
+      });
+    },
+
+    hide(value) {
+      this.overlay.classList.remove('active');
+      setTimeout(() => {
+        this.overlay.style.display = 'none';
+        if (this.resolver) this.resolver(value);
+      }, 200);
+    }
+  };
+
+  on('modal-confirm', 'click', () => {
+    const isInputVisible = AppModal.inputContainer.style.display !== 'none';
+    AppModal.hide(isInputVisible ? AppModal.input.value : true);
+  });
+  on('modal-cancel', 'click', () => AppModal.hide(null));
+  on('modal-close', 'click', () => AppModal.hide(null));
+  AppModal.overlay.addEventListener('click', (e) => { if (e.target === AppModal.overlay) AppModal.hide(null); });
+  AppModal.input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') el('modal-confirm').click();
+    if (e.key === 'Escape') AppModal.hide(null);
+  });
+
+  // Works in both HTTPS (navigator.clipboard) and plain HTTP / OBS browser sources (execCommand fallback).
+  // Pass the originating button element as the second argument to get a visual "✓ Copied!" flash animation.
+  function copyToClipboard(text, triggerBtn) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(() => _execCommandCopy(text));
+    } else {
+      _execCommandCopy(text);
+    }
+    if (triggerBtn) _flashCopied(triggerBtn);
+    return Promise.resolve();
+  }
+  function _execCommandCopy(text) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    } catch (_) {}
+  }
+  function _flashCopied(btn) {
+    if (!btn || btn._copying) return;
+    btn._copying = true;
+    const original = btn.innerHTML;
+    const originalBg = btn.style.background;
+    const originalColor = btn.style.color;
+    const originalBorder = btn.style.border;
+    btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;margin-right:4px;"></i> Copied!';
+    if (window.lucide) lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide' });
+    btn.style.background = '#00e676';
+    btn.style.color = '#000';
+    btn.style.border = '1.5px solid #00e676';
+    btn.classList.add('btn-copy-flash');
+    setTimeout(() => {
+      btn.innerHTML = original;
+      btn.style.background = originalBg;
+      btn.style.color = originalColor;
+      btn.style.border = originalBorder;
+      btn.classList.remove('btn-copy-flash');
+      btn._copying = false;
+    }, 1600);
+  }
+
+  // ── Generic field helpers ────────────────────────────────────
+  const val = (id, fallback) => {
+    if (editors[id]) return editors[id].getValue();
+    const node = el(id);
+    return node ? node.value : fallback;
+  };
+  const numVal = (id, fallback) => {
+    const parsed = parseFloat(val(id, ''));
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+  const checked = (id, fallback) => {
+    const node = el(id);
+    return node ? node.checked : fallback;
+  };
+  function setVal(id, value) {
+    if (editors[id]) {
+      editors[id].setValue(value || '');
+      return;
+    }
+    const node = el(id);
+    if (node && value !== undefined && value !== null) node.value = value;
+  }
+  function setChecked(id, value) {
+    const node = el(id);
+    if (node) node.checked = !!value;
+  }
+
+  function readTextStyle(prefix, base) {
+    return WidgetStyle.normalizeText({
+      titleTemplate: base.titleTemplate,
+      subtitleTemplate: base.subtitleTemplate,
+      fontFamily: val(`${prefix}-font-family`, base.fontFamily),
+      fontSize: numVal(`${prefix}-font-size`, base.fontSize),
+      fontSizeUnit: val(`${prefix}-font-size-unit`, base.fontSizeUnit),
+      fontWeight: numVal(`${prefix}-font-weight`, base.fontWeight),
+      fontStyle: val(`${prefix}-font-style`, base.fontStyle),
+      color: val(`${prefix}-text-color`, base.color),
+      textAlign: val(`${prefix}-text-align`, base.textAlign),
+      textTransform: val(`${prefix}-text-transform`, base.textTransform),
+      letterSpacing: numVal(`${prefix}-letter-spacing`, base.letterSpacing),
+      letterSpacingUnit: val(`${prefix}-letter-spacing-unit`, base.letterSpacingUnit),
+      lineHeight: numVal(`${prefix}-line-height`, base.lineHeight)
+    }, base);
+  }
+
+  /**
+   * Set a <select> value, adding the option first when it is missing. Saved
+   * configs may name a font the dropdown does not list; without this the
+   * select would fall back to "" and silently drop the font on the next save.
+   */
+  function setSelectVal(id, value) {
+    const node = el(id);
+    if (!node || value === undefined || value === null || value === '') return;
+    const known = Array.prototype.some.call(node.options, o => o.value === String(value));
+    if (!known) node.add(new Option(String(value), String(value)));
+    node.value = value;
+  }
+
+  function writeTextStyle(prefix, text) {
+    setSelectVal(`${prefix}-font-family`, text.fontFamily);
+    setVal(`${prefix}-font-size`, text.fontSize);
+    setSelectVal(`${prefix}-font-size-unit`, text.fontSizeUnit);
+    setVal(`${prefix}-font-weight`, text.fontWeight);
+    setVal(`${prefix}-font-style`, text.fontStyle);
+    setVal(`${prefix}-text-color`, text.color);
+    setVal(`${prefix}-text-color-hex`, text.color);
+    setVal(`${prefix}-text-align`, text.textAlign);
+    setVal(`${prefix}-text-transform`, text.textTransform);
+    setVal(`${prefix}-letter-spacing`, text.letterSpacing);
+    setSelectVal(`${prefix}-letter-spacing-unit`, text.letterSpacingUnit);
+    setVal(`${prefix}-line-height`, text.lineHeight);
+  }
+
+  function readCanvas(prefix, base) {
+    return CanvasPresets.resolve({
+      preset: val(`${prefix}-canvas-preset`, base.preset),
+      width: numVal(`${prefix}-canvas-width`, base.width),
+      height: numVal(`${prefix}-canvas-height`, base.height)
+    });
+  }
+
+  function writeCanvas(prefix, canvas) {
+    const resolved = CanvasPresets.resolve(canvas);
+    setSelectVal(`${prefix}-canvas-preset`, resolved.preset);
+    setVal(`${prefix}-canvas-width`, resolved.width);
+    setVal(`${prefix}-canvas-height`, resolved.height);
+    const isCustom = resolved.preset === CanvasPresets.CUSTOM;
+    [`${prefix}-canvas-width`, `${prefix}-canvas-height`].forEach(id => {
+      const node = el(id);
+      if (node) node.disabled = !isCustom;
+    });
+  }
+
+  // ── Amount filters ───────────────────────────────────────────
+  function filterRowHtml(filter) {
+    const opts = TemplateMatcher.FILTER_TYPES
+      .map(t => `<option value="${t}"${t === filter.type ? ' selected' : ''}>${t}</option>`).join('');
+    return `
+      <div class="amount-filter-row" data-type="${filter.type}">
+        <select class="form-control filter-type">${opts}</select>
+        <input type="number" class="form-control filter-value" step="any" placeholder="Amount" value="${filter.value}" />
+        <input type="number" class="form-control filter-min" step="any" placeholder="Min" value="${filter.min}" />
+        <input type="number" class="form-control filter-max" step="any" placeholder="Max" value="${filter.max}" />
+        <button type="button" class="btn btn-danger filter-remove" title="Remove filter"><i data-lucide="trash-2"></i></button>
+      </div>`;
+  }
+
+  /** Only the inputs that a filter type actually uses stay visible. */
+  function updateFilterRowVisibility(row) {
+    const type = row.querySelector('.filter-type').value;
+    row.dataset.type = type;
+    const show = {
+      any: [],
+      exact: ['.filter-value'],
+      min: ['.filter-min'],
+      max: ['.filter-max'],
+      range: ['.filter-min', '.filter-max']
+    }[type] || [];
+    ['.filter-value', '.filter-min', '.filter-max'].forEach(sel => {
+      row.querySelector(sel).style.display = show.indexOf(sel) === -1 ? 'none' : '';
+    });
+  }
+
+  function renderAmountFilters(filters) {
+    const list = el('amount-filter-list');
+    if (!list) return;
+    list.innerHTML = filters.length
+      ? filters.map(filterRowHtml).join('')
+      : '<p class="panel-desc">No filters &mdash; this template matches every amount.</p>';
+    list.querySelectorAll('.amount-filter-row').forEach(updateFilterRowVisibility);
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function readAmountFilters() {
+    const list = el('amount-filter-list');
+    if (!list) return [];
+    return Array.from(list.querySelectorAll('.amount-filter-row')).map(row => TemplateMatcher.normalizeFilter({
+      type: row.querySelector('.filter-type').value,
+      value: row.querySelector('.filter-value').value,
+      min: row.querySelector('.filter-min').value,
+      max: row.querySelector('.filter-max').value
+    }));
+  }
+
+  // ── Template manager ─────────────────────────────────────────
+  function currentTemplate() {
+    return config.alertTemplates.find(t => t.id === config.activeTemplateId) || config.alertTemplates[0];
+  }
+
+  function renderTemplateList() {
+    const select = el('select-template');
+    if (!select) return;
+    select.innerHTML = config.alertTemplates.map(t => {
+      const flags = [t.isDefault ? 'fallback' : '', t.enabled ? '' : 'disabled']
+        .filter(Boolean).join(', ');
+      const label = TemplateEngine.escapeHtml(t.name) + (flags ? ` (${flags})` : '');
+      return `<option value="${TemplateEngine.escapeHtml(t.id)}"${t.id === config.activeTemplateId ? ' selected' : ''}>${label}</option>`;
+    }).join('');
+
+    const summary = el('template-summary');
+    if (summary) {
+      const t = currentTemplate();
+      summary.textContent = t
+        ? `${config.alertTemplates.length} template(s). "${t.name}" matches: ${describeFilters(t)}.`
+        : '';
+    }
+
+    updateSimulatorTemplateOptions();
+  }
+
+  function describeFilters(template) {
+    const filters = TemplateMatcher.filtersOf(template);
+    return filters.map(f => {
+      if (f.type === 'exact') return `= ₹${f.value}`;
+      if (f.type === 'min') return `≥ ₹${f.min || f.value}`;
+      if (f.type === 'max') return `≤ ₹${f.max || f.value}`;
+      if (f.type === 'range') return `₹${f.min}–₹${f.max}`;
+      return 'any amount';
+    }).join(' or ');
+  }
+
+  // ── Form → config ────────────────────────────────────────────
+  function readFormValues() {
+    const template = currentTemplate();
+    const base = ConfigSchema.WIDGET_DEFAULTS.alert;
+
+    if (template) {
+      template.enabled = checked('chk-template-enabled', template.enabled);
+      template.priority = numVal('input-template-priority', template.priority);
+      template.amountFilters = readAmountFilters();
+      template.text = Object.assign(readTextStyle(TEXT_PREFIXES.template, base.text), {
+        titleTemplate: val('input-title-template', template.text.titleTemplate),
+        subtitleTemplate: val('input-subtitle-template', template.text.subtitleTemplate)
+      });
+      template.canvas = readCanvas(TEXT_PREFIXES.template, template.canvas);
+      template.image = {
+        imageUrl: val('input-image-url', ''),
+        gifUrl: template.image.gifUrl,
+        position: val('select-media-position', template.image.position),
+        size: numVal('input-media-size', template.image.size)
+      };
+      template.sound = {
+        soundUrl: val('input-sound-url', ''),
+        soundVolume: numVal('input-sound-volume', template.sound.soundVolume)
+      };
+      template.style = Object.assign({}, template.style, {
+        backgroundColor: val('input-bg-color', template.style.backgroundColor),
+        backgroundOpacity: numVal('input-bg-opacity', template.style.backgroundOpacity),
+        accentColor: val('input-accent-color', template.style.accentColor),
+        borderRadius: numVal('input-border-radius', template.style.borderRadius),
+        borderWidth: numVal('input-border-width', template.style.borderWidth),
+        padding: numVal('input-padding', template.style.padding)
+      });
+      template.animation = {
+        type: val('select-anim-type', template.animation.type),
+        duration: numVal('input-anim-duration', template.animation.duration),
+        displayDuration: numVal('input-display-duration', template.animation.displayDuration)
+      };
+      template.layout = Object.assign({}, template.layout, {
+        positionPreset: val('tpl-position-preset', template.layout.positionPreset),
+        width: numVal('tpl-layout-width', template.layout.width)
+      });
+      template.code = {
+        enableCustomCode: checked('chk-enable-custom-code', false),
+        customHTML: val('input-custom-html', ''),
+        customCSS: val('input-custom-css', ''),
+        customJS: val('input-custom-js', '')
+      };
+    }
+
+    const alertWidget = config.widgets.alert;
+    alertWidget.enabled = checked('chk-enable-alert', alertWidget.enabled);
+    alertWidget.text = readTextStyle(TEXT_PREFIXES.alert, alertWidget.text);
+    alertWidget.canvas = readCanvas(TEXT_PREFIXES.alert, alertWidget.canvas);
+
+    const goal = config.widgets.goal;
+    goal.enabled = checked('chk-enable-goal', goal.enabled);
+    goal.title = val('input-goal-title', goal.title);
+    goal.targetAmount = numVal('input-goal-target', goal.targetAmount);
+    goal.currentAmount = numVal('input-goal-current', goal.currentAmount);
+    goal.startAmount = numVal('input-goal-start', goal.startAmount);
+    goal.endDate = val('input-goal-end-date', goal.endDate);
+    goal.text = Object.assign(readTextStyle(TEXT_PREFIXES.goal, goal.text), {
+      titleTemplate: val('input-goal-title', goal.text.titleTemplate)
+    });
+    goal.canvas = readCanvas(TEXT_PREFIXES.goal, goal.canvas);
+    goal.style = Object.assign({}, goal.style, {
+      fillColor: val('input-goal-fill-color', goal.style.fillColor),
+      barColor: val('input-goal-bar-color', goal.style.barColor),
+      backgroundColor: val('input-goal-bg-color', goal.style.backgroundColor),
+      barHeight: numVal('input-goal-bar-height', goal.style.barHeight),
+      backgroundOpacity: numVal('input-goal-bg-opacity', goal.style.backgroundOpacity),
+      barRoundness: numVal('input-goal-bar-roundness', goal.style.barRoundness),
+      borderRadius: numVal('input-goal-border-radius', goal.style.borderRadius),
+      borderWidth: numVal('input-goal-border-width', goal.style.borderWidth),
+      barOpacity: numVal('input-goal-bar-opacity', goal.style.barOpacity),
+      useGradient: checked('chk-goal-use-gradient', goal.style.useGradient),
+      fillColor2: val('input-goal-fill-color2', goal.style.fillColor2),
+      effect: val('select-goal-effect', goal.style.effect)
+    });
+    goal.code = {
+      enableCustomCode: checked('chk-enable-goal-custom-code', false),
+      customHTML: val('input-goal-custom-html', ''),
+      customCSS: val('input-goal-custom-css', ''),
+      customJS: val('input-goal-custom-js', '')
+    };
+
+    const lb = config.widgets.leaderboard;
+    lb.enabled = checked('chk-enable-lb', lb.enabled);
+    lb.title = val('input-lb-title', lb.title);
+    const lbMaxPreset = val('select-lb-max', '5');
+    lb.maxEntries = lbMaxPreset === 'custom' ? numVal('input-lb-max-custom', 5) : parseInt(lbMaxPreset, 10);
+    lb.showAmounts = checked('chk-lb-show-amounts', lb.showAmounts);
+    lb.text = Object.assign(readTextStyle(TEXT_PREFIXES.leaderboard, lb.text), {
+      titleTemplate: val('input-lb-title', lb.text.titleTemplate)
+    });
+    lb.canvas = readCanvas(TEXT_PREFIXES.leaderboard, lb.canvas);
+    lb.style = Object.assign({}, lb.style, {
+      backgroundColor: val('input-lb-bg-color-hex') || val('input-lb-bg-color', lb.style.backgroundColor || '#0a0e17'),
+      accentColor: val('input-lb-accent-color-hex') || val('input-lb-accent-color', lb.style.accentColor),
+      rowBgColor: val('input-lb-row-bg-color-hex') || val('input-lb-row-bg-color', lb.style.rowBgColor),
+      backgroundOpacity: numVal('input-lb-bg-opacity', lb.style.backgroundOpacity),
+      borderWidth: numVal('input-lb-border-width', lb.style.borderWidth ?? 1),
+      borderColor: val('input-lb-border-color-hex') || val('input-lb-border-color', lb.style.borderColor || '#ffffff22')
+    });
+    lb.code = {
+      enableCustomCode: checked('chk-enable-lb-custom-code', false),
+      customHTML: val('input-lb-custom-html', ''),
+      customCSS: val('input-lb-custom-css', ''),
+      customJS: val('input-lb-custom-js', '')
+    };
+
+    const recent = config.widgets.recent;
+    recent.enabled = checked('chk-enable-recent', recent.enabled);
+    recent.title = val('input-recent-title', recent.title);
+    const recentMaxPreset = val('select-recent-max', '5');
+    recent.maxEntries = recentMaxPreset === 'custom' ? numVal('input-recent-max-custom', 5) : parseInt(recentMaxPreset, 10);
+    recent.showAmounts = checked('chk-recent-show-amounts', recent.showAmounts);
+    recent.text = Object.assign(readTextStyle(TEXT_PREFIXES.recent, recent.text), {
+      titleTemplate: val('input-recent-title', recent.text.titleTemplate)
+    });
+    recent.canvas = readCanvas(TEXT_PREFIXES.recent, recent.canvas);
+    recent.style = Object.assign({}, recent.style, {
+      backgroundColor: val('input-recent-bg-color-hex') || val('input-recent-bg-color', recent.style.backgroundColor || '#0a0e17'),
+      accentColor: val('input-recent-accent-color-hex') || val('input-recent-accent-color', recent.style.accentColor),
+      rowBgColor: val('input-recent-row-bg-color-hex') || val('input-recent-row-bg-color', recent.style.rowBgColor),
+      backgroundOpacity: numVal('input-recent-bg-opacity', recent.style.backgroundOpacity),
+      borderWidth: numVal('input-recent-border-width', recent.style.borderWidth ?? 1),
+      borderColor: val('input-recent-border-color-hex') || val('input-recent-border-color', recent.style.borderColor || '#ffffff22')
+    });
+    recent.code = {
+      enableCustomCode: checked('chk-enable-recent-custom-code', false),
+      customHTML: val('input-recent-custom-html', ''),
+      customCSS: val('input-recent-custom-css', ''),
+      customJS: val('input-recent-custom-js', '')
+    };
+
+    const cycling = config.widgets.cycling || {};
+    cycling.enabled = checked('chk-enable-cycling', !!cycling.enabled);
+    cycling.cycleDuration = numVal('input-cycling-duration', 5000);
+    cycling.transitionIn = val('select-cycling-in-effect', 'slide-up');
+    cycling.transitionOut = val('select-cycling-out-effect', 'slide-up');
+    cycling.transitionInDuration = numVal('input-cycling-in-duration', 500);
+    cycling.transitionOutDuration = numVal('input-cycling-out-duration', 400);
+    cycling.transitionEffect = cycling.transitionIn;
+    cycling.items = readCyclingItems();
+    cycling.text = Object.assign(readTextStyle(TEXT_PREFIXES.cycling, cycling.text || {}), {
+      labelFontSize: numVal('cycling-label-font-size', 11),
+      labelColor: val('cycling-label-color-hex') || val('cycling-label-color', '#00e5ff'),
+      labelTransform: val('cycling-label-transform', 'uppercase')
+    });
+    cycling.canvas = readCanvas(TEXT_PREFIXES.cycling, cycling.canvas || {});
+    cycling.style = Object.assign({}, cycling.style || {}, {
+      backgroundColor: val('input-cycling-bg-color-hex') || val('input-cycling-bg-color', '#0a0e17'),
+      backgroundOpacity: numVal('input-cycling-bg-opacity', 85),
+      accentColor: val('input-cycling-accent-color-hex') || val('input-cycling-accent-color', '#00e5ff'),
+      borderColor: val('input-cycling-border-color-hex') || val('input-cycling-border-color', '#ffffff22'),
+      borderWidth: numVal('input-cycling-border-width', 1),
+      borderRadius: numVal('input-cycling-border-radius', 14),
+      padding: numVal('input-cycling-padding', 16),
+      mediaSize: numVal('input-cycling-media-size', 32),
+      mediaBgColor: val('input-cycling-media-bg-hex') || val('input-cycling-media-bg', '#00e5ff1a'),
+      mediaRadius: numVal('input-cycling-media-radius', 8)
+    });
+
+    const cyclingPreset = val('cycling-position-preset', 'bottom-left');
+    const cyclingAnchor = ConfigSchema.POSITION_PRESETS[cyclingPreset] || { x: 10, y: 90 };
+    cycling.layout = {
+      positionPreset: cyclingPreset,
+      positionX: cyclingAnchor.x,
+      positionY: cyclingAnchor.y,
+      width: numVal('cycling-layout-width', 350)
+    };
+
+    cycling.code = {
+      enableCustomCode: checked('chk-enable-cycling-custom-code', false),
+      customHTML: val('input-cycling-custom-html', ''),
+      customCSS: val('input-cycling-custom-css', ''),
+      customJS: val('input-cycling-custom-js', '')
+    };
+
+    config.widgets.cycling = cycling;
+    config = ConfigSchema.normalizeConfig(config);
+    return config;
+  }
+
+  // ── Config → form ────────────────────────────────────────────
+  function populateForm(raw) {
+    config = ConfigMigration.migrate(raw);
+    suppressSync = true;
+
+    renderTemplateList();
+    const template = currentTemplate();
+    if (template) {
+      setChecked('chk-template-enabled', template.enabled);
+      setVal('input-template-priority', template.priority);
+      renderAmountFilters(template.amountFilters);
+      setVal('input-title-template', template.text.titleTemplate);
+      setVal('input-subtitle-template', template.text.subtitleTemplate);
+      writeTextStyle(TEXT_PREFIXES.template, template.text);
+      writeCanvas(TEXT_PREFIXES.template, template.canvas);
+
+      setVal('input-image-url', template.image.imageUrl || template.image.gifUrl);
+      setSelectVal('select-media-position', template.image.position);
+      setVal('input-media-size', template.image.size);
+      setVal('input-sound-url', template.sound.soundUrl);
+      setVal('input-sound-volume', template.sound.soundVolume);
+
+      setVal('input-bg-color', template.style.backgroundColor);
+      setVal('input-bg-color-hex', template.style.backgroundColor);
+      setVal('input-bg-opacity', template.style.backgroundOpacity);
+      setVal('input-accent-color', template.style.accentColor);
+      setVal('input-accent-color-hex', template.style.accentColor);
+      setVal('input-border-radius', template.style.borderRadius);
+      setVal('input-border-width', template.style.borderWidth);
+      setVal('input-padding', template.style.padding);
+
+      setSelectVal('select-anim-type', template.animation.type);
+      setVal('input-anim-duration', template.animation.duration);
+      setVal('input-display-duration', template.animation.displayDuration);
+
+      setVal('tpl-position-preset', template.layout.positionPreset);
+      setVal('tpl-layout-width', template.layout.width);
+
+      setChecked('chk-enable-custom-code', template.code.enableCustomCode);
+      setVal('input-custom-html', template.code.customHTML);
+      setVal('input-custom-css', template.code.customCSS);
+      setVal('input-custom-js', template.code.customJS);
+    }
+
+    const alertWidget = config.widgets.alert;
+    setChecked('chk-enable-alert', alertWidget.enabled);
+    writeTextStyle(TEXT_PREFIXES.alert, alertWidget.text);
+    writeCanvas(TEXT_PREFIXES.alert, alertWidget.canvas);
+
+    const goal = config.widgets.goal;
+    setChecked('chk-enable-goal', goal.enabled);
+    setVal('input-goal-title', goal.text.titleTemplate || goal.title);
+    setVal('input-goal-target', goal.targetAmount);
+    setVal('input-goal-current', goal.currentAmount);
+    setVal('input-goal-start', goal.startAmount);
+    setVal('input-goal-end-date', goal.endDate);
+    setVal('input-goal-fill-color', goal.style.fillColor);
+    setVal('input-goal-fill-color-hex', goal.style.fillColor);
+    setVal('input-goal-bar-color', goal.style.barColor);
+    setVal('input-goal-bar-color-hex', goal.style.barColor);
+    setVal('input-goal-bar-height', goal.style.barHeight);
+    setVal('input-goal-bg-opacity', goal.style.backgroundOpacity);
+    setVal('input-goal-bar-roundness', goal.style.barRoundness);
+    setVal('input-goal-border-radius', goal.style.borderRadius);
+    setVal('input-goal-border-width', goal.style.borderWidth);
+    setVal('input-goal-bar-opacity', goal.style.barOpacity);
+    setChecked('chk-goal-use-gradient', goal.style.useGradient);
+    setVal('input-goal-fill-color2', goal.style.fillColor2);
+    setVal('input-goal-fill-color2-hex', goal.style.fillColor2);
+    setVal('input-goal-bg-color', goal.style.backgroundColor);
+    setVal('input-goal-bg-color-hex', goal.style.backgroundColor);
+    setSelectVal('select-goal-effect', goal.style.effect);
+    el('goal-fill2-container').style.display = goal.style.useGradient ? 'block' : 'none';
+
+    writeTextStyle(TEXT_PREFIXES.goal, goal.text);
+    writeCanvas(TEXT_PREFIXES.goal, goal.canvas);
+    setChecked('chk-enable-goal-custom-code', goal.code.enableCustomCode);
+    setVal('input-goal-custom-html', goal.code.customHTML);
+    setVal('input-goal-custom-css', goal.code.customCSS);
+    setVal('input-goal-custom-js', goal.code.customJS);
+
+    const lb = config.widgets.leaderboard;
+    setChecked('chk-enable-lb', lb.enabled);
+    setVal('input-lb-title', lb.text.titleTemplate || lb.title);
+    const lbPresets = ['3', '5', '10', '20'];
+    if (lbPresets.indexOf(String(lb.maxEntries)) !== -1) {
+      setVal('select-lb-max', String(lb.maxEntries));
+      el('input-lb-max-custom').style.display = 'none';
+    } else {
+      setVal('select-lb-max', 'custom');
+      setVal('input-lb-max-custom', lb.maxEntries);
+      el('input-lb-max-custom').style.display = 'block';
+    }
+    setChecked('chk-lb-show-amounts', lb.showAmounts);
+    setVal('input-lb-bg-color', lb.style.backgroundColor || '#0a0e17');
+    setVal('input-lb-bg-color-hex', lb.style.backgroundColor || '#0a0e17');
+    setVal('input-lb-accent-color', lb.style.accentColor);
+    setVal('input-lb-accent-color-hex', lb.style.accentColor);
+    setVal('input-lb-row-bg-color', lb.style.rowBgColor);
+    setVal('input-lb-row-bg-color-hex', lb.style.rowBgColor);
+    setVal('input-lb-bg-opacity', lb.style.backgroundOpacity);
+    setVal('input-lb-border-width', lb.style.borderWidth ?? 1);
+    setVal('input-lb-border-color', lb.style.borderColor || '#ffffff22');
+    setVal('input-lb-border-color-hex', lb.style.borderColor || '#ffffff22');
+    writeTextStyle(TEXT_PREFIXES.leaderboard, lb.text);
+    writeCanvas(TEXT_PREFIXES.leaderboard, lb.canvas);
+    setChecked('chk-enable-lb-custom-code', lb.code.enableCustomCode);
+    setVal('input-lb-custom-html', lb.code.customHTML);
+    setVal('input-lb-custom-css', lb.code.customCSS);
+    setVal('input-lb-custom-js', lb.code.customJS);
+
+    const recent = config.widgets.recent;
+    setChecked('chk-enable-recent', recent.enabled);
+    setVal('input-recent-title', recent.text.titleTemplate || recent.title);
+    const recentPresets = ['3', '5', '10', '20'];
+    if (recentPresets.indexOf(String(recent.maxEntries)) !== -1) {
+      setVal('select-recent-max', String(recent.maxEntries));
+      el('input-recent-max-custom').style.display = 'none';
+    } else {
+      setVal('select-recent-max', 'custom');
+      setVal('input-recent-max-custom', recent.maxEntries);
+      el('input-recent-max-custom').style.display = 'block';
+    }
+    setChecked('chk-recent-show-amounts', recent.showAmounts);
+    setVal('input-recent-bg-color', recent.style.backgroundColor || '#0a0e17');
+    setVal('input-recent-bg-color-hex', recent.style.backgroundColor || '#0a0e17');
+    setVal('input-recent-accent-color', recent.style.accentColor);
+    setVal('input-recent-accent-color-hex', recent.style.accentColor);
+    setVal('input-recent-row-bg-color', recent.style.rowBgColor);
+    setVal('input-recent-row-bg-color-hex', recent.style.rowBgColor);
+    setVal('input-recent-bg-opacity', recent.style.backgroundOpacity);
+    setVal('input-recent-border-width', recent.style.borderWidth ?? 1);
+    setVal('input-recent-border-color', recent.style.borderColor || '#ffffff22');
+    setVal('input-recent-border-color-hex', recent.style.borderColor || '#ffffff22');
+    writeTextStyle(TEXT_PREFIXES.recent, recent.text);
+    writeCanvas(TEXT_PREFIXES.recent, recent.canvas);
+    setChecked('chk-enable-recent-custom-code', recent.code.enableCustomCode);
+    setVal('input-recent-custom-html', recent.code.customHTML);
+    setVal('input-recent-custom-css', recent.code.customCSS);
+    setVal('input-recent-custom-js', recent.code.customJS);
+
+    const cycling = config.widgets.cycling;
+    if (cycling) {
+      setChecked('chk-enable-cycling', cycling.enabled);
+      setVal('input-cycling-duration', cycling.cycleDuration);
+      setSelectVal('select-cycling-in-effect', cycling.transitionIn || cycling.transitionEffect || 'slide-up');
+      setSelectVal('select-cycling-out-effect', cycling.transitionOut || cycling.transitionEffect || 'slide-up');
+      setVal('input-cycling-in-duration', cycling.transitionInDuration || 500);
+      setVal('input-cycling-out-duration', cycling.transitionOutDuration || 400);
+      renderCyclingItems(cycling.items || []);
+      if (cycling.text) {
+        writeTextStyle(TEXT_PREFIXES.cycling, cycling.text);
+        setVal('cycling-label-font-size', cycling.text.labelFontSize || 11);
+        setVal('cycling-label-color', cycling.text.labelColor || cycling.style?.accentColor || '#00e5ff');
+        setVal('cycling-label-color-hex', cycling.text.labelColor || cycling.style?.accentColor || '#00e5ff');
+        setSelectVal('cycling-label-transform', cycling.text.labelTransform || 'uppercase');
+      }
+      if (cycling.canvas) writeCanvas(TEXT_PREFIXES.cycling, cycling.canvas);
+      if (cycling.style) {
+        setVal('input-cycling-bg-color', cycling.style.backgroundColor);
+        setVal('input-cycling-bg-color-hex', cycling.style.backgroundColor);
+        setVal('input-cycling-bg-opacity', cycling.style.backgroundOpacity);
+        setVal('input-cycling-accent-color', cycling.style.accentColor);
+        setVal('input-cycling-accent-color-hex', cycling.style.accentColor);
+        setVal('input-cycling-border-color', cycling.style.borderColor || '#ffffff22');
+        setVal('input-cycling-border-color-hex', cycling.style.borderColor || '#ffffff22');
+        setVal('input-cycling-border-width', cycling.style.borderWidth ?? 1);
+        setVal('input-cycling-border-radius', cycling.style.borderRadius);
+        setVal('input-cycling-padding', cycling.style.padding);
+        setVal('input-cycling-media-size', cycling.style.mediaSize ?? 32);
+        setVal('input-cycling-media-bg', cycling.style.mediaBgColor || '#00e5ff1a');
+        setVal('input-cycling-media-bg-hex', cycling.style.mediaBgColor || '#00e5ff1a');
+        setVal('input-cycling-media-radius', cycling.style.mediaRadius ?? 8);
+      }
+      if (cycling.layout) {
+        setSelectVal('cycling-position-preset', cycling.layout.positionPreset);
+        setVal('cycling-layout-width', cycling.layout.width);
+      }
+      if (cycling.code) {
+        setChecked('chk-enable-cycling-custom-code', cycling.code.enableCustomCode);
+        setVal('input-cycling-custom-html', cycling.code.customHTML);
+        setVal('input-cycling-custom-css', cycling.code.customCSS);
+        setVal('input-cycling-custom-js', cycling.code.customJS);
+      }
+    }
+
+    renderSupportersTable();
+    renderRecentTable();
+
+    suppressSync = false;
+    syncLivePreview();
+  }
+
+  function syncLivePreview() {
+    if (suppressSync) return;
+    readFormValues();
+    renderTemplateList();
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'SETTINGS_UPDATED', payload: config }, '*');
+      iframe.contentWindow.postMessage({ type: 'config', config: config }, '*');
+    }
+  }
+
+  // ── Cycling Widget Item Manager ──────────────────────────────
+  function renderCyclingItems(items) {
+    const list = el('cycling-items-list');
+    if (!list) return;
+
+    if (!items || !items.length) {
+      list.innerHTML = '<p class="panel-desc">No items added to cycle. Click the buttons below to add items like Top Supporter, Recent Donation, or Custom Social links.</p>';
+      return;
+    }
+
+    list.innerHTML = items.map((item, idx) => {
+      const isCustom = item.type === 'custom' || item.type === 'social';
+      const typeLabel = isCustom ? 'Custom Item' : (item.type === 'top_supporter' ? 'Top Supporter' : 'Recent Donation');
+      const placeholderText = isCustom ? 'Text to display' : 'Label (e.g. Top Supporter)';
+      const mediaType = item.mediaType || (item.imageUrl ? 'image' : 'icon');
+
+      return `
+        <div class="cycling-item-row" data-type="${item.type}" data-idx="${idx}" style="display: flex; flex-direction: column; gap: 8px; padding: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="item-type-badge">${typeLabel}</div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <select class="form-control item-media-type" style="width: 110px; font-size: 11px; padding: 3px 6px;">
+                <option value="icon"${mediaType === 'icon' ? ' selected' : ''}>Lucide Icon</option>
+                <option value="image"${mediaType === 'image' ? ' selected' : ''}>Custom Image</option>
+              </select>
+              <button type="button" class="btn btn-danger btn-remove-cycling-item" style="padding: 3px 8px;" title="Remove item"><i data-lucide="trash-2"></i></button>
+            </div>
+          </div>
+          <div class="item-fields" style="display: flex; gap: 8px; align-items: center;">
+            <div class="item-icon-wrapper" style="display: ${mediaType === 'image' ? 'none' : 'flex'}; flex: 0 0 160px; gap: 4px;">
+              <input type="text" class="form-control item-icon" placeholder="Icon name" value="${TemplateEngine.escapeHtml(item.icon || 'star')}" style="flex: 1;" title="Lucide icon name" />
+              <button type="button" class="btn btn-secondary btn-open-icon-picker" style="padding: 4px 8px;" title="Pick icon from library"><i data-lucide="grid"></i></button>
+            </div>
+            <div class="item-image-wrapper" style="display: ${mediaType === 'image' ? 'flex' : 'none'}; flex: 1; gap: 6px; align-items: center;">
+              <input type="text" class="form-control item-image-url" placeholder="Image URL or Base64 data" value="${TemplateEngine.escapeHtml(item.imageUrl || '')}" style="flex: 1;" />
+              <button type="button" class="btn btn-secondary btn-upload-item-img" style="font-size: 11px; padding: 4px 8px; white-space: nowrap;"><i data-lucide="image"></i> Browse</button>
+              <input type="file" class="item-img-file-input" accept="image/*" style="display: none;" />
+            </div>
+            <input type="text" class="form-control item-text-field" placeholder="${placeholderText}" value="${TemplateEngine.escapeHtml(isCustom ? (item.text || '') : (item.label || ''))}" style="flex: 1;" />
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons();
+
+    list.querySelectorAll('.cycling-item-row').forEach(row => {
+      const mediaSelect = row.querySelector('.item-media-type');
+      const iconWrapper = row.querySelector('.item-icon-wrapper');
+      const imageWrapper = row.querySelector('.item-image-wrapper');
+      const iconInput = row.querySelector('.item-icon');
+      const iconPickerBtn = row.querySelector('.btn-open-icon-picker');
+      const browseBtn = row.querySelector('.btn-upload-item-img');
+      const fileInput = row.querySelector('.item-img-file-input');
+      const imgUrlInput = row.querySelector('.item-image-url');
+
+      if (iconPickerBtn && iconInput) {
+        iconPickerBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          openIconPicker(iconInput);
+        });
+      }
+
+      mediaSelect.addEventListener('change', (e) => {
+        const showImage = e.target.value === 'image';
+        iconWrapper.style.display = showImage ? 'none' : 'flex';
+        imageWrapper.style.display = showImage ? 'flex' : 'none';
+        syncLivePreview();
+      });
+
+      browseBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          imgUrlInput.value = ev.target.result;
+          syncLivePreview();
+          showToast(`📁 Loaded image for item: ${file.name}`);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    list.querySelectorAll('.btn-remove-cycling-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.closest('.cycling-item-row').remove();
+        syncLivePreview();
+      });
+    });
+
+    list.querySelectorAll('input, select').forEach(input => {
+      input.addEventListener('input', () => syncLivePreview());
+      input.addEventListener('change', () => syncLivePreview());
+    });
+  }
+
+  function readCyclingItems() {
+    const list = el('cycling-items-list');
+    if (!list) return [];
+    return Array.from(list.querySelectorAll('.cycling-item-row')).map(row => {
+      const type = row.dataset.type;
+      const isCustom = type === 'custom' || type === 'social';
+      const mediaType = row.querySelector('.item-media-type')?.value || 'icon';
+      const rawIcon = row.querySelector('.item-icon')?.value || '';
+      const imageUrl = row.querySelector('.item-image-url')?.value || '';
+      const rawVal = row.querySelector('.item-text-field')?.value || '';
+
+      const defaultIcon = type === 'top_supporter' ? 'trophy' : (type === 'recent_donation' ? 'history' : 'star');
+      const defaultLabel = type === 'top_supporter' ? 'Top Supporter' : (type === 'recent_donation' ? 'Recent Donation' : '');
+
+      const item = {
+        type,
+        mediaType,
+        icon: rawIcon.trim() || defaultIcon,
+        imageUrl
+      };
+      if (isCustom) {
+        item.text = rawVal;
+      } else {
+        item.label = rawVal.trim() || defaultLabel;
+      }
+      return item;
+    });
+  }
+
+  function setupCyclingWidgetEditor() {
+    document.querySelectorAll('.btn-add-cycling-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.type;
+        const items = readCyclingItems();
+        const newItem = { type, icon: 'star' };
+
+        if (type === 'top_supporter') {
+          newItem.label = 'Top Supporter';
+          newItem.icon = 'trophy';
+        } else if (type === 'recent_donation') {
+          newItem.label = 'Recent Donation';
+          newItem.icon = 'history';
+        } else {
+          newItem.text = 'Follow @yourname';
+          newItem.icon = 'share-2';
+        }
+
+        items.push(newItem);
+        renderCyclingItems(items);
+        syncLivePreview();
+      });
+    });
+
+    on('btn-copy-cycling-url', 'click', (e) => {
+      const base = cachedNetworkInfo ? `http://${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : location.origin;
+      const url = `${base}/overlay/cycling-widget`;
+      copyToClipboard(url, e.currentTarget);
+      showToast('<i data-lucide="copy"></i> Copied Cycling Widget URL');
+    });
+  }
+
+  // ── Supporters table ─────────────────────────────────────────
+  function renderSupportersTable() {
+    const body = el('lb-table-body');
+    if (!body) return;
+    const supporters = config.widgets.leaderboard.supporters || {};
+    const rows = Object.keys(supporters)
+      .map(name => ({ name, amount: parseFloat(supporters[name]) || 0 }))
+      .sort((a, b) => b.amount - a.amount);
+
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="3" style="padding: 10px; color: var(--text-muted);">No supporters yet</td></tr>';
+      return;
+    }
+
+    body.innerHTML = rows.map(r => `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 6px;">${TemplateEngine.escapeHtml(r.name)}</td>
+        <td style="padding: 6px;">₹${r.amount.toLocaleString('en-IN')}</td>
+        <td style="padding: 6px; text-align: right;">
+          <button type="button" class="btn btn-danger btn-remove-supporter" data-name="${TemplateEngine.escapeHtml(r.name)}" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i> Remove</button>
+        </td>
+      </tr>`).join('');
+
+    if (window.lucide) lucide.createIcons();
+
+    body.querySelectorAll('.btn-remove-supporter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        delete config.widgets.leaderboard.supporters[btn.dataset.name];
+        renderSupportersTable();
+        syncLivePreview();
+      });
+    });
+  }
+
+  function renderRecentTable() {
+    const body = el('recent-table-body');
+    if (!body) return;
+    const history = config.widgets.recent.recentDonations || [];
+
+    if (!history.length) {
+      body.innerHTML = '<tr><td colspan="4" style="padding: 10px; color: var(--text-muted);">No donation history yet</td></tr>';
+      return;
+    }
+
+    body.innerHTML = history.map((r, idx) => `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 6px;">${TemplateEngine.escapeHtml(r.sender)}</td>
+        <td style="padding: 6px;">₹${(parseFloat(r.amountValue) || 0).toLocaleString('en-IN')}</td>
+        <td style="padding: 6px; color: var(--text-muted);">${new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+        <td style="padding: 6px; text-align: right;">
+          <button type="button" class="btn btn-danger btn-remove-recent" data-idx="${idx}" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i> Remove</button>
+        </td>
+      </tr>`).join('');
+
+    if (window.lucide) lucide.createIcons();
+
+    body.querySelectorAll('.btn-remove-recent').forEach(btn => {
+      btn.addEventListener('click', () => {
+        config.widgets.recent.recentDonations.splice(parseInt(btn.dataset.idx, 10), 1);
+        renderRecentTable();
+        syncLivePreview();
+      });
+    });
+  }
+
+
+
+  // ── Server IO ────────────────────────────────────────────────
+  async function saveToServer(profileName) {
+    console.log('[Server IO] Saving profile to server:', profileName);
+    readFormValues();
+    const targetName = profileName || (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+    try {
+      const res = await fetch('/api/profiles/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: targetName, settings: config })
+      });
+      const data = await res.json();
+      console.log('[Server IO] Save response:', data);
+      if (data.ok && data.settings) {
+        populateForm(data.settings);
+        if (data.profiles) await loadProfilesList(data.activeProfile);
+      }
+      return data;
+    } catch (err) {
+      console.error('[Server IO] Save profile error:', err);
+      return { ok: false, error: err.message };
+    }
+  }
+
+  async function loadProfilesList(activeProfile) {
+    const select = el('select-profile');
+    if (!select) return;
+    try {
+      console.log('[Profiles] Requesting profile list from /api/profiles...');
+      const res = await fetch('/api/profiles');
+      const data = await res.json();
+      console.log('[Profiles] Received profiles data:', data);
+      if (!data || !data.profiles) return;
+      const profileNames = Array.isArray(data.profiles)
+        ? data.profiles
+        : Object.keys(data.profiles);
+      const active = activeProfile || data.activeProfile || profileNames[0] || 'Default';
+      console.log('[Profiles] Populating select dropdown with profiles:', profileNames, '| Active:', active);
+      select.innerHTML = profileNames.map(name =>
+        `<option value="${TemplateEngine.escapeHtml(name)}"${name === active ? ' selected' : ''}>${TemplateEngine.escapeHtml(name)}</option>`
+      ).join('');
+    } catch (e) {
+      console.error('[Profiles] Failed to load profiles list:', e);
+    }
+  }
+
+  // ── Wiring ───────────────────────────────────────────────────
+  const TAB_PREVIEW_URLS = {
+    goal: '/overlay/goal',
+    leaderboard: '/overlay/leaderboard',
+    recent: '/overlay/recent',
+    cycling: '/overlay/cycling-widget'
+  };
+
+  function setupTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        const content = el(`tab-${tab}`);
+        if (content) {
+          content.classList.add('active');
+          // Refresh any CodeMirror editors in this tab
+          content.querySelectorAll('.CodeMirror').forEach(cmEl => {
+            if (cmEl.CodeMirror) cmEl.CodeMirror.refresh();
+          });
+        }
+
+        const manager = el('template-manager');
+        if (manager) {
+          const alertTabs = ['text', 'media', 'style', 'animation'];
+          manager.style.display = alertTabs.indexOf(tab) === -1 ? 'none' : '';
+        }
+
+        if (!iframe) return;
+        const previewUrl = TAB_PREVIEW_URLS[tab] || '/overlay/alert';
+        if (iframe.src !== location.origin + previewUrl) iframe.src = previewUrl;
+      });
+    });
+  }
+
+  function setupCodeEditorTabs() {
+    document.querySelectorAll('.code-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const container = btn.closest('.code-editor-container');
+        if (!container) return;
+        container.querySelectorAll('.code-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        container.querySelectorAll('.code-tab-panel').forEach(panel => {
+          const isVisible = panel.dataset.codePanel === btn.dataset.codeTab;
+          panel.style.display = isVisible ? 'block' : 'none';
+          if (isVisible) {
+            const cm = panel.querySelector('.CodeMirror');
+            if (cm && cm.CodeMirror) cm.CodeMirror.refresh();
+          }
+        });
+      });
+    });
+  }
+
+  function setupVariablePills() {
+    let activeInput = el('input-title-template');
+    document.querySelectorAll('input[type="text"], textarea').forEach(input => {
+      input.addEventListener('focus', () => { activeInput = input; });
+    });
+
+    document.querySelectorAll('.var-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const target = (pill.dataset.targetInput && el(pill.dataset.targetInput)) || activeInput;
+        if (!target) return;
+        const start = target.selectionStart !== null ? target.selectionStart : target.value.length;
+        const end = target.selectionEnd !== null ? target.selectionEnd : target.value.length;
+        const insert = `{{${pill.dataset.var}}}`;
+        target.value = target.value.substring(0, start) + insert + target.value.substring(end);
+        target.focus();
+        if (target.setSelectionRange) target.setSelectionRange(start + insert.length, start + insert.length);
+        syncLivePreview();
+      });
+    });
+  }
+
+  function setupColorPickers() {
+    const pairs = [
+      ['input-bg-color', 'input-bg-color-hex'],
+      ['input-accent-color', 'input-accent-color-hex'],
+      ['input-goal-fill-color', 'input-goal-fill-color-hex'],
+      ['input-goal-fill-color2', 'input-goal-fill-color2-hex'],
+      ['input-goal-bar-color', 'input-goal-bar-color-hex'],
+      ['input-goal-bg-color', 'input-goal-bg-color-hex'],
+      ['input-cycling-bg-color', 'input-cycling-bg-color-hex'],
+      ['input-cycling-accent-color', 'input-cycling-accent-color-hex'],
+      ['input-cycling-border-color', 'input-cycling-border-color-hex'],
+      ['input-cycling-media-bg', 'input-cycling-media-bg-hex'],
+      ['cycling-label-color', 'cycling-label-color-hex'],
+      ['input-lb-bg-color', 'input-lb-bg-color-hex'],
+      ['input-lb-accent-color', 'input-lb-accent-color-hex'],
+      ['input-lb-row-bg-color', 'input-lb-row-bg-color-hex'],
+      ['input-lb-border-color', 'input-lb-border-color-hex'],
+      ['input-recent-bg-color', 'input-recent-bg-color-hex'],
+      ['input-recent-accent-color', 'input-recent-accent-color-hex'],
+      ['input-recent-row-bg-color', 'input-recent-row-bg-color-hex'],
+      ['input-recent-border-color', 'input-recent-border-color-hex'],
+      ...Object.keys(TEXT_PREFIXES).map(k => [`${TEXT_PREFIXES[k]}-text-color`, `${TEXT_PREFIXES[k]}-text-color-hex`])
+    ];
+
+    pairs.forEach(([pickerId, hexId]) => {
+      const picker = el(pickerId);
+      const hex = el(hexId);
+      if (!picker || !hex) return;
+      picker.addEventListener('input', () => { hex.value = picker.value; syncLivePreview(); });
+      ['input', 'change'].forEach(evt => {
+        hex.addEventListener(evt, () => {
+          let valStr = hex.value.trim();
+          if (!valStr.startsWith('#')) valStr = '#' + valStr;
+          if (/^#[0-9a-f]{6}$/i.test(valStr)) { picker.value = valStr; }
+          syncLivePreview();
+        });
+      });
+    });
+  }
+
+  function setupCanvasPresets() {
+    Object.keys(TEXT_PREFIXES).forEach(key => {
+      const prefix = TEXT_PREFIXES[key];
+      const select = el(`${prefix}-canvas-preset`);
+      if (!select) return;
+      select.addEventListener('change', () => {
+        writeCanvas(prefix, { preset: select.value });
+        syncLivePreview();
+      });
+    });
+  }
+
+  function setupAmountFilterEditor() {
+    const list = el('amount-filter-list');
+    const addBtn = el('btn-filter-row-add');
+    if (!list) return;
+
+    list.addEventListener('change', (event) => {
+      const row = event.target.closest('.amount-filter-row');
+      if (row) updateFilterRowVisibility(row);
+      syncLivePreview();
+    });
+    list.addEventListener('input', () => syncLivePreview());
+    list.addEventListener('click', (event) => {
+      if (!event.target.classList.contains('filter-remove')) return;
+      event.target.closest('.amount-filter-row').remove();
+      syncLivePreview();
+      if (!list.querySelector('.amount-filter-row')) renderAmountFilters([]);
+    });
+
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        const filters = readAmountFilters();
+        filters.push(TemplateMatcher.normalizeFilter({ type: 'range', min: 0, max: 500 }));
+        renderAmountFilters(filters);
+        syncLivePreview();
+      });
+    }
+
+    on('btn-match-test', 'click', () => {
+      const amount = val('input-match-test', '');
+      runTestAlertWithAmount(amount);
+    });
+
+    document.querySelectorAll('.btn-quick-test-amount').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const amt = btn.dataset.amount;
+        setVal('input-match-test', amt);
+        runTestAlertWithAmount(amt);
+      });
+    });
+  }
+
+  function setupTemplateManager() {
+    const select = el('select-template');
+    if (select) {
+      select.addEventListener('change', () => {
+        readFormValues();
+        config.activeTemplateId = select.value;
+        populateForm(config);
+      });
+    }
+
+    const withTemplate = (fn) => () => {
+      readFormValues();
+      fn(currentTemplate());
+      populateForm(config);
+    };
+
+    el('btn-template-new').addEventListener('click', withTemplate(async () => {
+      const name = await AppModal.show({
+        title: 'New Template',
+        message: 'Enter a name for the new alert template:',
+        showInput: true,
+        defaultValue: `Alert Template ${config.alertTemplates.length + 1}`
+      });
+      if (!name) return;
+      const base = config.widgets.alert;
+      const created = ConfigSchema.createTemplate({
+        name,
+        canvas: ConfigSchema.clone(base.canvas),
+        text: ConfigSchema.clone(base.text),
+        style: ConfigSchema.clone(base.style),
+        animation: ConfigSchema.clone(base.animation),
+        layout: ConfigSchema.clone(base.layout),
+        code: ConfigSchema.clone(base.code)
+      });
+      config.alertTemplates.push(created);
+      config.activeTemplateId = created.id;
+      populateForm(config);
+      showToast('<i data-lucide="sparkles"></i> Created template "' + created.name + '"');
+    }));
+
+    el('btn-template-rename').addEventListener('click', withTemplate(async (template) => {
+      if (!template) return;
+      const name = await AppModal.show({
+        title: 'Rename Template',
+        message: 'Enter new name:',
+        showInput: true,
+        defaultValue: template.name
+      });
+      if (name) {
+        template.name = name;
+        populateForm(config);
+      }
+    }));
+
+    el('btn-template-duplicate').addEventListener('click', withTemplate((template) => {
+      if (!template) return;
+      const copy = ConfigSchema.normalizeTemplate(Object.assign(ConfigSchema.clone(template), {
+        id: ConfigSchema.generateId('tpl'),
+        name: `${template.name} copy`,
+        isDefault: false
+      }));
+      config.alertTemplates.push(copy);
+      config.activeTemplateId = copy.id;
+      showToast('<i data-lucide="copy"></i> Duplicated as "' + copy.name + '"');
+    }));
+
+    el('btn-template-default').addEventListener('click', withTemplate((template) => {
+      if (!template) return;
+      config.alertTemplates.forEach(t => { t.isDefault = t.id === template.id; });
+      showToast(`⭐ "${template.name}" is now the fallback template`);
+    }));
+
+    el('btn-template-delete').addEventListener('click', withTemplate(async (template) => {
+      if (!template) return;
+      if (config.alertTemplates.length === 1) {
+        showToast('<i data-lucide="alert-triangle"></i> At least one template is required');
+        return;
+      }
+      const confirmed = await AppModal.show({
+        title: 'Delete Template',
+        message: `Are you sure you want to delete "${template.name}"?`
+      });
+      if (!confirmed) return;
+      config.alertTemplates = config.alertTemplates.filter(t => t.id !== template.id);
+      config.activeTemplateId = config.alertTemplates[0].id;
+      populateForm(config);
+      showToast('<i data-lucide="trash-2"></i> Template deleted');
+    }));
+
+    el('chk-template-enabled').addEventListener('change', () => syncLivePreview());
+  }
+
+  function setupFileBrowsers() {
+    const handlers = [
+      { btn: 'btn-browse-image', file: 'input-image-file', url: 'input-image-url', kind: 'image' },
+      { btn: 'btn-browse-sound', file: 'input-sound-file', url: 'input-sound-url', kind: 'sound' }
+    ];
+
+    function readFile(file, urlInputId) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setVal(urlInputId, event.target.result);
+        syncLivePreview();
+        showToast(`📁 Loaded local file: ${file.name}`);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    handlers.forEach(h => {
+      const btn = el(h.btn);
+      const fileInput = el(h.file);
+      const urlInput = el(h.url);
+      const zone = document.querySelector(`.drop-zone[data-drop-kind="${h.kind}"]`);
+
+      if (btn && fileInput) {
+        btn.addEventListener('click', (e) => { e.preventDefault(); fileInput.click(); });
+        fileInput.addEventListener('change', (e) => {
+          readFile(e.target.files[0], h.url);
+          fileInput.value = '';
+        });
+      }
+
+      if (zone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+          zone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          });
+        });
+
+        ['dragenter', 'dragover'].forEach(evt => {
+          zone.addEventListener(evt, () => zone.classList.add('drag-over'));
+        });
+
+        ['dragleave', 'drop'].forEach(evt => {
+          zone.addEventListener(evt, () => zone.classList.remove('drag-over'));
+        });
+
+        zone.addEventListener('drop', (e) => {
+          const file = e.dataTransfer.files[0];
+          if (file) {
+            const isImage = file.type.startsWith('image/');
+            const isAudio = file.type.startsWith('audio/');
+
+            if (h.kind === 'image' && !isImage) return showToast('<i data-lucide="alert-triangle"></i> Please drop an image file');
+            if (h.kind === 'sound' && !isAudio) return showToast('<i data-lucide="alert-triangle"></i> Please drop an audio file');
+
+            readFile(file, h.url);
+          }
+        });
+      }
+    });
+  }
+
+  const SNIPPETS = {
+    'html-default': ConfigSchema.DEFAULT_CODE.alert.customHTML,
+    'html-badge': '<div class="alert-badge" style="background:var(--accent-color);color:#000;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-bottom:6px;display:inline-block;">{{sourceApp}}</div>\n{{mediaHtml}}\n<div class="alert-title" style="font-size:26px;">{{sender}} → {{amount}}</div>',
+    'css-no-border': '\n.alert-box {\n  border-left: none !important;\n}',
+    'css-transparent': '\n.alert-box {\n  background: transparent !important;\n  box-shadow: none !important;\n  backdrop-filter: none !important;\n}',
+    'css-large-media': '\n.alert-media {\n  width: 100% !important;\n  max-width: 100% !important;\n  height: auto !important;\n}',
+    'css-glow': '\n.alert-box {\n  box-shadow: 0 0 25px var(--accent-color), inset 0 0 15px var(--accent-color) !important;\n}',
+    'js-log': '\nconsole.log("[Payment Alert]", notifData.sender, notifData.amount);',
+    'js-scale': '\nalertBox.style.transform = "scale(1.15)";\nsetTimeout(() => alertBox.style.transform = "scale(1)", 300);'
+  };
+
+  function snippetTarget(key) {
+    if (key.startsWith('html-')) return el('input-custom-html');
+    if (key.startsWith('css-')) return el('input-custom-css');
+    return el('input-custom-js');
+  }
+
+  function updateSnippetButtonStates() {
+    document.querySelectorAll('.snippet-btn').forEach(btn => {
+      const snippet = SNIPPETS[btn.dataset.snippet];
+      const target = snippetTarget(btn.dataset.snippet);
+      const currentVal = target ? val(target.id, '') : '';
+      const active = snippet && currentVal.includes(snippet.trim());
+      btn.classList.toggle('active', !!active);
+    });
+  }
+
+  function setupSnippets() {
+    document.querySelectorAll('.snippet-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const snippet = SNIPPETS[btn.dataset.snippet];
+        const target = snippetTarget(btn.dataset.snippet);
+        if (!snippet || !target) return;
+        const currentVal = val(target.id, '');
+        const trimmed = snippet.trim();
+        if (currentVal.includes(trimmed)) {
+          setVal(target.id, currentVal.replace(snippet, '').replace(trimmed, '').trim());
+          showToast('<i data-lucide="x-circle"></i> Code snippet removed');
+        } else {
+          setVal(target.id, (currentVal + (currentVal.endsWith('\n') || !currentVal ? '' : '\n') + snippet).trim());
+          showToast('<i data-lucide="sparkles"></i> Code snippet applied!');
+        }
+        updateSnippetButtonStates();
+        syncLivePreview();
+      });
+    });
+  }
+
+  function setupCssPills() {
+    document.querySelectorAll('.css-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const selector = pill.dataset.copy || pill.textContent.trim();
+        const container = pill.closest('.code-editor-container');
+        const cssPanel = container && container.querySelector('.code-tab-panel[data-code-panel="css"]');
+        const textarea = cssPanel && cssPanel.querySelector('textarea');
+        if (textarea) {
+          const currentVal = val(textarea.id, '');
+          const insert = `${selector} {\n  \n}\n`;
+          setVal(textarea.id, currentVal + (currentVal ? '\n' : '') + insert);
+        }
+        copyToClipboard(selector).catch(() => {});
+        showToast('<i data-lucide="copy"></i> Copied selector "' + selector + '"');
+      });
+    });
+  }
+
+  function attachInputListeners() {
+    document.querySelectorAll('.form-control, .color-picker, input, select, textarea').forEach(input => {
+      if (input.closest('#amount-filter-list') || input.id === 'select-template' || input.id === 'select-profile' || input.id === 'icon-search-input') return;
+      ['input', 'change'].forEach(evt => input.addEventListener(evt, () => {
+        syncLivePreview();
+      }));
+    });
+    ['input-custom-html', 'input-custom-css', 'input-custom-js'].forEach(id => {
+      const node = el(id);
+      if (node) node.addEventListener('input', updateSnippetButtonStates);
+    });
+  }
+
+  function sampleAlert(customAmount) {
+    const samples = [
+      { sender: 'Rahul Kumar', amount: '₹500', sourceApp: 'PhonePe', message: 'Awesome stream!' },
+      { sender: 'Priya Singh', amount: '₹1000', sourceApp: 'Google Pay', message: 'Keep up the great work!' },
+      { sender: 'Amit Verma', amount: '₹250', sourceApp: 'Paytm', message: 'Chai paani subscription ☕' },
+      { sender: 'Sneha Patel', amount: '₹300', sourceApp: 'BHIM UPI', message: 'Great gameplay! 🎮' }
+    ];
+    const picked = { ...samples[Math.floor(Math.random() * samples.length)], timestamp: Date.now() };
+    if (customAmount !== undefined && customAmount !== null && customAmount !== '') {
+      const num = parseFloat(customAmount);
+      if (Number.isFinite(num)) {
+        picked.amount = `₹${num}`;
+      }
+    }
+    return picked;
+  }
+
+  async function runTestAlertWithAmount(specificAmount) {
+    syncLivePreview();
+    const testData = sampleAlert(specificAmount);
+    const amountVal = TemplateMatcher.parseAmount(testData.amount);
+    const resolved = TemplateMatcher.resolve(config, amountVal);
+
+    const resultEl = el('match-test-result');
+    if (resultEl) {
+      resultEl.textContent = `₹${amountVal.toLocaleString('en-IN')} → Matched "${resolved.templateName}"${resolved.templateId === config.activeTemplateId ? ' (editing)' : ''}`;
+    }
+
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({
+        type: 'TRIGGER_TEST_ALERT',
+        data: { ...testData, alertTemplateId: resolved.templateId }
+      }, '*');
+    }
+    showToast('<i data-lucide="zap"></i> Test alert (₹' + amountVal + ') → Matched "' + resolved.templateName + '"');
+
+    try {
+      await fetch('/api/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...testData, alertTemplateId: resolved.templateId })
+      });
+    } catch (e) {
+      console.warn('[Config] Live overlay test trigger error:', e.message);
+    }
+  }
+
+  function setupActionButtons() {
+    on('chk-goal-use-gradient', 'change', (e) => {
+      el('goal-fill2-container').style.display = e.target.checked ? 'block' : 'none';
+      syncLivePreview();
+    });
+
+    document.querySelectorAll('.btn-format-code').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const container = btn.closest('.code-editor-container');
+        const activeTab = container.querySelector('.code-tab-btn.active');
+        if (!activeTab) return;
+        const panel = container.querySelector(`.code-tab-panel[data-code-panel="${activeTab.dataset.codeTab}"]`);
+        const textarea = panel && panel.querySelector('textarea');
+        if (textarea && textarea.id) formatCode(textarea.id);
+      });
+    });
+
+    on('btn-save', 'click', async () => {
+      try {
+        const data = await saveToServer();
+        if (data.ok) {
+          showToast('<i data-lucide="save"></i> Settings saved successfully!', 'success');
+        } else {
+          showToast('<i data-lucide="alert-triangle"></i> Save failed', 'error');
+        }
+      } catch (e) {
+        showToast('<i data-lucide="alert-triangle"></i> Save failed: ' + e.message, 'error');
+      }
+    });
+
+    on('btn-test', 'click', async () => {
+      readFormValues();
+      syncLivePreview();
+      const loadedTemplate = currentTemplate();
+      const testData = {
+        ...sampleAlert(),
+        alertTemplateId: loadedTemplate ? loadedTemplate.id : null
+      };
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({
+          type: 'TRIGGER_TEST_ALERT',
+          data: testData
+        }, '*');
+      }
+      showToast('<i data-lucide="zap"></i> Test alert via loaded template "' + (loadedTemplate ? loadedTemplate.name : 'Default') + '"');
+      try {
+        await fetch('/api/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(testData)
+        });
+      } catch (e) {
+        console.warn('[Config] Live overlay test trigger error:', e.message);
+      }
+    });
+
+    on('btn-export', 'click', () => {
+      readFormValues();
+      StorageHelper.exportToFile(config, 'alert-theme.json');
+      showToast('<i data-lucide="upload"></i> Exported configuration');
+    });
+
+    on('btn-import', 'click', () => { const f = el('file-import-input'); if (f) f.click(); });
+    on('file-import-input', 'change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const importedConfig = await StorageHelper.importFromFile(file);
+        const activeProfile = (el('select-profile') && el('select-profile').value) || 'Default';
+        const res = await fetch('/api/profiles/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: activeProfile, settings: importedConfig })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          populateForm(data.settings);
+          showToast('<i data-lucide="download"></i> Imported configuration into current profile');
+        }
+      } catch (err) {
+        showToast('<i data-lucide="alert-triangle"></i> ' + err.message);
+      }
+      e.target.value = '';
+    });
+
+    on('btn-reset', 'click', async () => {
+      const confirmed = await AppModal.show({
+        title: 'Reset Defaults',
+        message: 'Reset all settings in this profile to defaults?'
+      });
+      if (!confirmed) return;
+      populateForm(ConfigSchema.createDefaultConfig());
+      showToast('<i data-lucide="rotate-ccw"></i> Reset to defaults');
+    });
+
+    // ── Profiles
+    on('select-profile', 'change', async (e) => {
+      const res = await fetch('/api/profiles/switch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: e.target.value })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        populateForm(data.settings);
+        showToast('<i data-lucide="user"></i> Switched to "' + data.activeProfile + '"');
+      }
+    });
+
+    on('btn-profile-new', 'click', async () => {
+      const name = await AppModal.show({
+        title: 'New Profile',
+        message: 'Enter a name for the new profile:',
+        showInput: true
+      });
+      if (!name) return;
+      await saveToServer(name);
+      await loadProfilesList(name);
+      showToast('<i data-lucide="user"></i> Created profile "' + name + '"');
+    });
+
+    on('btn-profile-rename', 'click', async () => {
+      const select = el('select-profile');
+      const oldName = select ? select.value : '';
+      const name = await AppModal.show({
+        title: 'Rename Profile',
+        message: 'Enter new name:',
+        showInput: true,
+        defaultValue: oldName
+      });
+      if (!name || name === oldName) return;
+      await saveToServer(name);
+      if (oldName !== 'Default') {
+        await fetch('/api/profiles/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: oldName })
+        });
+      }
+      await loadProfilesList(name);
+      showToast('<i data-lucide="pencil"></i> Renamed to "' + name + '"');
+    });
+
+    on('btn-profile-delete', 'click', async () => {
+      const select = el('select-profile');
+      const name = select ? select.value : '';
+      if (!name) return;
+      const confirmed = await AppModal.show({
+        title: 'Delete Profile',
+        message: `Are you sure you want to delete profile "${name}"?`
+      });
+      if (!confirmed) return;
+      const res = await fetch('/api/profiles/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      if (!data.ok) return showToast('<i data-lucide="alert-triangle"></i> ' + (data.error || 'Delete failed'));
+      await loadProfilesList(data.activeProfile);
+      populateForm(await StorageHelper.loadServer());
+      showToast('<i data-lucide="trash-2"></i> Profile deleted');
+    });
+
+    on('btn-profile-export', 'click', () => {
+      readFormValues();
+      const select = el('select-profile');
+      StorageHelper.exportToFile(config, `profile-${(select && select.value) || 'default'}.json`);
+    });
+
+    on('btn-profile-import', 'click', () => { const f = el('file-import-profile-input'); if (f) f.click(); });
+    on('file-import-profile-input', 'change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const importedConfig = await StorageHelper.importFromFile(file);
+        let defaultName = file.name.replace(/\.json$/i, '').replace(/^profile-/i, '').trim();
+        if (!defaultName) defaultName = 'Imported Profile';
+
+        const profileName = await AppModal.show({
+          title: 'Import Profile',
+          message: 'Confirm profile name:',
+          showInput: true,
+          defaultValue: defaultName
+        });
+        if (!profileName) { e.target.value = ''; return; }
+
+        const res = await fetch('/api/profiles/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: profileName, settings: importedConfig })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          await loadProfilesList(data.activeProfile);
+          populateForm(data.settings);
+          showToast('<i data-lucide="download"></i> Imported profile "' + data.activeProfile + '"');
+        } else {
+          showToast('<i data-lucide="alert-triangle"></i> Import failed: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        showToast('<i data-lucide="alert-triangle"></i> ' + err.message);
+      }
+      e.target.value = '';
+    });
+
+    // ── Goal helpers
+    on('btn-goal-test-add', 'click', () => {
+      readFormValues();
+      config.widgets.goal.currentAmount += 100;
+      populateForm(config);
+      showToast('<i data-lucide="zap"></i> Added ₹100 to the goal');
+    });
+
+    on('btn-goal-reset', 'click', () => {
+      readFormValues();
+      config.widgets.goal.currentAmount = 0;
+      populateForm(config);
+      showToast('<i data-lucide="rotate-ccw"></i> Goal progress reset');
+    });
+
+    on('btn-goal-export', 'click', () => {
+      readFormValues();
+      StorageHelper.exportToFile(config.widgets.goal, 'goal-data.json');
+    });
+
+    on('btn-goal-import', 'click', () => { const f = el('file-import-goal-input'); if (f) f.click(); });
+    on('file-import-goal-input', 'change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          readFormValues();
+          config.widgets.goal = ConfigSchema.normalizeWidget('goal', JSON.parse(ev.target.result));
+          populateForm(config);
+          showToast('<i data-lucide="download"></i> Goal data imported');
+        } catch (err) {
+          showToast('<i data-lucide="alert-triangle"></i> Invalid goal JSON');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    // ── Leaderboard helpers
+    on('btn-lb-export', 'click', () => {
+      readFormValues();
+      StorageHelper.exportToFile(config.widgets.leaderboard.supporters, 'leaderboard.json');
+    });
+
+    on('btn-lb-import', 'click', () => { const f = el('file-import-lb-input'); if (f) f.click(); });
+    on('file-import-lb-input', 'change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          readFormValues();
+          const parsed = JSON.parse(ev.target.result);
+          config.widgets.leaderboard.supporters = parsed.supporters || parsed;
+          populateForm(config);
+          showToast('<i data-lucide="download"></i> Leaderboard imported');
+        } catch (err) {
+          showToast('<i data-lucide="alert-triangle"></i> Invalid leaderboard JSON');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    [['btn-lb-clear', 'Clear Leaderboard', 'Clear every supporter from the leaderboard?'],
+     ['btn-lb-clear-all', 'Clear Leaderboard', 'Clear every supporter from the leaderboard?']
+    ].forEach(([id, title, msg]) => {
+      on(id, 'click', async () => {
+        const confirmed = await AppModal.show({ title, message: msg + ' This cannot be undone.' });
+        if (!confirmed) return;
+        readFormValues();
+        config.widgets.leaderboard.supporters = {};
+        await saveToServer();
+        showToast('<i data-lucide="trash-2"></i> Leaderboard cleared and saved');
+      });
+    });
+
+    // ── Recent helpers
+    on('btn-recent-export', 'click', () => {
+      readFormValues();
+      StorageHelper.exportToFile(config.widgets.recent.recentDonations, 'donation-history.json');
+    });
+
+    on('btn-recent-import', 'click', () => { const f = el('file-import-recent-input'); if (f) f.click(); });
+    on('file-import-recent-input', 'change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          readFormValues();
+          const parsed = JSON.parse(ev.target.result);
+          config.widgets.recent.recentDonations = Array.isArray(parsed) ? parsed : (parsed.recentDonations || []);
+          populateForm(config);
+          showToast('<i data-lucide="download"></i> Recent history imported');
+        } catch (err) {
+          showToast('<i data-lucide="alert-triangle"></i> Invalid JSON');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    on('btn-recent-clear', 'click', () => {
+      readFormValues();
+      config.widgets.recent.recentDonations = [];
+      populateForm(config);
+      showToast('<i data-lucide="trash-2"></i> Local history cleared');
+    });
+
+    on('btn-recent-clear-all', 'click', async () => {
+      const confirmed = await AppModal.show({
+        title: 'Clear Recent History',
+        message: 'Clear every donation from the history? This cannot be undone.'
+      });
+      if (!confirmed) return;
+      readFormValues();
+      config.widgets.recent.recentDonations = [];
+      await saveToServer();
+      showToast('<i data-lucide="trash-2"></i> History cleared and saved');
+    });
+
+    // ── Code reset buttons
+    [['btn-reset-alert-code', 'alert', ['input-custom-html', 'input-custom-css', 'input-custom-js']],
+     ['btn-reset-goal-code', 'goal', ['input-goal-custom-html', 'input-goal-custom-css', 'input-goal-custom-js']],
+     ['btn-reset-lb-code', 'leaderboard', ['input-lb-custom-html', 'input-lb-custom-css', 'input-lb-custom-js']],
+     ['btn-reset-recent-code', 'recent', ['input-recent-custom-html', 'input-recent-custom-css', 'input-recent-custom-js']],
+     ['btn-reset-cycling-code', 'cycling', ['input-cycling-custom-html', 'input-cycling-custom-css', 'input-cycling-custom-js']]
+    ].forEach(([btnId, kind, ids]) => {
+      on(btnId, 'click', () => {
+        const defaults = ConfigSchema.DEFAULT_CODE[kind];
+        setVal(ids[0], defaults.customHTML);
+        setVal(ids[1], defaults.customCSS);
+        setVal(ids[2], defaults.customJS);
+        updateSnippetButtonStates();
+        syncLivePreview();
+        showToast('<i data-lucide="rotate-ccw"></i> Code reset to defaults');
+      });
+    });
+
+    // ── Sound test
+    on('btn-test-sound', 'click', () => {
+      const url = val('input-sound-url', '');
+      if (!url) return showToast('<i data-lucide="alert-triangle"></i> No sound URL set');
+      const audio = new Audio(url);
+      audio.volume = Math.max(0, Math.min(1, numVal('input-sound-volume', 80) / 100));
+      audio.play().catch(err => showToast('<i data-lucide="alert-triangle"></i> ' + err.message));
+    });
+  }
+
+  // ── Custom Event Simulator ────────────────────────────────────
+  function updateSimulatorTemplateOptions() {
+    const simSelect = el('sim-template-override');
+    if (!simSelect) return;
+    const current = simSelect.value;
+    simSelect.innerHTML = '<option value="">Auto-Match by Amount (Default)</option>' +
+      config.alertTemplates.map(t =>
+        `<option value="${TemplateEngine.escapeHtml(t.id)}"${t.id === current ? ' selected' : ''}>${TemplateEngine.escapeHtml(t.name)} (ID: ${t.id})</option>`
+      ).join('');
+  }
+
+  function setupSimulator() {
+    function buildSimulatedNotification(providerKey, senderName, rawAmount, note) {
+      const sender = (senderName || 'Anonymous').trim();
+      const numAmount = TemplateMatcher.parseAmount(rawAmount) || 100;
+      const formattedAmount = numAmount.toLocaleString('en-IN');
+      const msg = (note || '').trim();
+
+      let appName = 'PhonePe';
+      let packageName = 'com.phonepe.app';
+      let title = 'PhonePe';
+      let text = `${sender} has sent Rs. ${formattedAmount}.00 to your bank account`;
+
+      if (providerKey === 'gpay') {
+        appName = 'Google Pay';
+        packageName = 'com.google.android.apps.nbu.paisa.user';
+        title = 'Google Pay';
+        text = `Received ₹${formattedAmount} from ${sender}`;
+      } else if (providerKey === 'paytm') {
+        appName = 'Paytm';
+        packageName = 'net.one97.paytm';
+        title = 'Paytm';
+        text = `Payment of ₹${formattedAmount} received from ${sender}`;
+      } else if (providerKey === 'amazon') {
+        appName = 'Amazon Pay';
+        packageName = 'in.amazon.mShop.android.shopping';
+        title = `₹${formattedAmount} received`;
+        text = `Money received from ${sender} on Amazon Pay`;
+      } else if (providerKey === 'bhim') {
+        appName = 'BHIM UPI';
+        packageName = 'in.org.npci.upiapp';
+        title = 'UPI Payment';
+        text = `${sender} sent ₹${formattedAmount} via UPI`;
+      } else {
+        appName = 'PhonePe';
+        packageName = 'com.phonepe.app';
+        title = 'PhonePe';
+        text = `${sender} has sent Rs. ${formattedAmount}.00 to your bank account`;
+      }
+
+      return {
+        type: 'payment_notification',
+        packageName,
+        appName,
+        title,
+        text,
+        bigText: text,
+        message: msg,
+        timestamp: Date.now()
+      };
+    }
+
+    const SIM_PRESETS = {
+      phonepe: { provider: 'phonepe', sender: 'Rahul Kumar', amount: '500', message: 'Awesome stream!' },
+      gpay:    { provider: 'gpay',    sender: 'Priya Singh', amount: '1000', message: 'Keep up the great work!' },
+      paytm:   { provider: 'paytm',   sender: 'Amit Verma',  amount: '250',  message: 'Chai paani subscription ☕' },
+      amazon:  { provider: 'amazon',  sender: 'Sneha Patel', amount: '1500', message: 'Thanks for streaming!' },
+      highval: { provider: 'phonepe', sender: 'Vikramaditya', amount: '5000', message: 'ULTRA DONATION! 👑🔥' }
+    };
+
+    document.querySelectorAll('.btn-sim-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = SIM_PRESETS[btn.dataset.preset];
+        if (!p) return;
+        setVal('sim-app-provider', p.provider);
+        setVal('sim-sender', p.sender);
+        setVal('sim-amount', p.amount);
+        setVal('sim-message', p.message);
+        setVal('sim-alert-id', `evt_${Date.now()}`);
+        showToast('<i data-lucide="sparkles"></i> Loaded preset "' + p.provider.toUpperCase() + '"');
+      });
+    });
+
+    on('btn-sim-random', 'click', () => {
+      const sample = sampleAlert();
+      const providers = ['phonepe', 'gpay', 'paytm', 'amazon', 'bhim'];
+      const p = providers[Math.floor(Math.random() * providers.length)];
+      setVal('sim-app-provider', p);
+      setVal('sim-sender', sample.sender);
+      setVal('sim-amount', String(sample.amountVal || 250));
+      setVal('sim-message', sample.message || 'Stream support!');
+      setVal('sim-alert-id', `evt_${Date.now()}`);
+      showToast('<i data-lucide="dices"></i> Generated random event');
+    });
+
+    on('btn-sim-gen-id', 'click', () => {
+      setVal('sim-alert-id', `evt_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
+    });
+
+    on('btn-sim-clear-console', 'click', () => {
+      const c = el('sim-console');
+      if (c) c.textContent = 'Console cleared. Ready for next simulation.';
+    });
+
+    on('btn-sim-inspect', 'click', () => {
+      readFormValues();
+      const provider = val('sim-app-provider', 'phonepe');
+      const sender = val('sim-sender', 'Rahul Kumar');
+      const rawAmount = val('sim-amount', '500');
+      const message = val('sim-message', '');
+      const forcedId = val('sim-template-override', '');
+
+      const rawNotif = buildSimulatedNotification(provider, sender, rawAmount, message);
+      const numAmount = TemplateMatcher.parseAmount(rawAmount);
+      const resolved = TemplateMatcher.resolve(config, numAmount, forcedId || null);
+
+      const logData = {
+        inspectTime: new Date().toLocaleTimeString(),
+        simulatedRawMobileNotification: rawNotif,
+        parsedDetails: {
+          extractedSender: sender,
+          extractedNumericAmount: numAmount,
+          templateOverrideId: forcedId || 'None (Auto-Match)'
+        },
+        templateMatchOutput: {
+          matchedTemplateName: resolved.templateName,
+          matchedTemplateId: resolved.templateId,
+          customCodeEnabled: resolved.code ? resolved.code.enableCustomCode !== false : true,
+          mediaUrl: (resolved.image && (resolved.image.gifUrl || resolved.image.imageUrl)) || 'None',
+          soundUrl: (resolved.sound && resolved.sound.soundUrl) || 'None'
+        }
+      };
+
+      const c = el('sim-console');
+      if (c) c.textContent = `[SIMULATED RAW MOBILE EVENT & PARSER INSPECTION]\n${JSON.stringify(logData, null, 2)}`;
+      showToast('<i data-lucide="search"></i> Inspected: Matched "' + resolved.templateName + '"');
+    });
+
+    on('btn-sim-dispatch', 'click', async () => {
+      readFormValues();
+      const provider = val('sim-app-provider', 'phonepe');
+      const sender = val('sim-sender', 'Rahul Kumar');
+      const rawAmount = val('sim-amount', '500');
+      const message = val('sim-message', '');
+      const forcedId = val('sim-template-override', '');
+
+      // Generate a fresh unique ID for every dispatch so the server counts it for goal/leaderboard
+      const alertId = `sim_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      setVal('sim-alert-id', alertId);
+
+      const rawNotif = buildSimulatedNotification(provider, sender, rawAmount, message);
+      rawNotif.alertId = alertId;
+      if (forcedId) rawNotif.alertTemplateId = forcedId;
+
+      const c = el('sim-console');
+      if (c) c.textContent = `[DISPATCHING RAW MOBILE NOTIFICATION...]\n${JSON.stringify(rawNotif, null, 2)}`;
+
+      try {
+        const res = await fetch('/api/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rawNotif)
+        });
+        const data = await res.json();
+        if (c) {
+          c.textContent = `[DISPATCH SUCCESS - ${new Date().toLocaleTimeString()}]\n` +
+            `Server Output: ${JSON.stringify(data, null, 2)}\n\n` +
+            `Raw Mobile Notification Payload Sent:\n${JSON.stringify(rawNotif, null, 2)}`;
+        }
+        showToast('<i data-lucide="send"></i> Dispatched raw event (' + provider.toUpperCase() + ' ₹' + rawAmount + ')');
+      } catch (err) {
+        if (c) c.textContent += `\n\n[ERROR]: ${err.message}`;
+        showToast('<i data-lucide="alert-triangle"></i> Dispatch failed: ' + err.message);
+      }
+    });
+  }
+
+  // ── Network, Live Logs & System Dashboard ───────────────────
+  let cachedNetworkInfo = null;
+  let dashboardWs = null;
+
+  function connectDashboardWebSocket() {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    try {
+      dashboardWs = new WebSocket(`${protocol}//${location.host}/obs`);
+      dashboardWs.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'SETTINGS_UPDATED' && msg.payload) {
+            const newConfig = msg.payload;
+            // Sync ONLY live goal/leaderboard data to avoid overwriting active user edits in other fields
+            config.widgets.goal.currentAmount = newConfig.widgets.goal.currentAmount;
+            config.widgets.leaderboard.supporters = newConfig.widgets.leaderboard.supporters;
+            config.widgets.recent.recentDonations = newConfig.widgets.recent.recentDonations;
+
+            // Refresh UI components for live data
+            setVal('input-goal-current', config.widgets.goal.currentAmount);
+            renderSupportersTable();
+            renderRecentTable();
+            syncLivePreview();
+          }
+        } catch (e) {}
+      };
+      dashboardWs.onclose = () => setTimeout(connectDashboardWebSocket, 3000);
+    } catch (e) {
+      console.warn('[DashboardWS] Failed to connect:', e.message);
+    }
+  }
+
+  async function fetchNetworkInfo() {
+    try {
+      const res = await fetch('/api/network-info');
+      const data = await res.json();
+      cachedNetworkInfo = data;
+
+      const ipEl = el('net-ip-display');
+      if (ipEl) ipEl.textContent = `${data.primaryIp}:${data.port}`;
+
+      const androidDot = el('dot-android-status');
+      const androidLbl = el('lbl-android-status');
+      if (androidLbl && androidDot) {
+        if (data.androidClientsCount > 0) {
+          androidDot.style.background = '#00e676';
+          androidLbl.textContent = `Connected (${data.androidClientsCount})`;
+        } else {
+          androidDot.style.background = '#ff5252';
+          androidLbl.textContent = 'Disconnected (0)';
+        }
+      }
+
+      const obsDot = el('dot-obs-status');
+      const obsLbl = el('lbl-obs-status');
+      if (obsLbl && obsDot) {
+        if (data.obsClientsCount > 0) {
+          obsDot.style.background = '#00e676';
+          obsLbl.textContent = `Connected (${data.obsClientsCount})`;
+        } else {
+          obsDot.style.background = '#ffab00';
+          obsLbl.textContent = 'No OBS client connected';
+        }
+      }
+    } catch (e) {
+      console.warn('[NetworkInfo] Fetch error:', e.message);
+    }
+  }
+
+  async function fetchLiveLogs() {
+    try {
+      const res = await fetch('/api/logs/live');
+      const data = await res.json();
+      if (!data || !Array.isArray(data.lines)) return;
+
+      const filterVal = val('select-log-filter', 'ALL');
+      const lines = data.lines.filter(line => {
+        if (filterVal === 'ALL') return true;
+        return line.includes(`[${filterVal}]`);
+      });
+
+      const term = el('live-logs-terminal');
+      if (term) {
+        term.textContent = lines.length > 0 ? lines.slice(-150).join('\n') : 'No matching log entries.';
+        term.scrollTop = term.scrollHeight;
+      }
+    } catch (e) {
+      console.warn('[LiveLogs] Fetch error:', e.message);
+    }
+  }
+
+  async function initWindowsStartup() {
+    try {
+      const res = await fetch('/api/system/startup');
+      const data = await res.json();
+      setChecked('chk-win-startup', !!data.enabled);
+    } catch (e) {
+      console.warn('[Startup] Query error:', e.message);
+    }
+
+    on('chk-win-startup', 'change', async (e) => {
+      const enabled = e.target.checked;
+      try {
+        const res = await fetch('/api/system/startup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showToast(enabled ? '<i data-lucide="settings"></i> Windows startup enabled' : '<i data-lucide="settings"></i> Windows startup disabled');
+        } else {
+          showToast('<i data-lucide="alert-triangle"></i> ' + (data.error || 'Startup update failed'));
+          setChecked('chk-win-startup', !enabled);
+        }
+      } catch (err) {
+        showToast('<i data-lucide="alert-triangle"></i> ' + err.message);
+        setChecked('chk-win-startup', !enabled);
+      }
+    });
+  }
+
+  function setupNetworkAndSystem() {
+    fetchNetworkInfo();
+    setInterval(fetchNetworkInfo, 5000);
+
+    initWindowsStartup();
+
+    on('btn-copy-ip', 'click', (e) => {
+      const ipText = cachedNetworkInfo ? `${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : (el('net-ip-display') ? el('net-ip-display').textContent : '');
+      if (ipText) {
+        copyToClipboard(ipText, e.currentTarget);
+        showToast('<i data-lucide="copy"></i> Copied Mobile IP: ' + ipText);
+      } else {
+        showToast('<i data-lucide="alert-triangle"></i> No IP available yet');
+      }
+    });
+
+    on('btn-fix-firewall', 'click', async () => {
+      try {
+        const res = await fetch('/api/system/firewall', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          showToast('<i data-lucide="shield"></i> Unblocked Windows Firewall!');
+        } else {
+          showToast('<i data-lucide="alert-triangle"></i> Firewall update error: ' + (data.error || 'Failed'));
+        }
+      } catch (err) {
+        showToast('<i data-lucide="alert-triangle"></i> Firewall update error: ' + err.message);
+      }
+    });
+
+    function copyOverlayUrl(path, label, btn) {
+      const base = cachedNetworkInfo ? `http://${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : location.origin;
+      const fullUrl = `${base}${path}`;
+      copyToClipboard(fullUrl, btn);
+      showToast('<i data-lucide="copy"></i> Copied ' + label + ' URL: ' + fullUrl);
+    }
+
+    on('btn-copy-alert-url-tab', 'click', (e) => copyOverlayUrl('/overlay/alerts', 'Alert Overlay', e.currentTarget));
+    on('btn-copy-goal-url', 'click', (e) => copyOverlayUrl('/overlay/goal', 'Goal Overlay', e.currentTarget));
+    on('btn-copy-lb-url', 'click', (e) => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay', e.currentTarget));
+    on('btn-copy-recent-url', 'click', (e) => copyOverlayUrl('/overlay/recent', 'Recent Overlay', e.currentTarget));
+    on('btn-copy-cycling-url', 'click', (e) => copyOverlayUrl('/overlay/cycling-widget', 'Cycling Overlay', e.currentTarget));
+
+    on('btn-copy-current-url', 'click', (e) => {
+      if (!iframe) return;
+      let path = new URL(iframe.src, location.origin).pathname;
+      if (path === '/preview.html' || path === '/overlay/alert') path = '/overlay/alerts';
+
+      const base = cachedNetworkInfo ? `http://${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : location.origin;
+      const fullUrl = `${base}${path}`;
+      copyToClipboard(fullUrl, e.currentTarget);
+      showToast('<i data-lucide="copy"></i> Copied Overlay URL: ' + fullUrl);
+    });
+
+    on('btn-open-new-tab', 'click', () => {
+      if (!iframe) return;
+      let url = iframe.src;
+      const path = new URL(url, location.origin).pathname;
+      if (path === '/preview.html' || path === '/overlay/alert') {
+          url = '/overlay/alerts';
+      }
+      window.open(url, '_blank');
+    });
+
+    // ── Custom Max Entry Toggles
+    ['lb', 'recent'].forEach(key => {
+      on(`select-${key}-max`, 'change', (e) => {
+        el(`input-${key}-max-custom`).style.display = e.target.value === 'custom' ? 'block' : 'none';
+        syncLivePreview();
+      });
+    });
+
+    on('btn-clear-logs', 'click', async () => {
+      try {
+        await fetch('/api/logs/clear', { method: 'POST' });
+        const term = el('live-logs-terminal');
+        if (term) term.textContent = 'Server logs cleared.';
+        showToast('<i data-lucide="trash-2"></i> Logs cleared');
+      } catch (e) {
+        showToast('<i data-lucide="alert-triangle"></i> Clear logs error');
+      }
+    });
+
+    on('btn-download-full-logs', 'click', () => {
+      window.open('/api/logs?level=ALL', '_blank');
+      showToast('<i data-lucide="download"></i> Downloading full log file...');
+    });
+
+    on('btn-download-filtered-logs', 'click', () => {
+      const filterVal = val('select-log-filter', 'ALL');
+      window.open(`/api/logs?level=${encodeURIComponent(filterVal)}`, '_blank');
+      showToast('<i data-lucide="download"></i> Downloading ' + filterVal + ' filtered logs...');
+    });
+
+    fetchLiveLogs();
+    setInterval(fetchLiveLogs, 4000);
+
+    on('select-log-filter', 'change', () => fetchLiveLogs());
+    on('btn-refresh-logs', 'click', () => {
+      fetchLiveLogs();
+      showToast('<i data-lucide="rotate-ccw"></i> Logs refreshed');
+    });
+  }
+
+  // ── Panel Split Resizer ─────────────────────────────────────────
+  function setupPanelResizer() {
+    const resizer = el('panel-resizer');
+    const formPanel = document.querySelector('.form-panel');
+    const mainView = document.querySelector('.main-view');
+    const iframeEl = el('preview-iframe');
+    if (!resizer || !formPanel || !mainView) return;
+
+    // Load saved split position
+    const savedWidth = localStorage.getItem('obs_panel_split_width');
+    if (savedWidth) {
+      formPanel.style.flex = `0 0 ${savedWidth}px`;
+    } else {
+      // Default initial width — generous form space, preview still visible
+      const initialWidth = Math.min(620, Math.floor(mainView.clientWidth * 0.52));
+      formPanel.style.flex = `0 0 ${initialWidth}px`;
+    }
+
+    let isDragging = false;
+
+    resizer.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      resizer.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      if (iframeEl) iframeEl.style.pointerEvents = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const mainRect = mainView.getBoundingClientRect();
+      let newWidth = e.clientX - mainRect.left;
+      const minWidth = 340;
+      const maxWidth = mainRect.width - 320;
+      newWidth = Math.max(minWidth, Math.min(newWidth, maxWidth));
+      formPanel.style.flex = `0 0 ${newWidth}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (iframeEl) iframeEl.style.pointerEvents = '';
+      const currentWidth = formPanel.getBoundingClientRect().width;
+      localStorage.setItem('obs_panel_split_width', Math.round(currentWidth));
+    });
+  }
+
+  function setupCodeAutoSeeding() {
+    const configs = [
+      { id: 'chk-enable-custom-code', kind: 'alert', fields: ['input-custom-html', 'input-custom-css', 'input-custom-js'] },
+      { id: 'chk-enable-goal-custom-code', kind: 'goal', fields: ['input-goal-custom-html', 'input-goal-custom-css', 'input-goal-custom-js'] },
+      { id: 'chk-enable-lb-custom-code', kind: 'leaderboard', fields: ['input-lb-custom-html', 'input-lb-custom-css', 'input-lb-custom-js'] }
+    ];
+
+    configs.forEach(c => {
+      on(c.id, 'change', (e) => {
+        if (!e.target.checked) return;
+
+        // If HTML or CSS is empty, seed them with the default full source
+        const htmlEmpty = !val(c.fields[0], '').trim();
+        const cssEmpty = !val(c.fields[1], '').trim();
+
+        if (htmlEmpty || cssEmpty) {
+          const defaults = ConfigSchema.DEFAULT_CODE[c.kind];
+          if (htmlEmpty) setVal(c.fields[0], defaults.customHTML);
+          if (cssEmpty) setVal(c.fields[1], defaults.customCSS);
+          // Always seed JS if empty
+          if (!val(c.fields[2], '').trim()) setVal(c.fields[2], defaults.customJS);
+
+          showToast('<i data-lucide="sparkles"></i> Restored ' + c.kind + ' baseline code', 'info');
+          syncLivePreview();
+        }
+      });
+    });
+  }
+
+  let activeIconInput = null;
+  const LUCIDE_ICONS_LIST = [
+    'trophy', 'star', 'crown', 'gamepad-2', 'tv', 'monitor', 'headphones', 'mic', 'music', 'video', 'camera',
+    'sparkles', 'flame', 'zap', 'history', 'heart', 'gift', 'award', 'dollar-sign', 'credit-card', 'coins',
+    'banknote', 'wallet', 'piggy-bank', 'shopping-bag', 'shopping-cart', 'share-2', 'send', 'message-square',
+    'message-circle', 'mail', 'globe', 'thumbs-up', 'smile', 'user', 'users', 'user-check', 'user-plus',
+    'shield', 'badge-check', 'bell', 'coffee', 'compass', 'flag', 'home', 'image', 'info', 'key', 'link',
+    'list', 'map-pin', 'rocket', 'search', 'settings', 'target', 'check', 'hash', 'at-sign', 'sun', 'moon',
+    'circle', 'check-circle', 'alert-circle', 'box', 'layers', 'package'
+  ];
+
+  function openIconPicker(targetInput) {
+    activeIconInput = targetInput;
+    const modal = el('icon-picker-modal');
+    const searchInput = el('icon-search-input');
+    const grid = el('icon-grid');
+    if (!modal || !grid) return;
+    if (searchInput) searchInput.value = '';
+    modal.style.display = 'flex';
+    requestAnimationFrame(() => {
+      modal.classList.add('active');
+    });
+    renderIconGrid('');
+  }
+
+  function closeIconPicker() {
+    const modal = el('icon-picker-modal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    setTimeout(() => {
+      modal.style.display = 'none';
+    }, 200);
+  }
+
+  function renderIconGrid(query) {
+    const grid = el('icon-grid');
+    if (!grid) return;
+    const q = (query || '').toLowerCase().trim();
+    const filtered = q ? LUCIDE_ICONS_LIST.filter(name => name.includes(q)) : LUCIDE_ICONS_LIST;
+
+    if (!filtered.length) {
+      grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 16px;">No icons found matching your search.</div>';
+      return;
+    }
+
+    grid.innerHTML = filtered.map(name => `
+      <button type="button" class="btn btn-secondary icon-picker-item" data-icon="${name}" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px 4px; font-size: 11px;">
+        <i data-lucide="${name}" style="width: 22px; height: 22px;"></i>
+        <span style="font-size: 10px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;">${name}</span>
+      </button>
+    `).join('');
+
+    setTimeout(() => {
+      if (window.lucide) {
+        try { lucide.createIcons(); } catch (e) {}
+      }
+    }, 20);
+
+    grid.querySelectorAll('.icon-picker-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (activeIconInput) {
+          activeIconInput.value = btn.dataset.icon;
+          syncLivePreview();
+          showToast(`Selected icon: ${btn.dataset.icon}`);
+        }
+        closeIconPicker();
+      });
+    });
+  }
+
+  function setupIconPicker() {
+    const modal = el('icon-picker-modal');
+    const closeBtn = el('icon-picker-close');
+    const searchInput = el('icon-search-input');
+    if (!modal) return;
+    if (closeBtn) closeBtn.addEventListener('click', closeIconPicker);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeIconPicker();
+    });
+    if (searchInput) {
+      searchInput.addEventListener('input', () => renderIconGrid(searchInput.value));
+    }
+  }
+
+  function setupBoxExpanders() {
+    console.log('[Config] Initializing box expanders');
+  }
+
+  // ── Boot ─────────────────────────────────────────────────────
+  console.log('[Config] Starting dashboard boot sequence...');
+  initCodeEditors();
+  setupTabs();
+  setupCodeEditorTabs();
+  setupVariablePills();
+  setupCssPills();
+  setupColorPickers();
+  setupCanvasPresets();
+  setupAmountFilterEditor();
+  setupTemplateManager();
+  setupCyclingWidgetEditor();
+  setupIconPicker();
+  setupFileBrowsers();
+  setupSnippets();
+  setupCodeAutoSeeding();
+  setupActionButtons();
+  setupSimulator();
+  setupNetworkAndSystem();
+  setupPanelResizer();
+  setupBoxExpanders();
+  attachInputListeners();
+  connectDashboardWebSocket();
+
+  try {
+    console.log('[Config] Fetching settings from /api/settings...');
+    const res = await fetch('/api/settings');
+    const data = await res.json();
+    console.log('[Config] Loaded settings payload:', data);
+    await loadProfilesList(data.activeProfile);
+    populateForm(data.settings || data);
+    console.log('[Config] Dashboard boot sequence completed successfully.');
+  } catch (e) {
+    console.error('[Config] Failed to load settings from server, falling back to defaults:', e);
+    populateForm(ConfigSchema.createDefaultConfig());
+  }
+  updateSnippetButtonStates();
+
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'OVERLAY_READY') syncLivePreview();
+  });
+
+  if (iframe) {
+    iframe.addEventListener('load', () => {
+      syncLivePreview();
+      setTimeout(syncLivePreview, 150);
+    });
+  }
+});
