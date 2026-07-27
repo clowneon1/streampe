@@ -246,6 +246,7 @@ function parsePayment(notification) {
 }
 
 // ── Configuration Files ───────────────────────────────────────────────
+// Schema refreshed for Goal widget opacity and saving persistence
 const ConfigSchema    = require('./public/js/lib/config-schema');
 const ConfigMigration = require('./public/js/lib/config-migration');
 const TemplateMatcher = require('./public/js/lib/template-matcher');

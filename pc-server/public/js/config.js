@@ -24,8 +24,77 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let config = ConfigSchema.createDefaultConfig();
   let suppressSync = false;
+  const editors = {};
 
   const iframe = el('preview-iframe');
+
+  function initCodeEditors() {
+    const editorConfigs = [
+      { id: 'input-custom-html', mode: 'htmlmixed' },
+      { id: 'input-custom-css', mode: 'css' },
+      { id: 'input-custom-js', mode: 'javascript' },
+      { id: 'input-goal-custom-html', mode: 'htmlmixed' },
+      { id: 'input-goal-custom-css', mode: 'css' },
+      { id: 'input-goal-custom-js', mode: 'javascript' },
+      { id: 'input-lb-custom-html', mode: 'htmlmixed' },
+      { id: 'input-lb-custom-css', mode: 'css' },
+      { id: 'input-lb-custom-js', mode: 'javascript' },
+      { id: 'input-recent-custom-html', mode: 'htmlmixed' },
+      { id: 'input-recent-custom-css', mode: 'css' },
+      { id: 'input-recent-custom-js', mode: 'javascript' }
+    ];
+
+    editorConfigs.forEach(conf => {
+      const textarea = el(conf.id);
+      if (!textarea) return;
+
+      const editor = CodeMirror.fromTextArea(textarea, {
+        mode: conf.mode,
+        theme: 'dracula',
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        tabSize: 2,
+        indentUnit: 2,
+        viewportMargin: Infinity,
+        lineWrapping: true
+      });
+
+      editor.on('change', () => {
+        if (!suppressSync) syncLivePreview();
+      });
+
+      editors[conf.id] = editor;
+    });
+  }
+
+  async function formatCode(editorId) {
+    const editor = editors[editorId];
+    if (!editor || !window.prettier) return;
+
+    const code = editor.getValue();
+    const mode = editor.getOption('mode');
+
+    let parser = 'babel';
+    if (mode === 'htmlmixed') parser = 'html';
+    if (mode === 'css') parser = 'css';
+
+    try {
+      const formatted = prettier.format(code, {
+        parser: parser,
+        plugins: prettierPlugins,
+        printWidth: 100,
+        tabWidth: 2,
+        semi: true,
+        singleQuote: true
+      });
+      editor.setValue(formatted);
+      showToast('<i data-lucide="check"></i> Code formatted');
+    } catch (err) {
+      console.warn('[Prettier] Formatting error:', err);
+      showToast('<i data-lucide="alert-triangle"></i> Format failed: ' + err.message.split('\n')[0], 'error');
+    }
+  }
 
   function showToast(message, type = 'info') {
     const toast = el('toast');
@@ -139,6 +208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Generic field helpers ────────────────────────────────────
   const val = (id, fallback) => {
+    if (editors[id]) return editors[id].getValue();
     const node = el(id);
     return node ? node.value : fallback;
   };
@@ -151,6 +221,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     return node ? node.checked : fallback;
   };
   function setVal(id, value) {
+    if (editors[id]) {
+      editors[id].setValue(value || '');
+      return;
+    }
     const node = el(id);
     if (node && value !== undefined && value !== null) node.value = value;
   }
@@ -381,8 +455,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     goal.style = Object.assign({}, goal.style, {
       fillColor: val('input-goal-fill-color', goal.style.fillColor),
       barColor: val('input-goal-bar-color', goal.style.barColor),
+      backgroundColor: val('input-goal-bg-color', goal.style.backgroundColor),
       barHeight: numVal('input-goal-bar-height', goal.style.barHeight),
-      backgroundOpacity: numVal('input-goal-bg-opacity', goal.style.backgroundOpacity)
+      backgroundOpacity: numVal('input-goal-bg-opacity', goal.style.backgroundOpacity),
+      barRoundness: numVal('input-goal-bar-roundness', goal.style.barRoundness),
+      borderRadius: numVal('input-goal-border-radius', goal.style.borderRadius),
+      borderWidth: numVal('input-goal-border-width', goal.style.borderWidth),
+      barOpacity: numVal('input-goal-bar-opacity', goal.style.barOpacity),
+      useGradient: checked('chk-goal-use-gradient', goal.style.useGradient),
+      fillColor2: val('input-goal-fill-color2', goal.style.fillColor2),
+      effect: val('select-goal-effect', goal.style.effect)
     });
     goal.code = {
       enableCustomCode: checked('chk-enable-goal-custom-code', false),
@@ -501,6 +583,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     setVal('input-goal-bar-color-hex', goal.style.barColor);
     setVal('input-goal-bar-height', goal.style.barHeight);
     setVal('input-goal-bg-opacity', goal.style.backgroundOpacity);
+    setVal('input-goal-bar-roundness', goal.style.barRoundness);
+    setVal('input-goal-border-radius', goal.style.borderRadius);
+    setVal('input-goal-border-width', goal.style.borderWidth);
+    setVal('input-goal-bar-opacity', goal.style.barOpacity);
+    setChecked('chk-goal-use-gradient', goal.style.useGradient);
+    setVal('input-goal-fill-color2', goal.style.fillColor2);
+    setVal('input-goal-fill-color2-hex', goal.style.fillColor2);
+    setVal('input-goal-bg-color', goal.style.backgroundColor);
+    setVal('input-goal-bg-color-hex', goal.style.backgroundColor);
+    setSelectVal('select-goal-effect', goal.style.effect);
+    el('goal-fill2-container').style.display = goal.style.useGradient ? 'block' : 'none';
+
     writeTextStyle(TEXT_PREFIXES.goal, goal.text);
     writeCanvas(TEXT_PREFIXES.goal, goal.canvas);
     setChecked('chk-enable-goal-custom-code', goal.code.enableCustomCode);
@@ -681,7 +775,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.classList.add('active');
         const tab = btn.dataset.tab;
         const content = el(`tab-${tab}`);
-        if (content) content.classList.add('active');
+        if (content) {
+          content.classList.add('active');
+          // Refresh any CodeMirror editors in this tab
+          content.querySelectorAll('.CodeMirror').forEach(cmEl => {
+            if (cmEl.CodeMirror) cmEl.CodeMirror.refresh();
+          });
+        }
 
         const manager = el('template-manager');
         if (manager) {
@@ -704,7 +804,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         container.querySelectorAll('.code-tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         container.querySelectorAll('.code-tab-panel').forEach(panel => {
-          panel.style.display = panel.dataset.codePanel === btn.dataset.codeTab ? 'block' : 'none';
+          const isVisible = panel.dataset.codePanel === btn.dataset.codeTab;
+          panel.style.display = isVisible ? 'block' : 'none';
+          if (isVisible) {
+            const cm = panel.querySelector('.CodeMirror');
+            if (cm && cm.CodeMirror) cm.CodeMirror.refresh();
+          }
         });
       });
     });
@@ -736,7 +841,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       ['input-bg-color', 'input-bg-color-hex'],
       ['input-accent-color', 'input-accent-color-hex'],
       ['input-goal-fill-color', 'input-goal-fill-color-hex'],
+      ['input-goal-fill-color2', 'input-goal-fill-color2-hex'],
       ['input-goal-bar-color', 'input-goal-bar-color-hex'],
+      ['input-goal-bg-color', 'input-goal-bg-color-hex'],
       ['input-lb-accent-color', 'input-lb-accent-color-hex'],
       ['input-lb-row-bg-color', 'input-lb-row-bg-color-hex'],
       ...Object.keys(TEXT_PREFIXES).map(k => [`${TEXT_PREFIXES[k]}-text-color`, `${TEXT_PREFIXES[k]}-text-color-hex`])
@@ -982,7 +1089,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.snippet-btn').forEach(btn => {
       const snippet = SNIPPETS[btn.dataset.snippet];
       const target = snippetTarget(btn.dataset.snippet);
-      const active = snippet && target && target.value.includes(snippet.trim());
+      const currentVal = target ? val(target.id, '') : '';
+      const active = snippet && currentVal.includes(snippet.trim());
       btn.classList.toggle('active', !!active);
     });
   }
@@ -993,12 +1101,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const snippet = SNIPPETS[btn.dataset.snippet];
         const target = snippetTarget(btn.dataset.snippet);
         if (!snippet || !target) return;
+        const currentVal = val(target.id, '');
         const trimmed = snippet.trim();
-        if (target.value.includes(trimmed)) {
-          target.value = target.value.replace(snippet, '').replace(trimmed, '').trim();
+        if (currentVal.includes(trimmed)) {
+          setVal(target.id, currentVal.replace(snippet, '').replace(trimmed, '').trim());
           showToast('<i data-lucide="x-circle"></i> Code snippet removed');
         } else {
-          target.value = (target.value + (target.value.endsWith('\n') || !target.value ? '' : '\n') + snippet).trim();
+          setVal(target.id, (currentVal + (currentVal.endsWith('\n') || !currentVal ? '' : '\n') + snippet).trim());
           showToast('<i data-lucide="sparkles"></i> Code snippet applied!');
         }
         updateSnippetButtonStates();
@@ -1015,10 +1124,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const cssPanel = container && container.querySelector('.code-tab-panel[data-code-panel="css"]');
         const textarea = cssPanel && cssPanel.querySelector('textarea');
         if (textarea) {
-          const start = textarea.selectionStart !== null ? textarea.selectionStart : textarea.value.length;
+          const currentVal = val(textarea.id, '');
           const insert = `${selector} {\n  \n}\n`;
-          textarea.value = textarea.value.substring(0, start) + insert + textarea.value.substring(start);
-          textarea.focus();
+          setVal(textarea.id, currentVal + (currentVal ? '\n' : '') + insert);
         }
         copyToClipboard(selector).catch(() => {});
         showToast('<i data-lucide="copy"></i> Copied selector "' + selector + '"');
@@ -1090,6 +1198,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setupActionButtons() {
+    on('chk-goal-use-gradient', 'change', (e) => {
+      el('goal-fill2-container').style.display = e.target.checked ? 'block' : 'none';
+      syncLivePreview();
+    });
+
+    document.querySelectorAll('.btn-format-code').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const container = btn.closest('.code-editor-container');
+        const activeTab = container.querySelector('.code-tab-btn.active');
+        if (!activeTab) return;
+        const panel = container.querySelector(`.code-tab-panel[data-code-panel="${activeTab.dataset.codeTab}"]`);
+        const textarea = panel && panel.querySelector('textarea');
+        if (textarea && textarea.id) formatCode(textarea.id);
+      });
+    });
+
     on('btn-save', 'click', async () => {
       try {
         const data = await saveToServer();
@@ -1916,6 +2040,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ── Boot ─────────────────────────────────────────────────────
+  initCodeEditors();
   setupTabs();
   setupCodeEditorTabs();
   setupVariablePills();

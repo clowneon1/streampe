@@ -187,9 +187,11 @@
         color: '#ffffff', textAlign: 'left', textTransform: 'none', letterSpacing: 0, letterSpacingUnit: 'px', lineHeight: 1.3
       },
       style: {
-        backgroundColor: '#0a0e17', backgroundOpacity: 85,
+        backgroundColor: '#0a0e17', backgroundOpacity: 100,
         accentColor: '#00e5ff', borderRadius: 14, borderWidth: 1, padding: 16,
-        barHeight: 36, barColor: '#1e2433', fillColor: '#00e5ff'
+        barHeight: 36, barColor: '#1e2433', fillColor: '#00e5ff',
+        barRoundness: 40, barOpacity: 100, useGradient: true, fillColor2: '#7ce3ff',
+        effect: 'none'
       },
       animation: { type: 'fade-in', duration: 400, displayDuration: 5000 },
       layout: { positionPreset: 'center', positionX: 50, positionY: 50, marginX: 0, marginY: 0, width: 600 },
@@ -291,12 +293,16 @@
 
   function normalizeStyle(raw, defaults) {
     const src = raw && typeof raw === 'object' ? raw : {};
-    const out = {};
+    const out = Object.assign({}, src); // Preserve all existing keys to avoid stripping new fields on older servers
     Object.keys(defaults).forEach(key => {
       const def = defaults[key];
-      if (typeof def === 'boolean') out[key] = bool(src[key], def);
-      else if (typeof def === 'number') out[key] = num(src[key], def);
-      else out[key] = str(src[key], def);
+      if (out[key] === undefined) {
+        out[key] = def;
+      } else {
+        if (typeof def === 'boolean') out[key] = bool(src[key], def);
+        else if (typeof def === 'number') out[key] = num(src[key], def);
+        else out[key] = str(src[key], def);
+      }
     });
 
     // Migrate legacy isTransparent to backgroundOpacity
@@ -423,7 +429,7 @@
     normalizeWidget(kind, raw) {
       const defaults = WIDGET_DEFAULTS[kind] || WIDGET_DEFAULTS.alert;
       const src = raw && typeof raw === 'object' ? raw : {};
-      const widget = {
+      const widget = Object.assign({}, src, { // Preserve all fields
         enabled: bool(src.enabled, defaults.enabled),
         canvas: CanvasPresets.resolve(src.canvas || defaults.canvas),
         text: WidgetStyle.normalizeText(src.text, defaults.text),
@@ -431,7 +437,7 @@
         animation: normalizeAnimation(src.animation, defaults.animation),
         layout: normalizeLayout(src.layout, defaults.layout),
         code: normalizeCode(src.code, kind)
-      };
+      });
 
       if (kind === 'goal') {
         widget.title = str(src.title, defaults.title);

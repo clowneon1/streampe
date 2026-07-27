@@ -8,7 +8,17 @@
   <link rel="icon" type="image/png" href="/icon.png" />
   <link rel="shortcut icon" type="image/png" href="/icon.png" />
   <link rel="stylesheet" href="/css/config.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css" />
   <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .CodeMirror {
+      height: 300px;
+      border-radius: 8px;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+    }
+  </style>
 </head>
 
 <body>
@@ -533,8 +543,11 @@
                     <button class="code-tab-btn" type="button" data-code-tab="css">CSS</button>
                     <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
                   </div>
-                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-alert-code"
-                    style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
+                  <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-outline btn-format-code" type="button" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
+                    <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-alert-code"
+                      style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
+                  </div>
                 </div>
 
                 <div class="code-tab-panel" data-code-panel="html" id="code-panel-html">
@@ -838,29 +851,86 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="input-goal-fill-color">Fill Bar Color</label>
-                  <div class="input-with-button">
-                    <input type="color" id="input-goal-fill-color" class="color-picker-input" value="#00e5ff" />
+                  <div class="color-picker-row">
+                    <input type="color" id="input-goal-fill-color" class="color-picker" value="#00e5ff" />
                     <input type="text" id="input-goal-fill-color-hex" class="form-control" value="#00e5ff" />
                   </div>
                 </div>
-
                 <div class="form-group">
                   <label for="input-goal-bar-color">Bar Track Color</label>
-                  <div class="input-with-button">
-                    <input type="color" id="input-goal-bar-color" class="color-picker-input" value="#1e2433" />
+                  <div class="color-picker-row">
+                    <input type="color" id="input-goal-bar-color" class="color-picker" value="#1e2433" />
                     <input type="text" id="input-goal-bar-color-hex" class="form-control" value="#1e2433" />
                   </div>
                 </div>
               </div>
 
               <div class="form-group">
-                <label for="input-goal-bar-height">Bar Height (px)</label>
-                <input type="number" id="input-goal-bar-height" class="form-control" min="1" max="500" value="36" />
+                <label>Background Color</label>
+                <div class="color-picker-row">
+                  <input type="color" id="input-goal-bg-color" class="color-picker" value="#0a0e17" />
+                  <input type="text" id="input-goal-bg-color-hex" class="form-control" value="#0a0e17" />
+                </div>
               </div>
 
-              <div class="form-group">
-                <label for="input-goal-bg-opacity">Background Opacity (%)</label>
-                <input type="number" id="input-goal-bg-opacity" class="form-control" min="0" max="100" value="85" />
+              <div class="form-group" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                <div class="label-with-switch">
+                  <label style="margin-bottom: 0;">Gradient Options</label>
+                  <label class="checkbox-row" style="margin-top: 0;">
+                    <input type="checkbox" id="chk-goal-use-gradient" checked />
+                    <span>Use Gradient</span>
+                  </label>
+                </div>
+                <div id="goal-fill2-container" style="margin-top: 10px;">
+                  <label>Secondary Fill Color</label>
+                  <div class="color-picker-row">
+                    <input type="color" id="input-goal-fill-color2" class="color-picker" value="#7ce3ff" />
+                    <input type="text" id="input-goal-fill-color2-hex" class="form-control" value="#7ce3ff" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-row">
+                <div class="form-group">
+                  <label for="input-goal-bar-height">Bar Height (px)</label>
+                  <input type="number" id="input-goal-bar-height" class="form-control" min="1" max="500" value="36" />
+                </div>
+                <div class="form-group">
+                  <label for="select-goal-effect">Bar Fill Effect</label>
+                  <select id="select-goal-effect" class="form-control">
+                    <option value="none">None</option>
+                    <option value="glow">Animated Glow</option>
+                    <option value="shimmer">Shimmer Streak</option>
+                  </select>
+                </div>
+              </div>
+                <div class="form-group">
+                  <label for="input-goal-bar-roundness">Bar Roundness (px)</label>
+                  <input type="number" id="input-goal-bar-roundness" class="form-control" min="0" max="200" value="40" />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="input-goal-bg-opacity">Background Opacity (%)</label>
+                  <input type="number" id="input-goal-bg-opacity" class="form-control" min="0" max="100" value="100" />
+                </div>
+                <div class="form-group">
+                  <label for="input-goal-bar-opacity">Bar Opacity (%)</label>
+                  <input type="number" id="input-goal-bar-opacity" class="form-control" min="0" max="100" value="100" />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="input-goal-border-radius">Border Roundness (px)</label>
+                  <input type="number" id="input-goal-border-radius" class="form-control" min="0" max="200" value="14" />
+                </div>
+                <div class="form-group">
+                  <label for="input-goal-border-width">Border Width (px)</label>
+                  <input type="number" id="input-goal-border-width" class="form-control" min="0" max="50" value="1" />
+                </div>
               </div>
             </div>
           </details>
@@ -1044,8 +1114,11 @@
                     <button class="code-tab-btn" type="button" data-code-tab="css">CSS</button>
                     <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
                   </div>
-                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-goal-code"
-                    style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
+                  <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-outline btn-format-code" type="button" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
+                    <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-goal-code"
+                      style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
+                  </div>
                 </div>
 
                 <div class="code-tab-panel" data-code-panel="html" id="code-panel-goal-html">
@@ -1357,8 +1430,11 @@
                   <button class="code-tab-btn" type="button" data-code-tab="css">CSS</button>
                   <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
                 </div>
-                <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-lb-code"
-                  style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-outline btn-format-code" type="button" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
+                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-lb-code"
+                    style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
+                </div>
               </div>
 
               <div class="code-tab-panel" data-code-panel="html" id="code-panel-lb-html">
@@ -1687,8 +1763,11 @@
                   <button class="code-tab-btn" type="button" data-code-tab="css">CSS</button>
                   <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
                 </div>
-                <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-recent-code"
-                  style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-outline btn-format-code" type="button" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
+                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-recent-code"
+                    style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
+                </div>
               </div>
 
               <div class="code-tab-panel" data-code-panel="html" id="code-panel-recent-html">
@@ -1934,6 +2013,16 @@
       </div>
     </div>
   </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/htmlmixed/htmlmixed.min.js"></script>
+  <script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
+  <script src="https://unpkg.com/prettier@2.8.8/parser-html.js"></script>
+  <script src="https://unpkg.com/prettier@2.8.8/parser-postcss.js"></script>
+  <script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script>
 
   <script src="/js/template-engine.js"></script>
   <script src="/js/lib/canvas-presets.js"></script>
