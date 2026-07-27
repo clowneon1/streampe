@@ -90,21 +90,27 @@ class AppSelectorActivity : AppCompatActivity() {
         promptBatteryOptimization()
     }
 
+    private val TARGET_PACKAGES = setOf(
+        "com.phonepe.app",
+        "in.amazon.mShop.android.shopping",
+        "com.amazon.mShop.android.shopping",
+        "com.whatsapp"
+    )
+
     private fun getInstalledApps(): List<AppItem> {
         val pm = packageManager
-        return pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            .filter {
-                (it.flags and ApplicationInfo.FLAG_SYSTEM) == 0 ||
-                pm.getLaunchIntentForPackage(it.packageName) != null
-            }
-            .map { info ->
+        return TARGET_PACKAGES.mapNotNull { pkg ->
+            try {
+                val info = pm.getApplicationInfo(pkg, 0)
                 AppItem(
                     packageName = info.packageName,
                     appName     = pm.getApplicationLabel(info).toString(),
                     icon        = try { pm.getApplicationIcon(info.packageName) } catch (e: Exception) { null }
                 )
+            } catch (e: Exception) {
+                null
             }
-            .sortedBy { it.appName.lowercase() }
+        }.sortedBy { it.appName.lowercase() }
     }
 
     @SuppressLint("BatteryLife")

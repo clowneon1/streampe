@@ -39,6 +39,15 @@
             android:textColor="#666666"
             android:layout_marginTop="2dp" />
 
+        <TextView
+            android:id="@+id/tvWarning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:layout_marginTop="4dp"
+            android:visibility="gone" />
+
     </LinearLayout>
 
     <!-- Checkbox -->

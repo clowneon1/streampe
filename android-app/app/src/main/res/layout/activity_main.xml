@@ -38,18 +38,6 @@
             android:textColor="#F0F2FF"
             android:paddingStart="10dp" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="v2"
-            android:textSize="11sp"
-            android:textColor="#555D7A"
-            android:background="#1a1d2b"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp" />
-
     </LinearLayout>
 
     <!-- ══ SCROLLABLE CONTENT ═══════════════════════════════════════ -->

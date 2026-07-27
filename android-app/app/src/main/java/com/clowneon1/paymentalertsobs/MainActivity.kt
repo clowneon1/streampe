@@ -137,8 +137,12 @@ class MainActivity : AppCompatActivity() {
                 showNotificationAccessDialog()
                 return@setOnClickListener
             }
-            val url = etServerUrl.text.toString().trim()
+            var url = etServerUrl.text.toString().trim()
             if (url.isBlank()) { showToast("Enter server URL"); return@setOnClickListener }
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                url = "http://$url"
+                etServerUrl.setText(url)
+            }
 
             tvStatus.text = "\u23f3 Checking server..."
             btnConnect.isEnabled = false

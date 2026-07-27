@@ -6,16 +6,20 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission
-        android:name="android.permission.QUERY_ALL_PACKAGES"
-        xmlns:tools="http://schemas.android.com/tools"
-        tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <!-- Query strictly target packages without broad launcher intent queries -->
+    <queries>
+        <package android:name="com.phonepe.app" />
+        <package android:name="in.amazon.mShop.android.shopping" />
+        <package android:name="com.amazon.mShop.android.shopping" />
+        <package android:name="com.whatsapp" />
+    </queries>
+
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="Payment Alerts for OBS"
         android:roundIcon="@mipmap/ic_launcher_round"
