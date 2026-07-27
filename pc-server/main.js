@@ -127,15 +127,22 @@ function setWindowsStartup(enable, callback) {
   }
 }
 
+function shouldMinimizeOnClose() {
+  if (server && typeof server.getMinimizeOnClose === 'function') {
+    return server.getMinimizeOnClose();
+  }
+  return true;
+}
+
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 1240,
-    height: 840,
-    minWidth: 960,
-    minHeight: 640,
-    title: 'Payment Alerts for OBS - clowneon1',
+    width: 480,
+    height: 520,
+    minWidth: 440,
+    minHeight: 480,
+    title: 'Payment Alerts for OBS',
     icon: path.join(__dirname, 'public', 'icon.png'),
-    autoHideMenuBar: false,
+    autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
@@ -144,33 +151,42 @@ function createMainWindow() {
 
   createApplicationMenu();
 
-  // serverPort is guaranteed to be set before createMainWindow() is called
-  // (app.whenReady resolves the port first). Use it directly — no hardcoded default.
-  mainWindow.loadURL(`http://127.0.0.1:${serverPort}/config`).catch(err => {
-    console.error('[Electron Main] Failed to load dashboard URL:', err);
+  // Route any window.open() or clicked external links to default OS browser
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
+  // Load lightweight app main screen
+  mainWindow.loadURL(`http://127.0.0.1:${serverPort}/app`).catch(err => {
+    console.error('[Electron Main] Failed to load main screen URL:', err);
   });
 
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     console.warn(`[Electron Main] Page failed to load: ${validatedURL} (${errorDescription})`);
-    // If it's a connection error, it confirms the server isn't responding
     if (errorCode === -102 || errorCode === -105) {
       console.error('[Electron Main] Server connection refused. The embedded server may have failed to start.');
     }
   });
 
-  // Minimize to tray instead of closing when user clicks X
+  // Handle window close: minimize to tray or quit app based on setting
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
-      event.preventDefault();
-      mainWindow.hide();
-      if (tray) {
-        tray.displayBalloon({
-          title: 'Payment Alerts for OBS',
-          content: 'App is running in system tray. Right-click icon for options.'
-        });
+      if (shouldMinimizeOnClose()) {
+        event.preventDefault();
+        mainWindow.hide();
+        if (tray) {
+          tray.displayBalloon({
+            title: 'Payment Alerts for OBS',
+            content: 'App is running in system tray. Right-click icon for options.'
+          });
+        }
+        return false;
+      } else {
+        isQuitting = true;
+        app.quit();
       }
     }
-    return false;
   });
 
   mainWindow.on('minimize', (event) => {
@@ -288,13 +304,12 @@ function updateTrayMenu() {
   if (!tray) return;
 
   const primaryIp = getPrimaryIp();
-  // serverPort is resolved before this is ever called
   const port = serverPort;
   const connectUrl = `http://${primaryIp}:${port}`;
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: '🖥️ Open Dashboard Window',
+      label: '⚡ Open Main Window',
       click: () => {
         if (mainWindow) {
           mainWindow.show();
@@ -305,7 +320,13 @@ function updateTrayMenu() {
       }
     },
     {
-      label: `📋 Copy Mobile IP (${primaryIp}:${port})`,
+      label: '🌐 Open Control Panel in Browser',
+      click: () => {
+        shell.openExternal(`http://127.0.0.1:${port}/config`);
+      }
+    },
+    {
+      label: `📋 Copy Connection IP (${primaryIp}:${port})`,
       click: () => {
         clipboard.writeText(connectUrl);
         if (mainWindow && mainWindow.webContents) {

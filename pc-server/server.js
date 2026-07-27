@@ -402,6 +402,7 @@ function processPaymentForGoalAndLeaderboard(notification) {
 }
 
 // ── Routes ───────────────────────────────────────────────────────────
+app.get('/app',                 (req, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
 app.get('/config',              (req, res) => res.sendFile(path.join(__dirname, 'public', 'config.html')));
 app.get('/preview',             (req, res) => res.sendFile(path.join(__dirname, 'public', 'preview.html')));
 app.get('/overlay/alerts',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
@@ -524,6 +525,12 @@ app.get('/api/network-info', (req, res) => {
   });
 });
 
+let systemConfig = {
+  minimizeOnClose: true
+};
+
+server.getMinimizeOnClose = () => systemConfig.minimizeOnClose;
+
 app.get('/api/system/startup', (req, res) => {
   isWindowsStartupEnabled((enabled) => res.json({ enabled, isWindows: process.platform === 'win32' }));
 });
@@ -534,6 +541,16 @@ app.post('/api/system/startup', (req, res) => {
     if (!success && error) return res.status(500).json({ ok: false, error });
     res.json({ ok: true, enabled: !!enabled });
   });
+});
+
+app.get('/api/system/minimize-on-close', (req, res) => {
+  res.json({ enabled: systemConfig.minimizeOnClose });
+});
+
+app.post('/api/system/minimize-on-close', (req, res) => {
+  const { enabled } = req.body || {};
+  systemConfig.minimizeOnClose = !!enabled;
+  res.json({ ok: true, enabled: systemConfig.minimizeOnClose });
 });
 
 let isServerListening = true;
