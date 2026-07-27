@@ -1765,13 +1765,31 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast('<i data-lucide="copy"></i> Copied ' + label + ' URL: ' + fullUrl);
     }
 
-    on('btn-copy-alert-url', 'click', (e) => copyOverlayUrl('/overlay/alerts', 'Alert Overlay', e.currentTarget));
+    on('btn-copy-alert-url-tab', 'click', (e) => copyOverlayUrl('/overlay/alerts', 'Alert Overlay', e.currentTarget));
     on('btn-copy-goal-url', 'click', (e) => copyOverlayUrl('/overlay/goal', 'Goal Overlay', e.currentTarget));
-    on('btn-copy-goal-url-preview', 'click', (e) => copyOverlayUrl('/overlay/goal', 'Goal Overlay', e.currentTarget));
     on('btn-copy-lb-url', 'click', (e) => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay', e.currentTarget));
-    on('btn-copy-lb-url-preview', 'click', (e) => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay', e.currentTarget));
     on('btn-copy-recent-url', 'click', (e) => copyOverlayUrl('/overlay/recent', 'Recent Overlay', e.currentTarget));
-    on('btn-copy-recent-url-preview', 'click', (e) => copyOverlayUrl('/overlay/recent', 'Recent Overlay', e.currentTarget));
+
+    on('btn-copy-current-url', 'click', (e) => {
+      if (!iframe) return;
+      let path = new URL(iframe.src, location.origin).pathname;
+      if (path === '/preview.html' || path === '/overlay/alert') path = '/overlay/alerts';
+
+      const base = cachedNetworkInfo ? `http://${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : location.origin;
+      const fullUrl = `${base}${path}`;
+      copyToClipboard(fullUrl, e.currentTarget);
+      showToast('<i data-lucide="copy"></i> Copied Overlay URL: ' + fullUrl);
+    });
+
+    on('btn-open-new-tab', 'click', () => {
+      if (!iframe) return;
+      let url = iframe.src;
+      const path = new URL(url, location.origin).pathname;
+      if (path === '/preview.html' || path === '/overlay/alert') {
+          url = '/overlay/alerts';
+      }
+      window.open(url, '_blank');
+    });
 
     // ── Custom Max Entry Toggles
     ['lb', 'recent'].forEach(key => {

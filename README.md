@@ -1,6 +1,6 @@
 # 💸 Payment Alerts for OBS
 
-A free, open-source, and self-hosted solution to display real-time mobile payment alerts, donation goal bars, and top supporter leaderboards directly on your **OBS Studio** or **Streamlabs** live stream.
+A free, open-source, and self-hosted solution to display real-time mobile payment alerts, donation goal bars, top supporter leaderboards, and recent donation history directly on your **OBS Studio** or **Streamlabs** live stream.
 
 ---
 
@@ -65,6 +65,7 @@ In OBS Studio, click **+ (Add Source)** ➔ **Browser**:
 | 📡 **Payment Alert Widget** | `http://<YOUR-PC-IP>:2907/overlay/alerts` | `800 x 600` |
 | 🎯 **Payment Goal Bar** | `http://<YOUR-PC-IP>:2907/overlay/goal` | `800 x 120` |
 | 🏆 **Top Leaderboard** | `http://<YOUR-PC-IP>:2907/overlay/leaderboard` | `400 x 600` |
+| 📜 **Recent Donations List** | `http://<YOUR-PC-IP>:2907/overlay/recent` | `400 x 600` |
 
 ---
 
@@ -125,6 +126,13 @@ To compile the Android companion app from source:
 
 4. **Install on Device**:
    - Connect your phone via USB with **USB Debugging** enabled, or transfer `app-debug.apk` directly to your Android device to install.
+
+---
+
+## 💬 Community & Support
+
+- **Discord**: Join our [Support Server](https://partially-practical.codepenguin.in/) for setup help, reporting issues, or requesting new features.
+- **GitHub Issues**: Found a bug? [Open an issue](https://github.com/clowneon1/payment-alerts-for-obs/issues).
 
 ---
 

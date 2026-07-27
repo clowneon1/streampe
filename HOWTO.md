@@ -77,7 +77,7 @@ Open `http://127.0.0.1:2907/config` on your PC to access the dashboard.
 ### 💾 Data Management (Import/Export)
 - **Backup**: Use the **Export** button at the bottom of the dashboard to save your entire configuration (templates, colors, goal progress) to a `.json` file.
 - **Profiles**: You can create different profiles for different games or stream themes and switch between them instantly.
-- **Leaderboard**: You can manually edit, clear, or import supporter data if you need to migrate from another tool.
+- **Leaderboard & Recent List**: You can manually edit, clear, or import supporter data and donation history if you need to migrate from another tool.
 
 ### 📡 Event Simulator
 - Use the **Event Simulator** tab to test your overlays without sending actual money.

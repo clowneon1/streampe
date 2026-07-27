@@ -138,9 +138,13 @@
 
         <!-- Tab 1: Template content, matching and code -->
         <div class="tab-content active" id="tab-text">
-          <div class="panel-header">
-            <h2 class="panel-title">Alert Template Setup</h2>
-            <p class="panel-desc">Text, amount matching filters, and template rules for the selected template.</p>
+          <div class="panel-header-with-switch">
+            <div>
+              <h2 class="panel-title">Alert Template Setup</h2>
+              <p class="panel-desc">Text, amount matching filters, and template rules for the selected template.</p>
+            </div>
+            <button class="btn btn-secondary" type="button" id="btn-copy-alert-url-tab"
+              style="font-size: 12px; padding: 6px 12px; font-weight: 600;"><i data-lucide="copy" style="width: 14px; height: 14px; margin-right: 4px;"></i> Copy Alert Overlay URL</button>
           </div>
 
           <!-- Collapsible Section: Alert Text & Variables -->
@@ -1809,6 +1813,8 @@
         <p class="panel-desc">Configure Windows startup settings, monitor live payment events, WebSocket connections, and debug parser logs.</p>
       </div>
       <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="btn btn-outline" id="btn-fix-firewall" type="button"
+          style="font-size: 12px; padding: 6px 12px;"><i data-lucide="shield"></i> Fix Windows Firewall</button>
         <button class="btn btn-outline" id="btn-clear-logs" type="button"
           style="font-size: 12px; padding: 6px 12px;"><i data-lucide="trash-2"></i> Clear Logs</button>
         <button class="btn btn-outline" id="btn-download-full-logs" type="button"
@@ -1874,23 +1880,19 @@
         <span class="preview-badge">Real-time Sync</span>
       </div>
       <div class="preview-open-links">
-        <button type="button" class="btn-open-preview" id="btn-copy-alert-url" title="Copy Alert Overlay URL"><i data-lucide="copy"></i> Copy
-          Alert URL</button>
-        <button type="button" class="btn-open-preview" id="btn-copy-goal-url-preview" title="Copy Goal Overlay URL"><i data-lucide="copy"></i>
-          Copy Goal URL</button>
-        <button type="button" class="btn-open-preview" id="btn-copy-lb-url-preview"
-          title="Copy Leaderboard Overlay URL"><i data-lucide="copy"></i> Copy Leaderboard URL</button>
-        <button type="button" class="btn-open-preview" id="btn-copy-recent-url-preview"
-          title="Copy Recent Overlay URL"><i data-lucide="copy"></i> Copy Recent URL</button>
+        <button type="button" class="btn-open-preview" id="btn-copy-current-url" title="Copy Current Overlay URL"><i data-lucide="copy"></i> Copy URL</button>
+        <button type="button" class="btn-open-preview" id="btn-open-new-tab" title="Open Overlay in New Tab"><i data-lucide="external-link"></i> Open in New Tab</button>
       </div>
     </div>
 
     <div class="preview-container">
-      <iframe id="preview-iframe" class="preview-iframe" src="/preview.html"></iframe>
+      <iframe id="preview-iframe" class="preview-iframe" src="/overlay/alerts"></iframe>
     </div>
   </section>
   </main>
   </div>
+
+  <div id="toast" class="toast">Settings Saved!</div>
 
   <!-- Floating Footer Badge: Made with Love by clowneon1 & GitHub Star -->
   <div class="footer-love-badge" title="Made with ❤️ by clowneon1">
@@ -1901,9 +1903,14 @@
         <span>Made with ❤️ by</span> <strong style="color: #00e5ff;">clowneon1</strong>
       </a>
       <span style="color: #475569;">|</span>
+      <a href="https://partially-practical.codepenguin.in/" target="_blank"
+        style="color: #5865F2; text-decoration: none; display: flex; align-items: center; gap: 4px; background: rgba(88,101,242,0.1); border: 1px solid rgba(88,101,242,0.3); padding: 3px 9px; border-radius: 999px; transition: all 0.2s ease;">
+        <i data-lucide="message-square" style="width: 14px; height: 14px;"></i> Discord
+      </a>
+      <span style="color: #475569;">|</span>
       <a href="https://github.com/clowneon1/payment-alerts-for-obs" target="_blank"
         style="color: #ffab00; text-decoration: none; display: flex; align-items: center; gap: 4px; background: rgba(255,171,0,0.1); border: 1px solid rgba(255,171,0,0.3); padding: 3px 9px; border-radius: 999px; transition: all 0.2s ease;">
-        <span>⭐</span> Give a Star on GitHub
+        <span>⭐</span> Star
       </a>
     </div>
   </div>
