@@ -26,6 +26,7 @@ class AppListAdapter(
         val ivIcon: ImageView   = view.findViewById(R.id.ivAppIcon)
         val tvName: TextView    = view.findViewById(R.id.tvAppName)
         val tvPkg: TextView     = view.findViewById(R.id.tvPackageName)
+        val tvWarning: TextView = view.findViewById(R.id.tvWarning)
         val checkbox: CheckBox  = view.findViewById(R.id.cbSelected)
     }
 
@@ -39,6 +40,22 @@ class AppListAdapter(
         val item = items[position]
         holder.tvName.text = item.appName
         holder.tvPkg.text  = item.packageName
+
+        if (item.packageName == "com.phonepe.app") {
+            holder.tvWarning.visibility = View.VISIBLE
+            holder.tvWarning.text = "⚡ Recommended (Requires only Notification Access)"
+            holder.tvWarning.setTextColor(android.graphics.Color.parseColor("#10B981"))
+        } else if (item.packageName.contains("amazon", ignoreCase = true)) {
+            holder.tvWarning.visibility = View.VISIBLE
+            holder.tvWarning.text = "⚠️ Requires Accessibility Permission (Not Recommended)"
+            holder.tvWarning.setTextColor(android.graphics.Color.parseColor("#FBBF24"))
+        } else if (item.packageName == "com.whatsapp") {
+            holder.tvWarning.visibility = View.VISIBLE
+            holder.tvWarning.text = "🧪 Used for Testing"
+            holder.tvWarning.setTextColor(android.graphics.Color.parseColor("#00E5FF"))
+        } else {
+            holder.tvWarning.visibility = View.GONE
+        }
 
         if (item.icon != null) {
             holder.ivIcon.setImageDrawable(item.icon)
