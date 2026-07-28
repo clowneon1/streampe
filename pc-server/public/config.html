@@ -63,7 +63,7 @@
           <span class="icon"><i data-lucide="flask-conical"></i></span> Event Simulator
         </button>
         <button class="tab-btn" data-tab="server-logs">
-          <span class="icon"><i data-lucide="clipboard-list"></i></span> Startup Settings &amp; Logs
+          <span class="icon"><i data-lucide="clipboard-list"></i></span> Logs
         </button>
       </nav>
 
@@ -2257,8 +2257,8 @@
   <div class="tab-content" id="tab-server-logs">
     <div class="panel-header-with-switch">
       <div>
-        <h2 class="panel-title"><i data-lucide="clipboard-list"></i> Startup Settings &amp; Real-Time Logs</h2>
-        <p class="panel-desc">Configure Windows startup settings, monitor live payment events, WebSocket connections, and debug parser logs.</p>
+        <h2 class="panel-title"><i data-lucide="clipboard-list"></i> Real-Time Logs</h2>
+        <p class="panel-desc">Monitor live payment events, WebSocket connections, and debug parser logs.</p>
       </div>
       <div style="display: flex; gap: 8px; align-items: center;">
         <button class="btn btn-outline" id="btn-fix-firewall" type="button"
@@ -2268,20 +2268,6 @@
         <button class="btn btn-outline" id="btn-download-full-logs" type="button"
           style="font-size: 12px; padding: 6px 12px;"><i data-lucide="download"></i> Download Full Log File</button>
       </div>
-    </div>
-
-    <!-- Windows Startup Toggle Row -->
-    <div
-      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; background: var(--surface-2); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border);">
-      <div>
-        <strong style="font-size: 13px; color: var(--text);"><i data-lucide="settings" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Run on Windows Startup</strong>
-        <p style="font-size: 11px; color: var(--text-muted); margin: 2px 0 0 0;">Automatically launch server background
-          service when Windows boots</p>
-      </div>
-      <label class="switch-container">
-        <input type="checkbox" id="chk-win-startup" />
-        <span class="switch-slider"></span>
-      </label>
     </div>
 
     <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap;">
