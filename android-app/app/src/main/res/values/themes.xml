@@ -9,6 +9,8 @@
         <item name="colorOnPrimary">#FFFFFF</item>
         <item name="colorSurface">#12151f</item>
         <item name="colorOnSurface">#F0F2FF</item>
+        <item name="android:textColorPrimary">#F0F2FF</item>
+        <item name="android:textColorSecondary">#8890AA</item>
         <item name="android:windowBackground">#0a0c14</item>
         <item name="android:fitsSystemWindows">true</item>
         <item name="materialButtonStyle">@style/Widget.App.Button</item>
