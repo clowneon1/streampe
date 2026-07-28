@@ -6,9 +6,29 @@ A free, open-source, ultra-fast, and self-hosted solution to display real-time m
 
 ## 📸 Previews & Screenshots
 
-| 💻 Lightweight Desktop App Window | 🎛️ Control Panel & Live Overlay Customizer |
+### 💻 Desktop Client & Web Control Panel
+
+| 💻 Lightweight Desktop App Window | 🎛️ Live Alert Customizer & OBS Preview |
 | :---: | :---: |
-| ![Desktop App Preview](pc-server/public/assets/desktop-app-preview.png) | ![Web Dashboard Preview](pc-server/public/assets/web-dashboard-preview.png) |
+| <img src="readme-assets/Screenshot%202026-07-28%20212603.png" width="420" alt="Desktop App Window" /> | <img src="readme-assets/Screenshot%202026-07-28%20212617.png" width="420" alt="Live Alert Customizer" /> |
+| *Native Electron app window with IP URL copy & auto-start toggle* | *Real-time alert customizer with live transparent OBS overlay grid* |
+
+| 🎯 Payment Goal Bar Widget | 🏆 Top Supporters Leaderboard |
+| :---: | :---: |
+| <img src="readme-assets/Screenshot%202026-07-28%20212631.png" width="420" alt="Payment Goal Bar" /> | <img src="readme-assets/Screenshot%202026-07-28%20212639.png" width="420" alt="Top Supporters Leaderboard" /> |
+| *Configurable donation goal track, fill colors, and progress percentages* | *Live ranking leaderboard for top payment contributors* |
+
+| 🔄 Auto-Cycling Info Widget | 📱 Android Companion Setup |
+| :---: | :---: |
+| <img src="readme-assets/Screenshot%202026-07-28%20212647.png" width="420" alt="Auto Cycling Widget" /> | <img src="readme-assets/Screenshot%202026-07-28%20212851.png" width="280" alt="Android Companion Setup" /> |
+| *Rotational widget cycling through top supporters & recent donations* | *Android companion app setup for local network connection & listener* |
+
+### 📱 Android Companion App Features
+
+| 🔔 Notification Tester & Preset Selector | 📜 Recent Donations & Retrigger Log |
+| :---: | :---: |
+| <img src="readme-assets/Screenshot%202026-07-28%20213504.png" width="280" alt="Notification Tester" /> | <img src="readme-assets/Screenshot%202026-07-28%20213516.png" width="280" alt="Recent Donations Log" /> |
+| *Test payment notification triggers for PhonePe, Amazon Pay, etc.* | *Local log of received notifications with one-click retrigger to OBS* |
 
 ---
 
