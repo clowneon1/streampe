@@ -107,21 +107,79 @@ function getPrimaryIp() {
 
 function isWindowsStartupEnabled(callback) {
   if (process.platform !== 'win32') return callback(false);
+
+  try {
+    const electron = require('electron');
+    const appObj = electron.app || electron.remote?.app;
+    if (appObj && typeof appObj.getLoginItemSettings === 'function') {
+      const settings = appObj.getLoginItemSettings();
+      if (settings && settings.openAtLogin) {
+        return callback(true);
+      }
+    }
+  } catch (e) {}
+
   exec('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS"', (err, stdout) => {
-    callback(!err && stdout && stdout.includes('PaymentAlertsOBS'));
+    if (!err && stdout && (stdout.includes('PaymentAlertsOBS') || stdout.includes('Payment Alerts'))) {
+      return callback(true);
+    }
+
+    try {
+      const path = require('path');
+      const fs = require('fs');
+      const startupFolder = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup');
+      const s1 = path.join(startupFolder, 'PaymentAlertsOBS.lnk');
+      const s2 = path.join(startupFolder, 'Payment Alerts for OBS.lnk');
+      if (fs.existsSync(s1) || fs.existsSync(s2)) {
+        return callback(true);
+      }
+    } catch (e) {}
+
+    callback(false);
   });
 }
 
 function setWindowsStartup(enable, callback) {
-  if (process.platform !== 'win32') return callback(false, 'Windows platform required');
-  const exePath = process.execPath;
-  if (enable) {
-    const cmd = `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /t REG_SZ /d "\"${exePath}\"" /f`;
-    exec(cmd, (err) => callback(!err, err ? err.message : null));
-  } else {
-    const cmd = 'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /f';
-    exec(cmd, (err) => callback(!err, err ? err.message : null));
-  }
+  if (process.platform !== 'win32') return callback ? callback(false, 'Windows platform required') : null;
+
+  let usedElectron = false;
+  try {
+    const electron = require('electron');
+    const appObj = electron.app || electron.remote?.app;
+    if (appObj && typeof appObj.setLoginItemSettings === 'function') {
+      appObj.setLoginItemSettings({
+        openAtLogin: enable,
+        path: process.execPath
+      });
+      usedElectron = true;
+    }
+  } catch (e) {}
+
+  // Always delete manual registry entry if Electron handled it, to avoid duplicate startup entries
+  exec('reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /f', () => {
+    if (!usedElectron) {
+      if (enable) {
+        const exePath = process.execPath;
+        const cmd = `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /t REG_SZ /d "\"${exePath}\"" /f`;
+        exec(cmd, (err) => {
+          if (callback) callback(!err, err ? err.message : null);
+        });
+        return;
+      }
+    }
+    if (!enable) {
+      try {
+        const path = require('path');
+        const fs = require('fs');
+        const startupFolder = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup');
+        ['PaymentAlertsOBS.lnk', 'Payment Alerts for OBS.lnk'].forEach(f => {
+          const p = path.join(startupFolder, f);
+          if (fs.existsSync(p)) fs.unlinkSync(p);
+        });
+      } catch (e) {}
+    }
+    if (callback) callback(true, null);
+  });
 }
 
 function ensureWindowsFirewallRule(callback) {

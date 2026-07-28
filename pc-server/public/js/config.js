@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       fontSizeUnit: val(`${prefix}-font-size-unit`, base.fontSizeUnit),
       fontWeight: numVal(`${prefix}-font-weight`, base.fontWeight),
       fontStyle: val(`${prefix}-font-style`, base.fontStyle),
-      color: val(`${prefix}-text-color`, base.color),
+      color: val(`${prefix}-text-color-hex`) || val(`${prefix}-text-color`, base.color),
       textAlign: val(`${prefix}-text-align`, base.textAlign),
       textTransform: val(`${prefix}-text-transform`, base.textTransform),
       letterSpacing: numVal(`${prefix}-letter-spacing`, base.letterSpacing),
@@ -415,9 +415,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         soundVolume: numVal('input-sound-volume', template.sound.soundVolume)
       };
       template.style = Object.assign({}, template.style, {
-        backgroundColor: val('input-bg-color', template.style.backgroundColor),
+        backgroundColor: val('input-bg-color-hex') || val('input-bg-color', template.style.backgroundColor),
         backgroundOpacity: numVal('input-bg-opacity', template.style.backgroundOpacity),
-        accentColor: val('input-accent-color', template.style.accentColor),
+        accentColor: val('input-accent-color-hex') || val('input-accent-color', template.style.accentColor),
         borderRadius: numVal('input-border-radius', template.style.borderRadius),
         borderWidth: numVal('input-border-width', template.style.borderWidth),
         padding: numVal('input-padding', template.style.padding)
@@ -427,8 +427,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         duration: numVal('input-anim-duration', template.animation.duration),
         displayDuration: numVal('input-display-duration', template.animation.displayDuration)
       };
+      const tplPreset = val('tpl-position-preset', template.layout.positionPreset);
+      const tplAnchor = (ConfigSchema.POSITION_PRESETS && ConfigSchema.POSITION_PRESETS[tplPreset]) || { x: 50, y: 50 };
       template.layout = Object.assign({}, template.layout, {
-        positionPreset: val('tpl-position-preset', template.layout.positionPreset),
+        positionPreset: tplPreset,
+        positionX: tplAnchor.x,
+        positionY: tplAnchor.y,
         width: numVal('tpl-layout-width', template.layout.width)
       });
       template.code = {
@@ -456,9 +460,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     goal.canvas = readCanvas(TEXT_PREFIXES.goal, goal.canvas);
     goal.style = Object.assign({}, goal.style, {
-      fillColor: val('input-goal-fill-color', goal.style.fillColor),
-      barColor: val('input-goal-bar-color', goal.style.barColor),
-      backgroundColor: val('input-goal-bg-color', goal.style.backgroundColor),
+      fillColor: val('input-goal-fill-color-hex') || val('input-goal-fill-color', goal.style.fillColor),
+      barColor: val('input-goal-bar-color-hex') || val('input-goal-bar-color', goal.style.barColor),
+      backgroundColor: val('input-goal-bg-color-hex') || val('input-goal-bg-color', goal.style.backgroundColor),
       barHeight: numVal('input-goal-bar-height', goal.style.barHeight),
       backgroundOpacity: numVal('input-goal-bg-opacity', goal.style.backgroundOpacity),
       barRoundness: numVal('input-goal-bar-roundness', goal.style.barRoundness),
@@ -466,7 +470,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       borderWidth: numVal('input-goal-border-width', goal.style.borderWidth),
       barOpacity: numVal('input-goal-bar-opacity', goal.style.barOpacity),
       useGradient: checked('chk-goal-use-gradient', goal.style.useGradient),
-      fillColor2: val('input-goal-fill-color2', goal.style.fillColor2),
+      fillColor2: val('input-goal-fill-color2-hex') || val('input-goal-fill-color2', goal.style.fillColor2),
       effect: val('select-goal-effect', goal.style.effect)
     });
     goal.code = {
@@ -2129,42 +2133,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  async function initWindowsStartup() {
-    try {
-      const res = await fetch('/api/system/startup');
-      const data = await res.json();
-      setChecked('chk-win-startup', !!data.enabled);
-    } catch (e) {
-      console.warn('[Startup] Query error:', e.message);
-    }
-
-    on('chk-win-startup', 'change', async (e) => {
-      const enabled = e.target.checked;
-      try {
-        const res = await fetch('/api/system/startup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ enabled })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          showToast(enabled ? '<i data-lucide="settings"></i> Windows startup enabled' : '<i data-lucide="settings"></i> Windows startup disabled');
-        } else {
-          showToast('<i data-lucide="alert-triangle"></i> ' + (data.error || 'Startup update failed'));
-          setChecked('chk-win-startup', !enabled);
-        }
-      } catch (err) {
-        showToast('<i data-lucide="alert-triangle"></i> ' + err.message);
-        setChecked('chk-win-startup', !enabled);
-      }
-    });
-  }
-
   function setupNetworkAndSystem() {
     fetchNetworkInfo();
     setInterval(fetchNetworkInfo, 5000);
-
-    initWindowsStartup();
 
     on('btn-copy-ip', 'click', (e) => {
       const ipText = cachedNetworkInfo ? `${cachedNetworkInfo.primaryIp}:${cachedNetworkInfo.port}` : (el('net-ip-display') ? el('net-ip-display').textContent : '');

@@ -192,7 +192,7 @@
         accentColor: '#00e5ff', borderRadius: 12, borderWidth: 5, padding: 20
       },
       animation: { type: 'slide-up', duration: 600, displayDuration: 5000 },
-      layout: { positionPreset: 'bottom-center', positionX: 50, positionY: 90, marginX: 0, marginY: 0, width: 400 },
+      layout: { positionPreset: 'center', positionX: 50, positionY: 50, marginX: 0, marginY: 0, width: 400 },
       code: { enableCustomCode: false, customHTML: '', customCSS: '', customJS: '' }
     },
     goal: {
@@ -378,15 +378,17 @@
 
   function normalizeLayout(raw, defaults) {
     const src = raw && typeof raw === 'object' ? raw : {};
-    const preset = str(src.positionPreset, defaults.positionPreset);
+    const preset = str(src.positionPreset, defaults ? defaults.positionPreset : 'center');
     const anchor = POSITION_PRESETS[preset];
+    const posX = anchor ? anchor.x : (src.positionX !== undefined ? src.positionX : (defaults ? defaults.positionX : 50));
+    const posY = anchor ? anchor.y : (src.positionY !== undefined ? src.positionY : (defaults ? defaults.positionY : 50));
     return {
       positionPreset: preset,
-      positionX: int(src.positionX, anchor ? anchor.x : defaults.positionX, 0, 100),
-      positionY: int(src.positionY, anchor ? anchor.y : defaults.positionY, 0, 100),
-      marginX: int(src.marginX, defaults.marginX, -5000, 5000),
-      marginY: int(src.marginY, defaults.marginY, -5000, 5000),
-      width: int(src.width, defaults.width, 40, 10000)
+      positionX: int(posX, anchor ? anchor.x : 50, 0, 100),
+      positionY: int(posY, anchor ? anchor.y : 50, 0, 100),
+      marginX: int(src.marginX, defaults ? defaults.marginX : 0, -5000, 5000),
+      marginY: int(src.marginY, defaults ? defaults.marginY : 0, -5000, 5000),
+      width: int(src.width, defaults ? defaults.width : 400, 40, 10000)
     };
   }
 
