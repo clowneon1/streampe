@@ -97,7 +97,26 @@ class NotificationTesterActivity : AppCompatActivity() {
         val tvLog   = findViewById<TextView>(R.id.tvLog)
 
         val labels = presets.map { it.label }
-        spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, labels)
+        val adapter = object : ArrayAdapter<String>(this, R.layout.spinner_item, labels) {
+            override fun getView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
+                val v = super.getView(position, convertView, parent)
+                if (v is TextView) {
+                    v.setTextColor(android.graphics.Color.parseColor("#F0F2FF"))
+                }
+                return v
+            }
+
+            override fun getDropDownView(position: Int, convertView: android.view.View?, parent: android.view.ViewGroup): android.view.View {
+                val v = super.getDropDownView(position, convertView, parent)
+                if (v is TextView) {
+                    v.setTextColor(android.graphics.Color.parseColor("#F0F2FF"))
+                    v.setBackgroundColor(android.graphics.Color.parseColor("#12151f"))
+                }
+                return v
+            }
+        }
+        adapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
+        spinner.adapter = adapter
 
         fun applyPreset(pos: Int) {
             val preset = presets[pos]

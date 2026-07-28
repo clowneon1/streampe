@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/windowBackground">
+    android:background="#0a0c14">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -16,6 +16,7 @@
             android:text="🔔 Notification Tester"
             android:textSize="22sp"
             android:textStyle="bold"
+            android:textColor="#F0F2FF"
             android:layout_marginBottom="8dp" />
 
         <TextView
@@ -23,7 +24,7 @@
             android:layout_height="wrap_content"
             android:text="Select a preset to pre-fill, then edit any field freely."
             android:textSize="13sp"
-            android:textColor="?android:attr/textColorSecondary"
+            android:textColor="#8890AA"
             android:layout_marginBottom="16dp" />
 
         <!-- Preset picker -->
@@ -33,12 +34,16 @@
             android:text="Template"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#F0F2FF"
             android:layout_marginBottom="4dp" />
 
         <Spinner
             android:id="@+id/spinnerPresets"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@drawable/bg_spinner"
+            android:popupBackground="#12151f"
+            android:padding="4dp"
             android:layout_marginBottom="16dp" />
 
         <!-- Title -->
@@ -48,14 +53,20 @@
             android:text="Notification Title"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#F0F2FF"
             android:layout_marginBottom="4dp" />
 
         <EditText
             android:id="@+id/etNotifTitle"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:hint="e.g. PhonePe"
             android:inputType="text"
+            android:background="#1a1d2b"
+            android:textColor="#F0F2FF"
+            android:textColorHint="#555D7A"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
             android:layout_marginBottom="12dp" />
 
         <!-- Text -->
@@ -65,6 +76,7 @@
             android:text="Notification Text"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#F0F2FF"
             android:layout_marginBottom="4dp" />
 
         <EditText
@@ -74,6 +86,10 @@
             android:hint="e.g. Rahul sent ₹500 to your account"
             android:inputType="textMultiLine"
             android:minLines="2"
+            android:background="#1a1d2b"
+            android:textColor="#F0F2FF"
+            android:textColorHint="#555D7A"
+            android:padding="14dp"
             android:layout_marginBottom="12dp" />
 
         <!-- Package -->
@@ -83,14 +99,20 @@
             android:text="Package Name (optional)"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#F0F2FF"
             android:layout_marginBottom="4dp" />
 
         <EditText
             android:id="@+id/etNotifPkg"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:hint="e.g. com.phonepe.app"
             android:inputType="text"
+            android:background="#1a1d2b"
+            android:textColor="#F0F2FF"
+            android:textColorHint="#555D7A"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
             android:layout_marginBottom="20dp" />
 
         <!-- Fire button -->
@@ -116,6 +138,7 @@
             android:text="Recent Sends"
             android:textSize="14sp"
             android:textStyle="bold"
+            android:textColor="#F0F2FF"
             android:layout_marginBottom="4dp" />
 
         <TextView
@@ -124,7 +147,7 @@
             android:layout_height="wrap_content"
             android:textSize="12sp"
             android:fontFamily="monospace"
-            android:textColor="?android:attr/textColorSecondary" />
+            android:textColor="#8890AA" />
 
     </LinearLayout>
 </ScrollView>
