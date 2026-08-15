@@ -97,6 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
     chk.addEventListener('change', async (e) => {
       const enabled = e.target.checked;
       try {
+        if (window.__TAURI__ && window.__TAURI__.core) {
+          window.__TAURI__.core.invoke('set_minimize_on_close', { enabled });
+        }
         const res = await fetch('/api/system/minimize-on-close', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -116,11 +119,54 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 5. Open Control Panel in Default Browser Button
+  // 5. Start Minimized Setting
+  async function initStartMinimizedCheckbox() {
+    const chk = document.getElementById('chk-start-minimized');
+    if (!chk) return;
+
+    try {
+      const res = await fetch('/api/system/start-minimized');
+      const data = await res.json();
+      chk.checked = !!data.enabled;
+    } catch (e) {
+      console.warn('[App] Could not fetch start-minimized status:', e.message);
+    }
+
+    chk.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      try {
+        const res = await fetch('/api/system/start-minimized', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showToast(enabled ? 'Start Minimized Enabled' : 'Start Minimized Disabled');
+        } else {
+          chk.checked = !enabled;
+          showToast('Failed to update setting');
+        }
+      } catch (err) {
+        chk.checked = !enabled;
+        showToast('Failed to update setting');
+      }
+    });
+  }
+
+  // 6. Open Control Panel in Default Browser Button
   const openBtn = document.getElementById('btn-open-control-panel');
   if (openBtn) {
-    openBtn.addEventListener('click', () => {
-      window.open(configUrl, '_blank');
+    openBtn.addEventListener('click', async () => {
+      try {
+        await fetch('/api/system/open-browser', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: configUrl })
+        });
+      } catch (e) {
+        window.open(configUrl, '_blank');
+      }
     });
   }
 
@@ -128,4 +174,5 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchNetworkInfo();
   initStartupCheckbox();
   initMinimizeOnCloseCheckbox();
+  initStartMinimizedCheckbox();
 });

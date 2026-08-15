@@ -1,0 +1,4 @@
+target/
+sidecars/bun.exe
+sidecars/server*.exe
+sidecars/*.zip
