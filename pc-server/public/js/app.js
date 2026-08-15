@@ -81,45 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 4. Minimize on Close Setting
-  async function initMinimizeOnCloseCheckbox() {
-    const chk = document.getElementById('chk-minimize-on-close');
-    if (!chk) return;
-
-    try {
-      const res = await fetch('/api/system/minimize-on-close');
-      const data = await res.json();
-      chk.checked = typeof data.enabled === 'boolean' ? data.enabled : true;
-    } catch (e) {
-      console.warn('[App] Could not fetch minimize-on-close status:', e.message);
-    }
-
-    chk.addEventListener('change', async (e) => {
-      const enabled = e.target.checked;
-      try {
-        if (window.__TAURI__ && window.__TAURI__.core) {
-          window.__TAURI__.core.invoke('set_minimize_on_close', { enabled });
-        }
-        const res = await fetch('/api/system/minimize-on-close', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ enabled })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          showToast(enabled ? 'Minimize to Tray Enabled' : 'Close Button Quits App');
-        } else {
-          chk.checked = !enabled;
-          showToast('Failed to update setting');
-        }
-      } catch (err) {
-        chk.checked = !enabled;
-        showToast('Failed to update setting');
-      }
-    });
-  }
-
-  // 5. Start Minimized Setting
+  // 4. Start Minimized Setting
   async function initStartMinimizedCheckbox() {
     const chk = document.getElementById('chk-start-minimized');
     if (!chk) return;
@@ -154,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 6. Open Control Panel in Default Browser Button
+  // 5. Open Control Panel in Default Browser Button
   const openBtn = document.getElementById('btn-open-control-panel');
   if (openBtn) {
     openBtn.addEventListener('click', async () => {
@@ -173,6 +135,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial loads
   fetchNetworkInfo();
   initStartupCheckbox();
-  initMinimizeOnCloseCheckbox();
   initStartMinimizedCheckbox();
 });

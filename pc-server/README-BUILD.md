@@ -1,30 +1,29 @@
-# Payment Alerts for OBS - Windows Release Builds
+# Payment Alerts for OBS - Standalone Portable Windows App
  
 ## Overview
-Payment Alerts for OBS is distributed in two formats for Windows:
-1. **Windows Setup Installer (`.exe`)**: Standard NSIS installer that creates Start Menu shortcuts and manages installation.
-2. **Standalone Portable ZIP (`.zip`)**: Zero installation required — unzip anywhere and double-click `Payment Alerts for OBS.exe`.
+Payment Alerts for OBS is distributed as a **Zero-Install Standalone Portable ZIP** for Windows:
+- **Zero Installation Required**: No setup wizard, no UAC prompts, and no registry pollution.
+- **Instant Click-to-Run**: Unzip anywhere (e.g. Desktop or StreamTools folder) and double-click `Payment Alerts for OBS.exe`.
 
 ## Architecture
 - **Desktop Shell**: Tauri v2 (Rust compiled native shell + Windows WebView2).
-- **Server Sidecar**: Embedded Express & WebSocket server bundled via Bun into `server-x86_64-pc-windows-msvc.exe`.
+- **Server Sidecar**: Embedded Express & WebSocket server bundled via Bun into `server.exe`.
 
-## Building Release Packages from Source
-To compile the release packages:
+## Building Release Package from Source
+To compile the portable package:
 
 1. Install dependencies:
    ```cmd
    npm install
    ```
 
-2. Build Distribution Packages:
+2. Build Portable Package:
    ```cmd
    npm run app:dist
    ```
 
-3. Output Artifacts (generated in `dist/`):
-   - `dist/Payment-Alerts-for-OBS-v2.0.0-Setup.exe` (NSIS Installer — ~29 MB)
-   - `dist/Payment-Alerts-for-OBS-v2.0.0-Portable.zip` (Portable ZIP — ~41 MB)
+3. Output Artifact (generated in `dist/`):
+   - `dist/Payment-Alerts-for-OBS-v2.0.0-Portable.zip` (~42 MB)
 
 ## Features Included in Release Builds
 - **Native Desktop Window & System Tray Integration**

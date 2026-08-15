@@ -577,6 +577,37 @@ let systemConfig = loadSystemConfig();
 server.getMinimizeOnClose = () => systemConfig.minimizeOnClose;
 server.getStartMinimized = () => systemConfig.startMinimized;
 
+process.on('uncaughtException', (err) => {
+  console.error('[Node UncaughtException]', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Node UnhandledRejection]', reason);
+});
+
+function isWindowsStartupEnabled(callback) {
+  if (process.platform !== 'win32') return callback(false);
+  exec('reg query HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v "PaymentAlertsOBS"', (err, stdout) => {
+    callback(!err && typeof stdout === 'string' && stdout.includes('PaymentAlertsOBS'));
+  });
+}
+
+function setWindowsStartup(enable, callback) {
+  if (process.platform !== 'win32') return callback(true);
+  const exePath = process.execPath;
+  if (enable) {
+    const cmd = `reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v "PaymentAlertsOBS" /t REG_SZ /d "\\"${exePath}\\"" /f`;
+    exec(cmd, (err) => {
+      callback(!err, err ? err.message : null);
+    });
+  } else {
+    const cmd = `reg delete HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v "PaymentAlertsOBS" /f`;
+    exec(cmd, (err) => {
+      callback(true);
+    });
+  }
+}
+
 app.get('/api/system/startup', (req, res) => {
   isWindowsStartupEnabled((enabled) => res.json({ enabled, isWindows: process.platform === 'win32' }));
 });

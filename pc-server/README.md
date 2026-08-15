@@ -28,7 +28,7 @@ npm run bun:build
 # Run Tauri desktop app in development mode
 npm run app:dev
 
-# Build release distribution (NSIS Installer + Portable ZIP in dist/)
+# Build release portable ZIP (outputs to dist/Payment-Alerts-for-OBS-v2.0.0-Portable.zip)
 npm run app:dist
 
 # Bump version across package.json, Cargo.toml & tauri.conf.json

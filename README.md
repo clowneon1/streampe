@@ -79,11 +79,11 @@ A free, open-source, ultra-fast, and self-hosted solution to display real-time m
 
 ### 1. Download Pre-Built Release
 - Visit the official [GitHub Releases Page](https://github.com/clowneon1/payment-alerts-for-obs/releases).
-- Download **`Payment-Alerts-for-OBS-v2.0.0-Setup.exe`** (Installer) or **`Payment-Alerts-for-OBS-v2.0.0-Portable.zip`** (Zero-install portable archive).
-- Run the installer or extract the portable ZIP to any folder on your PC.
+- Download **`Payment-Alerts-for-OBS-v2.0.0-Portable.zip`** (Zero-install portable archive).
+- Extract the ZIP file to any folder on your PC.
 
 ### 2. Launch the Application
-- Run **`Payment Alerts for OBS.exe`** (or launch from Start Menu if installed).
+- Run **`Payment Alerts for OBS.exe`**.
 - **Run as Administrator**: If network discovery isn't working, right-click the app and select **Run as Administrator**.
 - **Firewall Permission**: When Windows Security Alert appears, check **both Private and Public networks** and click **Allow Access**.
 - The app starts on **port 2907** by default.
@@ -137,11 +137,11 @@ npm run dev
 npm run app:dev
 ```
 
-### Build Final Release Packages (Installer + Portable ZIP):
+### Build Final Portable Release ZIP:
 ```bash
 npm run app:dist
 ```
-*Outputs both `Payment-Alerts-for-OBS-v2.0.0-Setup.exe` and `Payment-Alerts-for-OBS-v2.0.0-Portable.zip` into `dist/`.*
+*Outputs `Payment-Alerts-for-OBS-v2.0.0-Portable.zip` into `dist/`.*
 
 ---
 

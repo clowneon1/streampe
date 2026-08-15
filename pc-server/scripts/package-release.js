@@ -1,7 +1,7 @@
 /**
  * package-release.js
- * Builds both the NSIS installer and the standalone Portable ZIP bundle.
- * Centrally collects all build outputs into both pc-server/dist/ and root dist/
+ * Builds the standalone Portable ZIP bundle.
+ * Centrally collects the build output into both pc-server/dist/ and root dist/
  */
 const { execSync } = require('child_process');
 const fs = require('fs');
@@ -19,11 +19,11 @@ console.log('──────────────────────�
 console.log('\n[1/3] Compiling Bun sidecar...');
 execSync('node scripts/build-bun-sidecar.js', { cwd: pcServerDir, stdio: 'inherit' });
 
-// 2. Run Tauri build (produces NSIS installer & target/release binaries)
+// 2. Run Tauri build (compiles optimized native desktop application)
 console.log('\n[2/3] Building Tauri release application...');
 execSync('npx tauri build', { cwd: pcServerDir, stdio: 'inherit' });
 
-// 3. Package both NSIS installer and Portable ZIP
+// 3. Package Portable ZIP
 console.log('\n[3/3] Organizing build artifacts into dist/ ...');
 const distDirs = [
   path.join(pcServerDir, 'dist'),
@@ -39,18 +39,6 @@ distDirs.forEach(d => {
 
 const pcServerDist = distDirs[0];
 
-// Copy NSIS installer
-const nsisSrcDir = path.join(pcServerDir, 'src-tauri', 'target', 'release', 'bundle', 'nsis');
-const installerDstName = `Payment-Alerts-for-OBS-v${version}-Setup.exe`;
-const installerDst = path.join(pcServerDist, installerDstName);
-
-if (fs.existsSync(nsisSrcDir)) {
-  const files = fs.readdirSync(nsisSrcDir).filter(f => f.endsWith('.exe'));
-  if (files.length > 0) {
-    fs.copyFileSync(path.join(nsisSrcDir, files[0]), installerDst);
-  }
-}
-
 // Assemble portable folder
 const portableFolderName = `Payment-Alerts-for-OBS-v${version}-Portable`;
 const portableDir = path.join(pcServerDist, portableFolderName);
@@ -62,12 +50,10 @@ if (fs.existsSync(mainExeSrc)) {
   fs.copyFileSync(mainExeSrc, path.join(portableDir, 'Payment Alerts for OBS.exe'));
 }
 
-// Copy sidecars
-const sidecarsDst = path.join(portableDir, 'sidecars');
-fs.mkdirSync(sidecarsDst, { recursive: true });
+// Copy sidecar binary
 const serverSidecar = path.join(pcServerDir, 'src-tauri', 'sidecars', 'server-x86_64-pc-windows-msvc.exe');
 if (fs.existsSync(serverSidecar)) {
-  fs.copyFileSync(serverSidecar, path.join(sidecarsDst, 'server-x86_64-pc-windows-msvc.exe'));
+  fs.copyFileSync(serverSidecar, path.join(portableDir, 'server.exe'));
 }
 
 // Copy public web resources & widget config
@@ -106,27 +92,20 @@ try {
   console.warn('Zip creation warning:', e.message);
 }
 
-// Mirror all files to root dist/ as well
+// Mirror file to root dist/ as well
 const rootDist = distDirs[1];
-if (fs.existsSync(installerDst)) {
-  fs.copyFileSync(installerDst, path.join(rootDist, installerDstName));
-}
 if (fs.existsSync(zipDst)) {
   fs.copyFileSync(zipDst, path.join(rootDist, zipDstName));
 }
 
 // Print Summary
 console.log('\n═════════════════════════════════════════════════════════════════');
-console.log('  ✨ ALL BUILD ARTIFACTS CENTRALLY COLLECTED IN dist/ ✨');
+console.log('  ✨ BUILD ARTIFACT CENTRALLY COLLECTED IN dist/ ✨');
 console.log('═════════════════════════════════════════════════════════════════');
 
-if (fs.existsSync(installerDst)) {
-  const sizeMb = (fs.statSync(installerDst).size / (1024 * 1024)).toFixed(2);
-  console.log(` 📦 Installer (NSIS) : dist/${installerDstName} (${sizeMb} MB)`);
-}
 if (fs.existsSync(zipDst)) {
   const sizeMb = (fs.statSync(zipDst).size / (1024 * 1024)).toFixed(2);
-  console.log(` 📂 Portable (.zip)  : dist/${zipDstName} (${sizeMb} MB)`);
+  console.log(` 📂 Portable (.zip) : dist/${zipDstName} (${sizeMb} MB)`);
 }
 console.log(`\n 📍 Locations:`);
 console.log(`    • ${pcServerDist}`);
