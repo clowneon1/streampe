@@ -254,11 +254,18 @@ pub fn run() {
 
             // Spawn Node sidecar + wait for it to be ready, then open window
             tauri::async_runtime::spawn(async move {
+                let app_data = std::env::var("APPDATA")
+                    .map(std::path::PathBuf::from)
+                    .unwrap_or_default()
+                    .join("Payment Alerts for OBS");
+
                 // Launch the bun-compiled server sidecar (server.js baked in — no args needed)
                 let sidecar_cmd = app_handle
                     .shell()
                     .sidecar("server")
-                    .expect("server sidecar not found");
+                    .expect("server sidecar not found")
+                    .env("TAURI_APP_DATA", app_data.to_string_lossy().to_string())
+                    .env("PORT", "2907");
 
                 let (mut rx, child) = sidecar_cmd
                     .spawn()
