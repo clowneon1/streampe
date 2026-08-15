@@ -190,10 +190,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!btn || btn._copying) return;
     btn._copying = true;
     const original = btn.innerHTML;
+    const originalTitle = btn.title;
     const originalBg = btn.style.background;
     const originalColor = btn.style.color;
     const originalBorder = btn.style.border;
-    btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;margin-right:4px;"></i> Copied!';
+    btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;"></i>';
+    btn.title = 'Copied!';
     if (window.lucide) lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide' });
     btn.style.background = '#00e676';
     btn.style.color = '#000';
@@ -201,11 +203,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     btn.classList.add('btn-copy-flash');
     setTimeout(() => {
       btn.innerHTML = original;
+      btn.title = originalTitle;
       btn.style.background = originalBg;
       btn.style.color = originalColor;
       btn.style.border = originalBorder;
       btn.classList.remove('btn-copy-flash');
       btn._copying = false;
+      if (window.lucide) lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide' });
     }, 1600);
   }
 
@@ -575,6 +579,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     config.widgets.cycling = cycling;
+    config.simulation = {
+      isolatedMode: checked('chk-sim-isolated-mode', true)
+    };
     config = ConfigSchema.normalizeConfig(config);
     return config;
   }
@@ -765,8 +772,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    renderSupportersTable();
-    renderRecentTable();
+    const simIsolatedVal = config.simulation ? config.simulation.isolatedMode !== false : true;
+    setChecked('chk-sim-isolated-mode', simIsolatedVal);
 
     suppressSync = false;
     syncLivePreview();
@@ -943,73 +950,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast('<i data-lucide="copy"></i> Copied Cycling Widget URL');
     });
   }
-
-  // ── Supporters table ─────────────────────────────────────────
-  function renderSupportersTable() {
-    const body = el('lb-table-body');
-    if (!body) return;
-    const supporters = config.widgets.leaderboard.supporters || {};
-    const rows = Object.keys(supporters)
-      .map(name => ({ name, amount: parseFloat(supporters[name]) || 0 }))
-      .sort((a, b) => b.amount - a.amount);
-
-    if (!rows.length) {
-      body.innerHTML = '<tr><td colspan="3" style="padding: 10px; color: var(--text-muted);">No supporters yet</td></tr>';
-      return;
-    }
-
-    body.innerHTML = rows.map(r => `
-      <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 6px;">${TemplateEngine.escapeHtml(r.name)}</td>
-        <td style="padding: 6px;">₹${r.amount.toLocaleString('en-IN')}</td>
-        <td style="padding: 6px; text-align: right;">
-          <button type="button" class="btn btn-danger btn-remove-supporter" data-name="${TemplateEngine.escapeHtml(r.name)}" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i> Remove</button>
-        </td>
-      </tr>`).join('');
-
-    if (window.lucide) lucide.createIcons();
-
-    body.querySelectorAll('.btn-remove-supporter').forEach(btn => {
-      btn.addEventListener('click', () => {
-        delete config.widgets.leaderboard.supporters[btn.dataset.name];
-        renderSupportersTable();
-        syncLivePreview();
-      });
-    });
-  }
-
-  function renderRecentTable() {
-    const body = el('recent-table-body');
-    if (!body) return;
-    const history = config.widgets.recent.recentDonations || [];
-
-    if (!history.length) {
-      body.innerHTML = '<tr><td colspan="4" style="padding: 10px; color: var(--text-muted);">No donation history yet</td></tr>';
-      return;
-    }
-
-    body.innerHTML = history.map((r, idx) => `
-      <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 6px;">${TemplateEngine.escapeHtml(r.sender)}</td>
-        <td style="padding: 6px;">₹${(parseFloat(r.amountValue) || 0).toLocaleString('en-IN')}</td>
-        <td style="padding: 6px; color: var(--text-muted);">${new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-        <td style="padding: 6px; text-align: right;">
-          <button type="button" class="btn btn-danger btn-remove-recent" data-idx="${idx}" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i> Remove</button>
-        </td>
-      </tr>`).join('');
-
-    if (window.lucide) lucide.createIcons();
-
-    body.querySelectorAll('.btn-remove-recent').forEach(btn => {
-      btn.addEventListener('click', () => {
-        config.widgets.recent.recentDonations.splice(parseInt(btn.dataset.idx, 10), 1);
-        renderRecentTable();
-        syncLivePreview();
-      });
-    });
-  }
-
-
 
   // ── Server IO ────────────────────────────────────────────────
   async function saveToServer(profileName) {
@@ -1468,7 +1408,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       { sender: 'Amit Verma', amount: '₹250', sourceApp: 'Paytm', message: 'Chai paani subscription ☕' },
       { sender: 'Sneha Patel', amount: '₹300', sourceApp: 'BHIM UPI', message: 'Great gameplay! 🎮' }
     ];
-    const picked = { ...samples[Math.floor(Math.random() * samples.length)], timestamp: Date.now() };
+    const isIsolated = config.simulation ? config.simulation.isolatedMode !== false : true;
+    const picked = { ...samples[Math.floor(Math.random() * samples.length)], timestamp: Date.now(), simulated: isIsolated };
     if (customAmount !== undefined && customAmount !== null && customAmount !== '') {
       const num = parseFloat(customAmount);
       if (Number.isFinite(num)) {
@@ -1564,34 +1505,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    on('btn-export', 'click', () => {
-      readFormValues();
-      StorageHelper.exportToFile(config, 'alert-theme.json');
-      showToast('<i data-lucide="upload"></i> Exported configuration');
-    });
 
-    on('btn-import', 'click', () => { const f = el('file-import-input'); if (f) f.click(); });
-    on('file-import-input', 'change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      try {
-        const importedConfig = await StorageHelper.importFromFile(file);
-        const activeProfile = (el('select-profile') && el('select-profile').value) || 'Default';
-        const res = await fetch('/api/profiles/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: activeProfile, settings: importedConfig })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          populateForm(data.settings);
-          showToast('<i data-lucide="download"></i> Imported configuration into current profile');
-        }
-      } catch (err) {
-        showToast('<i data-lucide="alert-triangle"></i> ' + err.message);
-      }
-      e.target.value = '';
-    });
 
     on('btn-reset', 'click', async () => {
       const confirmed = await AppModal.show({
@@ -1714,127 +1628,121 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.target.value = '';
     });
 
-    // ── Goal helpers
-    on('btn-goal-test-add', 'click', () => {
-      readFormValues();
-      config.widgets.goal.currentAmount += 100;
-      populateForm(config);
-      showToast('<i data-lucide="zap"></i> Added ₹100 to the goal');
-    });
-
-    on('btn-goal-reset', 'click', () => {
-      readFormValues();
-      config.widgets.goal.currentAmount = 0;
-      populateForm(config);
-      showToast('<i data-lucide="rotate-ccw"></i> Goal progress reset');
-    });
-
-    on('btn-goal-export', 'click', () => {
-      readFormValues();
-      StorageHelper.exportToFile(config.widgets.goal, 'goal-data.json');
-    });
-
-    on('btn-goal-import', 'click', () => { const f = el('file-import-goal-input'); if (f) f.click(); });
-    on('file-import-goal-input', 'change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          readFormValues();
-          config.widgets.goal = ConfigSchema.normalizeWidget('goal', JSON.parse(ev.target.result));
+    // ── Goal Controls (Derived from CSV Single Source of Truth) ──
+    on('btn-goal-test-add', async () => {
+      try {
+        const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+        const res = await fetch('/api/donations/record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profile: activeProf,
+            sender: 'Test Supporter',
+            amount: 100,
+            currency: 'INR',
+            sourceApp: 'Manual Test'
+          })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          config.widgets.goal.currentAmount = data.metrics.goalAmount;
+          config.widgets.leaderboard.supporters = data.metrics.supporters;
+          config.widgets.recent.recentDonations = data.metrics.recentDonations;
           populateForm(config);
-          showToast('<i data-lucide="download"></i> Goal data imported');
-        } catch (err) {
-          showToast('<i data-lucide="alert-triangle"></i> Invalid goal JSON');
+          showToast('<i data-lucide="zap"></i> Added ₹100 donation to Goal and CSV');
         }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
+      } catch (err) {
+        showToast('<i data-lucide="alert-triangle"></i> Failed to add amount: ' + err.message);
+      }
     });
 
-    // ── Leaderboard helpers
-    on('btn-lb-export', 'click', () => {
-      readFormValues();
-      StorageHelper.exportToFile(config.widgets.leaderboard.supporters, 'leaderboard.json');
-    });
-
-    on('btn-lb-import', 'click', () => { const f = el('file-import-lb-input'); if (f) f.click(); });
-    on('file-import-lb-input', 'change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          readFormValues();
-          const parsed = JSON.parse(ev.target.result);
-          config.widgets.leaderboard.supporters = parsed.supporters || parsed;
-          populateForm(config);
-          showToast('<i data-lucide="download"></i> Leaderboard imported');
-        } catch (err) {
-          showToast('<i data-lucide="alert-triangle"></i> Invalid leaderboard JSON');
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
-    });
-
-    [['btn-lb-clear', 'Clear Leaderboard', 'Clear every supporter from the leaderboard?'],
-     ['btn-lb-clear-all', 'Clear Leaderboard', 'Clear every supporter from the leaderboard?']
-    ].forEach(([id, title, msg]) => {
-      on(id, 'click', async () => {
-        const confirmed = await AppModal.show({ title, message: msg + ' This cannot be undone.' });
-        if (!confirmed) return;
-        readFormValues();
-        config.widgets.leaderboard.supporters = {};
-        await saveToServer();
-        showToast('<i data-lucide="trash-2"></i> Leaderboard cleared and saved');
-      });
-    });
-
-    // ── Recent helpers
-    on('btn-recent-export', 'click', () => {
-      readFormValues();
-      StorageHelper.exportToFile(config.widgets.recent.recentDonations, 'donation-history.json');
-    });
-
-    on('btn-recent-import', 'click', () => { const f = el('file-import-recent-input'); if (f) f.click(); });
-    on('file-import-recent-input', 'change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          readFormValues();
-          const parsed = JSON.parse(ev.target.result);
-          config.widgets.recent.recentDonations = Array.isArray(parsed) ? parsed : (parsed.recentDonations || []);
-          populateForm(config);
-          showToast('<i data-lucide="download"></i> Recent history imported');
-        } catch (err) {
-          showToast('<i data-lucide="alert-triangle"></i> Invalid JSON');
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
-    });
-
-    on('btn-recent-clear', 'click', () => {
-      readFormValues();
-      config.widgets.recent.recentDonations = [];
-      populateForm(config);
-      showToast('<i data-lucide="trash-2"></i> Local history cleared');
-    });
-
-    on('btn-recent-clear-all', 'click', async () => {
+    on('btn-goal-reset', async () => {
       const confirmed = await AppModal.show({
-        title: 'Clear Recent History',
-        message: 'Clear every donation from the history? This cannot be undone.'
+        title: 'Reset Stream Goal',
+        message: 'Reset current goal progress and clear donation records for this profile?'
       });
       if (!confirmed) return;
-      readFormValues();
-      config.widgets.recent.recentDonations = [];
-      await saveToServer();
-      showToast('<i data-lucide="trash-2"></i> History cleared and saved');
+      try {
+        const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+        const res = await fetch('/api/donations/clear', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profile: activeProf })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          config.widgets.goal.currentAmount = data.metrics.goalAmount;
+          config.widgets.leaderboard.supporters = data.metrics.supporters;
+          config.widgets.recent.recentDonations = data.metrics.recentDonations;
+          populateForm(config);
+          showToast('<i data-lucide="rotate-ccw"></i> Goal progress reset');
+        }
+      } catch (err) {
+        showToast('<i data-lucide="alert-triangle"></i> Failed to reset goal progress');
+      }
+    });
+
+    // ── Centralized Donations Data CSV Helpers ────────────────
+    on('btn-sidebar-export-donations', 'click', () => {
+      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+      window.open(`/api/donations/csv?profile=${encodeURIComponent(activeProf)}`, '_blank');
+      showToast('<i data-lucide="file-spreadsheet"></i> Exporting donations.csv for Excel/Sheets...');
+    });
+
+    on('btn-sidebar-import-donations', 'click', () => {
+      const f = el('file-import-donations-csv');
+      if (f) f.click();
+    });
+
+    on('file-import-donations-csv', 'change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const text = ev.target.result;
+          let csvPayload = text;
+          if (file.name.endsWith('.json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+            const parsed = JSON.parse(text);
+            const list = Array.isArray(parsed) ? parsed : (parsed.recentDonations || Object.entries(parsed.supporters || parsed).map(([name, total]) => ({ sender: name, amount: total })));
+            const txs = list.map((r, i) => ({
+              id: r.id || `imported_${Date.now()}_${i}`,
+              timestamp: Number(r.timestamp) || (Date.now() - i * 60000),
+              date: new Date(Number(r.timestamp) || Date.now()).toISOString().split('T')[0],
+              time: new Date(Number(r.timestamp) || Date.now()).toTimeString().split(' ')[0],
+              sender: r.sender || 'Unknown',
+              amount: parseFloat(r.amountValue || TemplateMatcher.parseAmount(r.amount)) || 0,
+              rawAmount: r.amount ? String(r.amount) : `₹${r.amountValue || 0}`,
+              sourceApp: r.sourceApp || 'Imported Data',
+              message: r.message || '',
+              templateId: '',
+              simulated: false
+            }));
+            csvPayload = PaymentsCsv.serializeCsv(txs);
+          }
+
+          const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+          const res = await fetch('/api/donations/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profile: activeProf, csv: csvPayload, mode: 'replace' })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            config.widgets.goal.currentAmount = data.metrics.goalAmount;
+            config.widgets.leaderboard.supporters = data.metrics.supporters;
+            config.widgets.recent.recentDonations = data.metrics.recentDonations;
+            populateForm(config);
+            showToast(`<i data-lucide="file-spreadsheet"></i> Imported ${data.totalCount} transactions into ${activeProf}`);
+          } else {
+            showToast('<i data-lucide="alert-triangle"></i> Import error: ' + (data.error || 'Failed'));
+          }
+        } catch (err) {
+          showToast('<i data-lucide="alert-triangle"></i> Invalid file format: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
     });
 
     // ── Code reset buttons
@@ -1915,8 +1823,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         text = `${sender} has sent Rs. ${formattedAmount}.00 to your bank account`;
       }
 
+      const isIsolated = config.simulation ? config.simulation.isolatedMode !== false : true;
       return {
         type: 'payment_notification',
+        simulated: isIsolated,
         packageName,
         appName,
         title,
@@ -1948,6 +1858,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
+    on('chk-sim-isolated-mode', 'change', async (e) => {
+      readFormValues();
+      await saveToServer();
+      if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+      showToast(e.target.checked
+        ? '<i data-lucide="shield-check"></i> Isolated Simulation Mode active (Live stats safe)'
+        : '<i data-lucide="alert-triangle"></i> Isolated Simulation Mode OFF (Tests will update Goal/Leaderboard)',
+        e.target.checked ? 'info' : 'warning');
+    });
+
     on('btn-sim-random', 'click', () => {
       const sample = sampleAlert();
       const providers = ['phonepe', 'gpay', 'paytm', 'amazon', 'bhim'];
@@ -1976,6 +1896,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const rawAmount = val('sim-amount', '500');
       const message = val('sim-message', '');
       const forcedId = val('sim-template-override', '');
+      const isIsolated = config.simulation ? config.simulation.isolatedMode !== false : true;
 
       const rawNotif = buildSimulatedNotification(provider, sender, rawAmount, message);
       const numAmount = TemplateMatcher.parseAmount(rawAmount);
@@ -1983,6 +1904,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const logData = {
         inspectTime: new Date().toLocaleTimeString(),
+        simulationMode: isIsolated ? '🛡️ Isolated (Goal & Leaderboard untouched)' : '⚡ Live Mutation (Will update Goal & Leaderboard)',
         simulatedRawMobileNotification: rawNotif,
         parsedDetails: {
           extractedSender: sender,
@@ -2010,6 +1932,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const rawAmount = val('sim-amount', '500');
       const message = val('sim-message', '');
       const forcedId = val('sim-template-override', '');
+      const isIsolated = config.simulation ? config.simulation.isolatedMode !== false : true;
 
       // Generate a fresh unique ID for every dispatch so the server counts it for goal/leaderboard
       const alertId = `sim_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -2020,7 +1943,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (forcedId) rawNotif.alertTemplateId = forcedId;
 
       const c = el('sim-console');
-      if (c) c.textContent = `[DISPATCHING RAW MOBILE NOTIFICATION...]\n${JSON.stringify(rawNotif, null, 2)}`;
+      if (c) c.textContent = `[DISPATCHING RAW MOBILE NOTIFICATION (${isIsolated ? '🛡️ ISOLATED' : '⚡ LIVE'})...]\n${JSON.stringify(rawNotif, null, 2)}`;
 
       try {
         const res = await fetch('/api/test', {
@@ -2031,10 +1954,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await res.json();
         if (c) {
           c.textContent = `[DISPATCH SUCCESS - ${new Date().toLocaleTimeString()}]\n` +
+            `Simulation Mode: ${isIsolated ? '🛡️ ISOLATED (Live stats protected)' : '⚡ LIVE MUTATION (Goal & Leaderboard updated)'}\n` +
             `Server Output: ${JSON.stringify(data, null, 2)}\n\n` +
             `Raw Mobile Notification Payload Sent:\n${JSON.stringify(rawNotif, null, 2)}`;
         }
-        showToast('<i data-lucide="send"></i> Dispatched raw event (' + provider.toUpperCase() + ' ₹' + rawAmount + ')');
+        showToast('<i data-lucide="send"></i> Dispatched raw event (' + provider.toUpperCase() + ' ₹' + rawAmount + ' · ' + (isIsolated ? 'Isolated' : 'Live') + ')');
       } catch (err) {
         if (c) c.textContent += `\n\n[ERROR]: ${err.message}`;
         showToast('<i data-lucide="alert-triangle"></i> Dispatch failed: ' + err.message);
@@ -2062,8 +1986,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Refresh UI components for live data
             setVal('input-goal-current', config.widgets.goal.currentAmount);
-            renderSupportersTable();
-            renderRecentTable();
             syncLivePreview();
           }
         } catch (e) {}

@@ -246,7 +246,8 @@
         recent: ConfigSchema.normalizeWidget('recent', recentWidgetData),
         cycling: ConfigSchema.normalizeWidget('cycling', cyclingWidgetData)
       },
-      filter: isObject(src.filter) ? src.filter : { allowedAmounts: [] }
+      filter: isObject(src.filter) ? src.filter : { allowedAmounts: [] },
+      simulation: isObject(src.simulation) ? src.simulation : { isolatedMode: true }
     };
   }
 

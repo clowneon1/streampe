@@ -279,10 +279,16 @@ function parsePayment(notification) {
 const ConfigSchema    = require('./public/js/lib/config-schema');
 const ConfigMigration = require('./public/js/lib/config-migration');
 const TemplateMatcher = require('./public/js/lib/template-matcher');
+const PaymentsCsv = require('./public/js/lib/payments-csv');
 
 const SETTINGS_DIR = path.join(writableBaseDir, 'config');
 const SETTINGS_FILE = path.join(SETTINGS_DIR, 'settings.json');
 const LEGACY_CONFIG_FILE = path.join(__dirname, 'widget-config.json');
+
+const DATA_DIR = path.join(writableBaseDir, 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (_) {}
+}
 
 function loadSettings() {
   try {
@@ -312,7 +318,8 @@ function applySettingsPatch(current, patch) {
       acc[kind] = { ...current.widgets[kind], ...(widgetPatch[kind] || {}) };
       return acc;
     }, {}),
-    filter: { ...current.filter, ...(body.filter || {}) }
+    filter: { ...current.filter, ...(body.filter || {}) },
+    simulation: { ...(current.simulation || { isolatedMode: true }), ...(body.simulation || {}) }
   };
   return ConfigMigration.migrate(merged);
 }
@@ -352,6 +359,139 @@ function saveProfilesStore(store) {
 let profilesStore = loadProfilesStore();
 let alertSettings = profilesStore.profiles[profilesStore.activeProfile] || loadSettings();
 
+// ── Single Source of Truth: CSV Donations Storage ────────────────────
+function getDonationsCsvPath(profileName) {
+  const profile = (profileName || (profilesStore && profilesStore.activeProfile) || 'Default')
+    .replace(/[^a-zA-Z0-9_-]/g, '_');
+  return path.join(DATA_DIR, `donations_${profile}.csv`);
+}
+
+function loadDonations(profileName) {
+  const filePath = getDonationsCsvPath(profileName);
+  try {
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf8');
+      return PaymentsCsv.parseCsv(content);
+    }
+  } catch (e) {
+    log.error('DonationsCSV', `Failed to load donations CSV (${filePath}): ` + e.message);
+  }
+  return [];
+}
+
+function saveDonations(profileName, transactions) {
+  const filePath = getDonationsCsvPath(profileName);
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    // Guarantee that ONLY authentic payments are stored in the CSV ledger
+    const realTransactions = (transactions || []).filter(t => !t.simulated);
+    const content = PaymentsCsv.serializeCsv(realTransactions);
+    fs.writeFileSync(filePath, content, 'utf8');
+    return true;
+  } catch (e) {
+    log.error('DonationsCSV', `Failed to save donations CSV (${filePath}): ` + e.message);
+    return false;
+  }
+}
+
+function syncDerivedMetricsToSettings(profileName, broadcast = true) {
+  const profile = profileName || (profilesStore && profilesStore.activeProfile) || 'Default';
+  const targetSettings = profilesStore.profiles[profile] || alertSettings;
+  const transactions = loadDonations(profile);
+  const startAmount = parseFloat(targetSettings.widgets?.goal?.startAmount) || 0;
+
+  const metrics = PaymentsCsv.computeMetrics(transactions, { startAmount, includeSimulated: false });
+
+  if (!targetSettings.widgets) targetSettings.widgets = {};
+  if (!targetSettings.widgets.goal) targetSettings.widgets.goal = {};
+  if (!targetSettings.widgets.leaderboard) targetSettings.widgets.leaderboard = {};
+  if (!targetSettings.widgets.recent) targetSettings.widgets.recent = {};
+
+  targetSettings.widgets.goal.currentAmount = metrics.goalAmount;
+  targetSettings.widgets.leaderboard.supporters = metrics.supporters;
+  targetSettings.widgets.recent.recentDonations = metrics.recentDonations;
+
+  if (profile === profilesStore.activeProfile) {
+    alertSettings = targetSettings;
+  }
+  saveSettings(alertSettings);
+  profilesStore.profiles[profile] = targetSettings;
+  saveProfilesStore(profilesStore);
+
+  if (broadcast) {
+    broadcastSettings(alertSettings);
+  }
+  return metrics;
+}
+
+// Initial Auto-Migration from settings.json to donations.csv if CSV doesn't exist
+function autoMigrateInitialDonations() {
+  try {
+    const activeProf = profilesStore.activeProfile || 'Default';
+    const filePath = getDonationsCsvPath(activeProf);
+    if (!fs.existsSync(filePath)) {
+      const supporters = alertSettings.widgets?.leaderboard?.supporters || {};
+      const recentList = alertSettings.widgets?.recent?.recentDonations || [];
+      const txs = [];
+      const now = Date.now();
+
+      if (Array.isArray(recentList) && recentList.length > 0) {
+        recentList.forEach((r, idx) => {
+          const amtNum = parseFloat(TemplateMatcher.parseAmount(r.amount || r.amountValue)) || 0;
+          const ts = Number(r.timestamp) || (now - (idx + 1) * 60000);
+          txs.push({
+            id: r.id || `migrated_recent_${ts}_${idx}`,
+            timestamp: ts,
+            date: new Date(ts).toISOString().split('T')[0],
+            time: new Date(ts).toTimeString().split(' ')[0],
+            sender: r.sender || 'Unknown',
+            amount: amtNum,
+            currency: 'INR',
+            rawAmount: PaymentsCsv.formatCurrency(amtNum, 'INR'),
+            sourceApp: r.sourceApp || 'Migrated Data',
+            message: r.message || '',
+            templateId: '',
+            simulated: false
+          });
+        });
+      }
+
+      const recordedSupporters = new Set(txs.map(t => t.sender));
+      Object.entries(supporters).forEach(([name, total]) => {
+        if (!recordedSupporters.has(name)) {
+          const amt = parseFloat(total) || 0;
+          if (amt > 0) {
+            txs.push({
+              id: `migrated_supporter_${Date.now()}_${name.replace(/[^a-z0-9]/gi, '')}`,
+              timestamp: now,
+              date: new Date(now).toISOString().split('T')[0],
+              time: new Date(now).toTimeString().split(' ')[0],
+              sender: name,
+              amount: amt,
+              currency: 'INR',
+              rawAmount: PaymentsCsv.formatCurrency(amt, 'INR'),
+              sourceApp: 'Migrated Data',
+              message: '',
+              templateId: '',
+              simulated: false
+            });
+          }
+        }
+      });
+
+      saveDonations(activeProf, txs);
+      log.info('DonationsCSV', `Initialized ${filePath} with ${txs.length} initial migrated transactions.`);
+      syncDerivedMetricsToSettings(activeProf, false);
+    } else {
+      syncDerivedMetricsToSettings(activeProf, false);
+    }
+  } catch (e) {
+    log.error('DonationsCSV', 'Auto-migration error: ' + e.message);
+  }
+}
+
+autoMigrateInitialDonations();
+
 // ── Alert ID deduplication ────────────────────────────────────────────
 const processedAlertIds = new Set();
 
@@ -385,6 +525,15 @@ function decorateWithTemplate(event) {
 
 function processPaymentForGoalAndLeaderboard(notification) {
   try {
+    const isSimulated = notification.simulated === true || notification.source === 'tester';
+    const isIsolated = alertSettings.simulation ? alertSettings.simulation.isolatedMode !== false : true;
+
+    // Strict guard: Never write simulated test alerts to persistent CSV if they are not real alerts
+    if (isSimulated && isIsolated) {
+      log.info('Payment', `[Simulation Mode: Isolated] Skipped live payment recording to CSV for ₹${notification.amount || '0'} from "${notification.sender || 'Test'}"`);
+      return;
+    }
+
     const alertId = notification.alertId || notification.eventId || notification.id || (notification.timestamp ? `${notification.packageName || notification.appName || ''}_${notification.timestamp}_${notification.amount || ''}` : null);
     if (alertId && processedAlertIds.has(alertId)) {
       log.dedup('Dedup', `alertId ${alertId} already processed — overlay only`);
@@ -397,34 +546,34 @@ function processPaymentForGoalAndLeaderboard(notification) {
     if (/received|sent/i.test(senderName))
       senderName = senderName.split(/sent|received/i)[0].trim() || 'Unknown';
 
-    const goalWidget = alertSettings.widgets.goal;
-    const leaderboardWidget = alertSettings.widgets.leaderboard;
-    const recentWidget = alertSettings.widgets.recent;
+    const now = Number(notification.timestamp) || Date.now();
+    const d = new Date(now);
 
-    goalWidget.currentAmount = (parseFloat(goalWidget.currentAmount) || 0) + effectiveAmount;
-    leaderboardWidget.supporters[senderName] =
-      (parseFloat(leaderboardWidget.supporters[senderName]) || 0) + effectiveAmount;
-
-    // Add to recent donations (limit to 50 items for history)
-    if (!recentWidget.recentDonations) recentWidget.recentDonations = [];
-    recentWidget.recentDonations.unshift({
+    const currencyCode = (notification.currency || 'INR').toUpperCase();
+    const tx = {
+      id: alertId || `evt_${now}_${Math.random().toString(36).slice(2, 6)}`,
+      timestamp: now,
+      date: !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '',
+      time: !isNaN(d.getTime()) ? d.toTimeString().split(' ')[0] : '',
       sender: senderName,
-      amount: notification.amount,
-      amountValue: effectiveAmount,
-      sourceApp: notification.sourceApp,
-      timestamp: notification.timestamp || Date.now()
-    });
-    if (recentWidget.recentDonations.length > 50) {
-      recentWidget.recentDonations = recentWidget.recentDonations.slice(0, 50);
-    }
+      amount: effectiveAmount,
+      currency: currencyCode,
+      rawAmount: PaymentsCsv.formatCurrency(effectiveAmount, currencyCode),
+      sourceApp: notification.sourceApp || notification.appName || 'Unknown',
+      message: notification.message || '',
+      templateId: notification.alertTemplateId || '',
+      simulated: false
+    };
 
-    saveSettings(alertSettings);
-    profilesStore.profiles[profilesStore.activeProfile] = alertSettings;
-    saveProfilesStore(profilesStore);
-    broadcastSettings(alertSettings);
+    // Single source of truth: Load, append, save CSV and compute derived metrics
+    const currentTxs = loadDonations(profilesStore.activeProfile);
+    currentTxs.unshift(tx);
+    saveDonations(profilesStore.activeProfile, currentTxs);
+
+    const metrics = syncDerivedMetricsToSettings(profilesStore.activeProfile, true);
     if (alertId) processedAlertIds.add(alertId);
 
-    log.info('Payment', `Processed goal & leaderboard for ₹${effectiveAmount} from "${senderName}" | alertId=${alertId} | Goal: ₹${goalWidget.currentAmount}`);
+    log.info('Payment', `[CSV Recorded] ₹${effectiveAmount} from "${senderName}" via ${tx.sourceApp} | Total Goal: ₹${metrics.goalAmount} | AlertID=${tx.id}`);
   } catch (e) {
     log.error('Payment', 'Error in processPaymentForGoalAndLeaderboard: ' + e.message);
   }
@@ -445,6 +594,135 @@ app.get('/alerts',              (req, res) => res.sendFile(path.join(__dirname, 
 app.get('/alert',               (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/goal',                (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
 app.get('/leaderboard',         (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
+
+// ── CSV Donations Endpoints (Single Source of Truth) ──────────────────
+app.get('/api/donations', (req, res) => {
+  const profile = req.query.profile || profilesStore.activeProfile;
+  const transactions = loadDonations(profile);
+  const targetSettings = profilesStore.profiles[profile] || alertSettings;
+  const startAmount = parseFloat(targetSettings.widgets?.goal?.startAmount) || 0;
+  const metrics = PaymentsCsv.computeMetrics(transactions, { startAmount, includeSimulated: false });
+  res.json({
+    ok: true,
+    profile,
+    count: transactions.length,
+    transactions,
+    metrics
+  });
+});
+
+app.get('/api/donations/csv', (req, res) => {
+  const profile = req.query.profile || profilesStore.activeProfile;
+  const filePath = getDonationsCsvPath(profile);
+  if (!fs.existsSync(filePath)) {
+    const defaultCsv = PaymentsCsv.serializeCsv([]);
+    fs.writeFileSync(filePath, defaultCsv, 'utf8');
+  }
+  const filename = `donations_${profile}_${new Date().toISOString().split('T')[0]}.csv`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.sendFile(filePath);
+});
+
+app.post('/api/donations/import', (req, res) => {
+  try {
+    const profile = req.body.profile || profilesStore.activeProfile;
+    const mode = req.body.mode || 'replace';
+    const csvContent = req.body.csv || '';
+
+    if (!csvContent.trim()) {
+      return res.status(400).json({ ok: false, error: 'Empty CSV content' });
+    }
+
+    const importedTxs = PaymentsCsv.parseCsv(csvContent);
+    let finalTxs = importedTxs;
+
+    if (mode === 'merge') {
+      const existing = loadDonations(profile);
+      const existingMap = new Map(existing.map(t => [t.id, t]));
+      importedTxs.forEach(t => existingMap.set(t.id, t));
+      finalTxs = Array.from(existingMap.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    }
+
+    saveDonations(profile, finalTxs);
+    const metrics = syncDerivedMetricsToSettings(profile, true);
+    log.info('DonationsCSV', `Imported ${importedTxs.length} transactions (mode: ${mode}) into ${profile}`);
+    res.json({ ok: true, profile, importedCount: importedTxs.length, totalCount: finalTxs.length, metrics });
+  } catch (e) {
+    log.error('DonationsCSV', 'Import error: ' + e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/donations/record', (req, res) => {
+  try {
+    const body = req.body || {};
+    const profile = body.profile || profilesStore.activeProfile;
+    const amountNum = parseFloat(TemplateMatcher.parseAmount(body.amount)) || 0;
+    if (amountNum <= 0) return res.status(400).json({ ok: false, error: 'Valid amount is required' });
+
+    const now = Number(body.timestamp) || Date.now();
+    const d = new Date(now);
+
+    const currencyCode = (body.currency || 'INR').toUpperCase();
+    const tx = {
+      id: body.id || `manual_${now}_${Math.random().toString(36).slice(2, 6)}`,
+      timestamp: now,
+      date: body.date || (!isNaN(d.getTime()) ? d.toISOString().split('T')[0] : ''),
+      time: body.time || (!isNaN(d.getTime()) ? d.toTimeString().split(' ')[0] : ''),
+      sender: (body.sender || 'Anonymous').trim(),
+      amount: amountNum,
+      currency: currencyCode,
+      rawAmount: PaymentsCsv.formatCurrency(amountNum, currencyCode),
+      sourceApp: (body.sourceApp || 'Manual Entry').trim(),
+      message: (body.message || '').trim(),
+      templateId: body.templateId || '',
+      simulated: !!body.simulated
+    };
+
+    const currentTxs = loadDonations(profile);
+    currentTxs.unshift(tx);
+    saveDonations(profile, currentTxs);
+
+    const metrics = syncDerivedMetricsToSettings(profile, true);
+    log.info('DonationsCSV', `Recorded manual donation: ₹${amountNum} from "${tx.sender}" via ${tx.sourceApp}`);
+    res.json({ ok: true, transaction: tx, metrics });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.delete('/api/donations/:id', (req, res) => {
+  try {
+    const id = req.params.id;
+    const profile = req.query.profile || profilesStore.activeProfile;
+    const currentTxs = loadDonations(profile);
+    const filtered = currentTxs.filter(t => t.id !== id);
+
+    if (filtered.length === currentTxs.length) {
+      return res.status(404).json({ ok: false, error: 'Transaction ID not found' });
+    }
+
+    saveDonations(profile, filtered);
+    const metrics = syncDerivedMetricsToSettings(profile, true);
+    log.info('DonationsCSV', `Deleted transaction ${id} from ${profile}`);
+    res.json({ ok: true, deletedId: id, remainingCount: filtered.length, metrics });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/donations/clear', (req, res) => {
+  try {
+    const profile = req.body?.profile || profilesStore.activeProfile;
+    saveDonations(profile, []);
+    const metrics = syncDerivedMetricsToSettings(profile, true);
+    log.info('DonationsCSV', `Cleared all transactions for ${profile}`);
+    res.json({ ok: true, profile, count: 0, metrics });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
 
 app.get('/api/settings', (req, res) => {
   res.json({ activeProfile: profilesStore.activeProfile, profiles: Object.keys(profilesStore.profiles), settings: alertSettings });
@@ -468,6 +746,7 @@ app.post('/api/profiles/switch', (req, res) => {
   if (!name || !profilesStore.profiles[name]) return res.status(400).json({ ok: false, error: 'Profile not found' });
   profilesStore.activeProfile = name;
   alertSettings = profilesStore.profiles[name];
+  syncDerivedMetricsToSettings(name, false);
   saveSettings(alertSettings); saveProfilesStore(profilesStore); broadcastSettings(alertSettings);
   res.json({ ok: true, activeProfile: name, settings: alertSettings });
 });
@@ -719,37 +998,45 @@ app.post('/api/logs/clear', (req, res) => {
 
 function broadcastSample(sample) {
   const parsed = parsePayment(sample);
+  const isSimulated = sample.simulated !== undefined ? !!sample.simulated : true;
   const decorated = decorateWithTemplate({
     ...sample,
-    sender   : parsed ? parsed.sender    : (sample.sender    || ''),
-    amount   : parsed ? parsed.amount    : (sample.amount    || ''),
-    sourceApp: parsed ? parsed.sourceApp : (sample.sourceApp || sample.appName)
+    simulated: isSimulated,
+    sender   : sample.sender || (parsed ? parsed.sender : 'Test Donor'),
+    amount   : sample.amount || (parsed ? parsed.amount : '₹500.00'),
+    sourceApp: sample.sourceApp || (parsed ? parsed.sourceApp : sample.appName) || 'PhonePe'
   });
   const payload = JSON.stringify({ type: 'payment_notification', ...decorated });
   let count = 0;
   obsClients.forEach(ws => {
     if (ws.readyState === 1) { ws.send(payload); count++; }
   });
-  if (count > 0) {
-    processPaymentForGoalAndLeaderboard(decorated);
-  }
-  log.event('TestEvent', `Sample alert triggered: ₹${decorated.amount || '0'} from "${decorated.sender || 'Test'}"`, decorated);
-  return { count, templateId: decorated.alertTemplateId, templateName: decorated.alertTemplateName };
+  processPaymentForGoalAndLeaderboard(decorated);
+  log.event('TestEvent', `Sample alert triggered (simulated=${isSimulated}): ₹${decorated.amount || '0'} from "${decorated.sender || 'Test'}"`, decorated);
+  return { count, templateId: decorated.alertTemplateId, templateName: decorated.alertTemplateName, simulated: isSimulated };
 }
 
 app.get('/api/test', (req, res) => {
+  const isIsolated = alertSettings.simulation ? alertSettings.simulation.isolatedMode !== false : true;
   const result = broadcastSample({
-    type: 'payment_notification', packageName: 'com.phonepe.app', appName: 'PhonePe',
-    title: 'PhonePe', text: 'D SINGH has sent Rs. 500.00 to your bank account',
+    type: 'payment_notification',
+    simulated: isIsolated,
+    packageName: 'com.phonepe.app',
+    appName: 'PhonePe',
+    title: 'PhonePe',
+    text: 'D SINGH has sent Rs. 500.00 to your bank account',
     timestamp: Date.now()
   });
-  res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId });
+  res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId, simulated: isIsolated });
 });
 
 app.post('/api/test', (req, res) => {
   const body = req.body || {};
+  const isIsolated = alertSettings.simulation ? alertSettings.simulation.isolatedMode !== false : true;
+  const isSimulated = body.simulated !== undefined ? !!body.simulated : isIsolated;
   const result = broadcastSample({
     type: 'payment_notification',
+    simulated:       isSimulated,
     packageName:     body.packageName     || 'com.phonepe.app',
     appName:         body.appName         || 'PhonePe',
     title:           body.title           || 'PhonePe',
@@ -761,7 +1048,7 @@ app.post('/api/test', (req, res) => {
     alertTemplateId: body.alertTemplateId || null,
     timestamp:       Date.now()
   });
-  res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId });
+  res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId, simulated: isSimulated });
 });
 
 // Fix: use getActiveWsCount() so /health never reports stale/dead sockets
@@ -798,8 +1085,12 @@ wss.on('connection', (ws, req) => {
         if (!title && !text) return;
 
         const parsed = parsePayment(notification);
+        const isIsolated = alertSettings.simulation ? alertSettings.simulation.isolatedMode !== false : true;
+        const isFromTester = notification.source === 'tester' || notification.simulated === true;
+        const isSimulated = isFromTester ? isIsolated : false;
         const enriched = {
           ...notification,
+          simulated : isSimulated,
           appName,
           title,
           text,
