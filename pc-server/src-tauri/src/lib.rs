@@ -8,13 +8,13 @@ use tauri::{
 };
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
 
 // ── State ─────────────────────────────────────────────────────────────
 struct AppState {
     server_port: Option<u16>,
-    minimize_on_close: bool,
     is_quitting: bool,
     child_process: Option<tauri_plugin_shell::process::CommandChild>,
 }
@@ -23,7 +23,6 @@ impl AppState {
     fn new() -> Self {
         Self {
             server_port: None,
-            minimize_on_close: true,
             is_quitting: false,
             child_process: None,
         }
@@ -185,42 +184,6 @@ fn get_server_port(state: tauri::State<SharedState>) -> Option<u16> {
     state.lock().unwrap().server_port
 }
 
-#[tauri::command]
-fn get_minimize_on_close(state: tauri::State<SharedState>) -> bool {
-    state.lock().unwrap().minimize_on_close
-}
-
-#[tauri::command]
-fn set_minimize_on_close(state: tauri::State<SharedState>, enabled: bool) {
-    state.lock().unwrap().minimize_on_close = enabled;
-}
-
-fn should_minimize_on_close() -> bool {
-    let appdata = std::env::var("APPDATA")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_default()
-        .join("Payment Alerts for OBS")
-        .join("config")
-        .join("system.json");
-
-    let candidate_paths = [
-        std::path::PathBuf::from("config").join("system.json"),
-        std::path::PathBuf::from("..").join("config").join("system.json"),
-        appdata,
-    ];
-
-    for path in &candidate_paths {
-        if let Ok(content) = std::fs::read_to_string(path) {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(enabled) = json.get("minimizeOnClose").and_then(|v| v.as_bool()) {
-                    return enabled;
-                }
-            }
-        }
-    }
-    true
-}
-
 // ── Entry point ───────────────────────────────────────────────────────
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -231,6 +194,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
             Some(vec![]),
@@ -244,8 +208,6 @@ pub fn run() {
         // ── Commands ──────────────────────────────────────────────────
         .invoke_handler(tauri::generate_handler![
             get_server_port,
-            get_minimize_on_close,
-            set_minimize_on_close,
         ])
         // ── Setup ─────────────────────────────────────────────────────
         .setup(move |app| {
@@ -254,18 +216,11 @@ pub fn run() {
 
             // Spawn Node sidecar + wait for it to be ready, then open window
             tauri::async_runtime::spawn(async move {
-                let app_data = std::env::var("APPDATA")
-                    .map(std::path::PathBuf::from)
-                    .unwrap_or_default()
-                    .join("Payment Alerts for OBS");
-
                 // Launch the bun-compiled server sidecar (server.js baked in — no args needed)
                 let sidecar_cmd = app_handle
                     .shell()
                     .sidecar("server")
-                    .expect("server sidecar not found")
-                    .env("TAURI_APP_DATA", app_data.to_string_lossy().to_string())
-                    .env("PORT", "2907");
+                    .expect("server sidecar not found");
 
                 let (mut rx, child) = sidecar_cmd
                     .spawn()
@@ -353,20 +308,24 @@ pub fn run() {
         })
         .on_window_event(|win, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                let minimize = should_minimize_on_close();
                 let quitting = if let Some(state) = win.app_handle().try_state::<SharedState>() {
                     state.lock().unwrap().is_quitting
                 } else {
                     false
                 };
 
-                if minimize && !quitting {
+                if !quitting {
                     api.prevent_close();
                     let _ = win.hide();
+                    let _ = win.app_handle().notification()
+                        .builder()
+                        .title("Payment Alerts for OBS")
+                        .body("App is running in the background. Access it from the system tray.")
+                        .show();
                     return;
                 }
 
-                // If minimize is off or quitting, kill sidecar and exit app completely
+                // If quitting from tray menu, kill sidecar and exit app completely
                 if let Some(state) = win.app_handle().try_state::<SharedState>() {
                     let mut s = state.lock().unwrap();
                     if let Some(child) = s.child_process.take() {
