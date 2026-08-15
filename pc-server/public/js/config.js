@@ -1021,6 +1021,33 @@ document.addEventListener('DOMContentLoaded', async () => {
           });
         }
 
+        const formPanel = document.querySelector('.form-panel');
+        const previewPanel = document.querySelector('.preview-panel');
+        const resizer = el('panel-resizer');
+        const actionBar = document.querySelector('.action-bar');
+
+        if (tab === 'earnings') {
+          refreshEarningsAnalytics();
+          if (previewPanel) previewPanel.style.display = 'none';
+          if (resizer) resizer.style.display = 'none';
+          if (actionBar) actionBar.style.display = 'none';
+          if (formPanel) {
+            formPanel.style.flex = '1 1 auto';
+            formPanel.style.maxWidth = '100%';
+          }
+        } else {
+          if (previewPanel) previewPanel.style.display = '';
+          if (resizer) resizer.style.display = '';
+          if (actionBar) actionBar.style.display = '';
+          if (formPanel) {
+            const savedWidth = localStorage.getItem('obs_panel_split_width');
+            const mainView = document.querySelector('.main-view');
+            const initialWidth = Math.min(620, Math.floor((mainView?.clientWidth || 1200) * 0.52));
+            formPanel.style.flex = `0 0 ${savedWidth || initialWidth}px`;
+            formPanel.style.maxWidth = '';
+          }
+        }
+
         const manager = el('template-manager');
         if (manager) {
           const alertTabs = ['text', 'media', 'style', 'animation'];
@@ -1987,6 +2014,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Refresh UI components for live data
             setVal('input-goal-current', config.widgets.goal.currentAmount);
             syncLivePreview();
+
+            // Live refresh analytics if viewing the Earning Overview tab
+            const activeTabBtn = document.querySelector('.tab-btn.active');
+            if (activeTabBtn && activeTabBtn.dataset.tab === 'earnings') {
+              refreshEarningsAnalytics();
+            }
           }
         } catch (e) {}
       };
@@ -2154,6 +2187,845 @@ document.addEventListener('DOMContentLoaded', async () => {
     on('btn-refresh-logs', 'click', () => {
       fetchLiveLogs();
       showToast('<i data-lucide="rotate-ccw"></i> Logs refreshed');
+    });
+  }
+
+  // ── Earning Overview & Analytics Controller ─────────────────────
+  let analyticsState = {
+    month: 'all',
+    provider: 'all',
+    range: 'all',
+    timelineMode: 'month',
+    search: '',
+    searchDonor: '',
+    searchNote: '',
+    minAmount: '',
+    specificDate: '',
+    startDate: '',
+    endDate: '',
+    sortOrder: 'desc',
+    page: 1,
+    limit: 50
+  };
+
+  let analyticsSearchDebounce = null;
+
+  async function refreshEarningsAnalytics() {
+    await fetchAndRenderAnalytics();
+  }
+
+  async function fetchAndRenderAnalytics() {
+    try {
+      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+
+      // 1. Fetch available months list
+      try {
+        const mRes = await fetch(`/api/donations/months?profile=${encodeURIComponent(activeProf)}`);
+        const mData = await mRes.json();
+        if (mData.ok && Array.isArray(mData.months)) {
+          const monthSelect = el('select-analytics-month');
+          if (monthSelect) {
+            const currentVal = analyticsState.month;
+            let optionsHtml = '<option value="all">📅 All Time (Full History)</option>';
+            mData.months.forEach(m => {
+              const [yr, mo] = m.split('-');
+              const dateObj = new Date(parseInt(yr, 10), parseInt(mo, 10) - 1, 1);
+              const label = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
+              optionsHtml += `<option value="${m}"${m === currentVal ? ' selected' : ''}>${label}</option>`;
+            });
+            monthSelect.innerHTML = optionsHtml;
+          }
+        }
+      } catch (_) {}
+
+      // 2. Fetch aggregated analytics
+      const effectiveSearch = [analyticsState.search, analyticsState.searchDonor, analyticsState.searchNote].filter(Boolean).join(' ');
+      const params = new URLSearchParams({
+        profile: activeProf,
+        month: analyticsState.month,
+        provider: analyticsState.provider,
+        timelineMode: analyticsState.timelineMode,
+        donutMode: analyticsState.donutMode || 'all',
+        search: effectiveSearch,
+        minAmount: analyticsState.minAmount,
+        date: analyticsState.specificDate,
+        startDate: analyticsState.startDate,
+        endDate: analyticsState.endDate
+      });
+
+      const res = await fetch(`/api/analytics?${params.toString()}`);
+      const data = await res.json();
+      if (!data.ok) return;
+
+      const a = data.analytics || {};
+
+      // 3. Update KPI Cards & Single-Line Summary Bar
+      if (el('kpi-total-revenue')) el('kpi-total-revenue').innerHTML = a.formattedTotalRevenue || '&#8377;0.00';
+      if (el('kpi-total-count')) el('kpi-total-count').textContent = (a.totalDonationsCount || 0).toLocaleString();
+      if (el('kpi-unique-donors')) el('kpi-unique-donors').textContent = (a.uniqueDonorsCount || 0).toLocaleString();
+      if (el('kpi-avg-amount')) el('kpi-avg-amount').innerHTML = a.formattedAverageDonation || '&#8377;0.00';
+      if (el('kpi-peak-day')) {
+        const peak = a.peakDay;
+        if (peak && peak.date !== 'N/A' && peak.amount > 0) {
+          el('kpi-peak-day').textContent = `${peak.date} · ${peak.formattedAmount}`;
+        } else {
+          el('kpi-peak-day').textContent = 'N/A';
+        }
+      }
+
+      // Single-Line Filtered Stats Summary Bar
+      if (el('summary-stat-total')) el('summary-stat-total').innerHTML = a.formattedTotalRevenue || '&#8377;0.00';
+      if (el('summary-stat-count')) el('summary-stat-count').textContent = (a.totalDonationsCount || 0).toLocaleString();
+      if (el('summary-stat-donors')) el('summary-stat-donors').textContent = (a.uniqueDonorsCount || 0).toLocaleString();
+      if (el('summary-stat-avg')) el('summary-stat-avg').innerHTML = a.formattedAverageDonation || '&#8377;0.00';
+      if (el('summary-stat-badge')) {
+        const filterParts = [];
+        if (analyticsState.provider && analyticsState.provider !== 'all') {
+          filterParts.push(`Method: ${analyticsState.provider.toUpperCase()}`);
+        }
+        if (analyticsState.startDate && analyticsState.endDate) {
+          filterParts.push(`${analyticsState.startDate} to ${analyticsState.endDate}`);
+        } else if (analyticsState.startDate) {
+          filterParts.push(`From ${analyticsState.startDate}`);
+        } else if (analyticsState.endDate) {
+          filterParts.push(`Up to ${analyticsState.endDate}`);
+        } else if (analyticsState.month && analyticsState.month !== 'all') {
+          filterParts.push(`Month: ${analyticsState.month}`);
+        }
+        if (analyticsState.searchDonor) filterParts.push(`Donor: "${analyticsState.searchDonor}"`);
+        if (analyticsState.searchNote) filterParts.push(`Note: "${analyticsState.searchNote}"`);
+        if (analyticsState.minAmount) filterParts.push(`Min: ₹${analyticsState.minAmount}`);
+
+        el('summary-stat-badge').textContent = filterParts.length > 0
+          ? `Filtered: ${filterParts.join(' · ')}`
+          : 'Showing all records';
+      }
+
+      // 4. Render Donut / Pie Chart with prominent Center Total
+      renderDonutChart(a.donut || { totalRevenue: 0, formattedTotal: '₹0.00', segments: [] });
+
+      // 5. Render Detached Income Timeline Graph
+      renderTrendChart(a.timeline || a.dailyTrends || []);
+
+      // 6. Fetch and render Paginated Ledger
+      await fetchAndRenderLedger(activeProf);
+
+    } catch (e) {
+      console.warn('[Analytics] Fetch error:', e.message);
+    }
+  }
+
+  function renderDonutChart(donut) {
+    const svg = el('analytics-donut-svg');
+    const centerAmt = el('donut-center-amount');
+    const centerLbl = el('donut-center-label');
+    const legend = el('analytics-donut-legend');
+    if (!svg || !centerAmt || !legend) return;
+
+    centerAmt.textContent = donut.formattedTotal || '₹0.00';
+    if (centerLbl) centerLbl.textContent = `${donut.totalCount || 0} Donations`;
+
+    const segments = donut.segments || [];
+
+    if (!segments.length || donut.totalRevenue <= 0) {
+      svg.innerHTML = `
+        <circle cx="110" cy="110" r="85" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="26" />
+      `;
+      legend.innerHTML = '<span style="font-size: 11px; color: var(--text-muted);">No donation data for current filter</span>';
+      return;
+    }
+
+    const cx = 110;
+    const cy = 110;
+    const r = 85;
+    const strokeWidth = 28;
+    const circumference = 2 * Math.PI * r;
+
+    let pathsHtml = '';
+    let accumulatedOffset = 0;
+
+    segments.forEach((seg, idx) => {
+      const strokeDash = (seg.percentage / 100) * circumference;
+      const strokeGap = circumference - strokeDash;
+      const offset = -accumulatedOffset;
+      accumulatedOffset += strokeDash;
+
+      pathsHtml += `
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none"
+          stroke="${seg.color}"
+          stroke-width="${strokeWidth}"
+          stroke-dasharray="${strokeDash} ${strokeGap}"
+          stroke-dashoffset="${offset}"
+          style="transform: rotate(-90deg); transform-origin: 110px 110px; transition: stroke-width 0.2s ease, filter 0.2s ease; cursor: pointer;"
+          data-provider="${seg.name}"
+          data-amount="${seg.formattedAmount}"
+          data-percent="${seg.percentage}%"
+          class="donut-slice"
+        >
+          <title>${seg.name}: ${seg.formattedAmount} (${seg.percentage}%)</title>
+        </circle>
+      `;
+    });
+
+    svg.innerHTML = pathsHtml;
+
+    // Render interactive legend pills
+    legend.innerHTML = segments.map(seg => `
+      <div class="analytics-legend-pill" title="${seg.count} transactions">
+        <span class="analytics-legend-dot" style="background: ${seg.color}; box-shadow: 0 0 6px ${seg.glow};"></span>
+        <span style="font-weight: 600;">${TemplateEngine.escapeHtml(seg.name)}</span>
+        <span style="color: var(--text-muted); font-size: 10px;">${seg.percentage}%</span>
+        <span style="font-weight: 700; color: var(--accent);">${seg.formattedAmount}</span>
+      </div>
+    `).join('');
+  }
+
+  function renderTrendChart(trends) {
+    const svg = el('analytics-trend-svg');
+    if (!svg) return;
+
+    if (!trends || !trends.length) {
+      svg.innerHTML = `
+        <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="var(--text-muted)" font-size="12">
+          No transactions recorded for this timeframe
+        </text>
+      `;
+      return;
+    }
+
+    const viewBoxWidth = 680;
+    const viewBoxHeight = 240;
+    svg.setAttribute('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`);
+
+    const leftMargin = 68;
+    const rightMargin = 20;
+    const topMargin = 22;
+    const bottomMargin = 38;
+
+    const plotWidth = viewBoxWidth - leftMargin - rightMargin;
+    const plotHeight = viewBoxHeight - topMargin - bottomMargin;
+
+    const rawMax = Math.max(...trends.map(t => t.amount), 0);
+    function getNiceMax(val) {
+      if (val <= 0) return 500;
+      if (val <= 100) return 100;
+      if (val <= 250) return 250;
+      if (val <= 500) return 500;
+      if (val <= 1000) return 1000;
+      if (val <= 2500) return 2500;
+      if (val <= 5000) return 5000;
+      if (val <= 10000) return 10000;
+      if (val <= 25000) return 25000;
+      if (val <= 50000) return 50000;
+      const mag = Math.pow(10, Math.floor(Math.log10(val)));
+      return Math.ceil(val / mag) * mag;
+    }
+
+    const maxScale = getNiceMax(rawMax);
+    const gridSteps = [1.0, 0.75, 0.5, 0.25, 0.0];
+
+    function formatShortCurrency(amount) {
+      if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+      if (amount >= 1000) return `₹${(amount / 1000).toFixed(1)}k`;
+      return `₹${amount}`;
+    }
+
+    let gridHtml = '';
+    gridSteps.forEach(ratio => {
+      const val = maxScale * ratio;
+      const y = topMargin + (1.0 - ratio) * plotHeight;
+      const isBaseline = ratio === 0.0;
+
+      gridHtml += `
+        <line x1="${leftMargin}" y1="${y}" x2="${viewBoxWidth - rightMargin}" y2="${y}"
+          class="${isBaseline ? 'trend-axis-line' : 'trend-grid-line'}"
+          stroke-width="${isBaseline ? '1.5' : '1'}" />
+        <text x="${leftMargin - 8}" y="${y + 3.5}" text-anchor="end" fill="var(--text-muted)" font-size="10" font-family="sans-serif">
+          ${formatShortCurrency(val)}
+        </text>
+      `;
+    });
+
+    const slotWidth = plotWidth / trends.length;
+    const barWidth = Math.max(8, Math.min(34, slotWidth * 0.62));
+
+    let barsHtml = '';
+    trends.forEach((t, i) => {
+      const slotX = leftMargin + i * slotWidth;
+      const barX = slotX + (slotWidth - barWidth) / 2;
+      const barHeight = t.amount > 0 ? Math.max(4, (t.amount / maxScale) * plotHeight) : 2;
+      const barY = topMargin + plotHeight - barHeight;
+      const isPositive = t.amount > 0;
+
+      // Draw subtle vertical grid delimiter
+      const delimiterHtml = i > 0 ? `
+        <line x1="${slotX}" y1="${topMargin}" x2="${slotX}" y2="${topMargin + plotHeight}" stroke="rgba(255,255,255,0.03)" stroke-dasharray="2,2" />
+      ` : '';
+
+      barsHtml += `
+        ${delimiterHtml}
+        <g class="trend-slot-group" data-date="${t.date}" data-amount="${t.formattedAmount}">
+          <!-- Hover highlight column slot -->
+          <rect x="${slotX}" y="${topMargin}" width="${slotWidth}" height="${plotHeight}"
+            fill="rgba(0, 229, 255, 0.06)" rx="3" opacity="0" class="trend-slot-hover" />
+
+          <!-- Clean Rounded Gradient Bar without dot -->
+          <rect class="trend-bar" x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" rx="4"
+            fill="${isPositive ? 'url(#trendBarGrad)' : 'rgba(255,255,255,0.08)'}"
+            opacity="${isPositive ? '0.92' : '0.4'}"
+          >
+            <title>${t.date}: ${t.formattedAmount} (${t.count || 0} donations)</title>
+          </rect>
+
+          <!-- X Axis Day / Week / Month Label -->
+          <text x="${slotX + slotWidth / 2}" y="${viewBoxHeight - 12}" text-anchor="middle"
+            fill="${isPositive ? 'var(--text-main)' : 'var(--text-muted)'}"
+            font-size="${trends.length > 10 ? '9' : '10.5'}"
+            font-weight="${isPositive ? '600' : '400'}"
+            font-family="sans-serif"
+          >
+            ${t.dayLabel}
+          </text>
+        </g>
+      `;
+    });
+
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="trendBarGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#00e5ff" />
+          <stop offset="60%" stop-color="#7928ca" />
+          <stop offset="100%" stop-color="rgba(121, 40, 202, 0.3)" />
+        </linearGradient>
+      </defs>
+      ${gridHtml}
+      ${barsHtml}
+    `;
+  }
+
+  async function fetchAndRenderLedger(activeProf) {
+    const body = el('analytics-ledger-body');
+    const info = el('ledger-pagination-info');
+    const countLbl = el('ledger-count-label');
+    const btnPrev = el('btn-ledger-prev');
+    const btnNext = el('btn-ledger-next');
+    if (!body) return;
+
+    try {
+      const effectiveSearch = [analyticsState.search, analyticsState.searchDonor, analyticsState.searchNote].filter(Boolean).join(' ');
+      const params = new URLSearchParams({
+        profile: activeProf,
+        month: analyticsState.month,
+        provider: analyticsState.provider,
+        search: effectiveSearch,
+        minAmount: analyticsState.minAmount,
+        date: analyticsState.specificDate,
+        startDate: analyticsState.startDate,
+        endDate: analyticsState.endDate,
+        sort: analyticsState.sortOrder || 'desc',
+        page: analyticsState.page,
+        limit: analyticsState.limit
+      });
+
+      const res = await fetch(`/api/donations/query?${params.toString()}`);
+      const data = await res.json();
+      if (!data.ok) return;
+
+      const txs = data.transactions || [];
+      if (countLbl) countLbl.textContent = `${data.total || 0} records`;
+      if (info) info.textContent = `Page ${data.page} of ${data.totalPages || 1}`;
+
+      if (btnPrev) btnPrev.disabled = data.page <= 1;
+      if (btnNext) btnNext.disabled = data.page >= data.totalPages;
+
+      if (!txs.length) {
+        body.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: var(--text-muted);">No matching transactions found</td></tr>';
+        return;
+      }
+
+      body.innerHTML = txs.map(tx => {
+        const meta = PaymentsCsv.getProviderMeta(tx.sourceApp);
+        const pKey = PaymentsCsv.normalizeProviderKey(tx.sourceApp);
+        const curr = tx.currency || 'INR';
+
+        return `
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 8px 10px; color: var(--text-muted); font-size: 11px;">
+              <div style="font-weight: 500; color: var(--text-main);">${tx.date || ''}</div>
+              <div style="font-size: 10px;">${tx.time || ''}</div>
+            </td>
+            <td style="padding: 8px 10px;">
+              <div style="font-weight: 600; color: var(--text-main); font-size: 12px;">${TemplateEngine.escapeHtml(tx.sender || 'Unknown')}</div>
+            </td>
+            <td style="padding: 8px 10px;">
+              <span class="provider-badge ${pKey}">${TemplateEngine.escapeHtml(meta.name)}</span>
+            </td>
+            <td style="padding: 8px 10px; color: var(--text-muted); font-size: 11px;">
+              ${tx.message ? `<div style="max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${TemplateEngine.escapeHtml(tx.message)}</div>` : '<span style="opacity: 0.4;">—</span>'}
+            </td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: 700; color: var(--accent); font-size: 13px;">
+              ${PaymentsCsv.formatCurrency(tx.amount, curr)}
+            </td>
+            <td style="padding: 6px 10px; text-align: center; white-space: nowrap;">
+              <div style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                <button type="button" class="btn-table-action btn-edit-ledger-tx" data-id="${tx.id}" title="Edit transaction">
+                  <i data-lucide="pencil" style="width: 13px; height: 13px;"></i>
+                </button>
+                <button type="button" class="btn-table-action btn-delete-danger btn-delete-ledger-tx" data-id="${tx.id}" title="Delete transaction">
+                  <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      if (window.lucide) lucide.createIcons();
+
+      // Bind row edit actions
+      body.querySelectorAll('.btn-edit-ledger-tx').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const txId = btn.dataset.id;
+          const targetTx = txs.find(t => t.id === txId);
+          if (!targetTx) return;
+
+          if (el('input-manual-edit-id')) el('input-manual-edit-id').value = targetTx.id;
+          if (el('input-manual-donor')) el('input-manual-donor').value = targetTx.sender || '';
+          if (el('input-manual-amount')) el('input-manual-amount').value = targetTx.amount || 0;
+          if (el('select-manual-provider')) el('select-manual-provider').value = targetTx.sourceApp || 'Manual Entry';
+          if (el('input-manual-date')) el('input-manual-date').value = targetTx.date || '';
+          if (el('input-manual-time')) el('input-manual-time').value = targetTx.time || '';
+          if (el('input-manual-note')) el('input-manual-note').value = targetTx.message || '';
+
+          if (el('modal-manual-title-text')) el('modal-manual-title-text').textContent = 'Edit Payment Entry';
+          if (el('btn-submit-manual-text')) el('btn-submit-manual-text').textContent = 'Save Changes';
+
+          const modal = el('modal-manual-payment');
+          if (modal) {
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('active'), 10);
+            if (window.lucide) lucide.createIcons();
+          }
+        });
+      });
+
+      // Bind row delete actions
+      body.querySelectorAll('.btn-delete-ledger-tx').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const txId = btn.dataset.id;
+          const confirmed = await AppModal.show({
+            title: 'Delete Transaction',
+            message: 'Are you sure you want to remove this transaction from the CSV ledger? Live goal and leaderboard amounts will update automatically.'
+          });
+          if (!confirmed) return;
+
+          try {
+            const delRes = await fetch(`/api/donations/${encodeURIComponent(txId)}?profile=${encodeURIComponent(activeProf)}`, {
+              method: 'DELETE'
+            });
+            const delData = await delRes.json();
+            if (delData.ok) {
+              config.widgets.goal.currentAmount = delData.metrics.goalAmount;
+              config.widgets.leaderboard.supporters = delData.metrics.supporters;
+              config.widgets.recent.recentDonations = delData.metrics.recentDonations;
+              setVal('input-goal-current', delData.metrics.goalAmount);
+              syncLivePreview();
+              fetchAndRenderAnalytics();
+              showToast('<i data-lucide="trash-2"></i> Transaction deleted');
+            } else {
+              showToast('<i data-lucide="alert-triangle"></i> ' + (delData.error || 'Delete failed'));
+            }
+          } catch (err) {
+            showToast('<i data-lucide="alert-triangle"></i> Delete error: ' + err.message);
+          }
+        });
+      });
+
+    } catch (e) {
+      console.warn('[Ledger] Fetch error:', e.message);
+    }
+  }
+
+  function setupTableColumnResizing() {
+    const tableContainer = document.querySelector('.analytics-ledger-table-container');
+    if (!tableContainer) return;
+    const table = tableContainer.querySelector('table');
+    if (!table) return;
+
+    const allThs = Array.from(table.querySelectorAll('thead th'));
+    const handles = tableContainer.querySelectorAll('.col-resize-handle');
+
+    handles.forEach(handle => {
+      handle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const th = handle.closest('th');
+        if (!th) return;
+
+        // Lock all current computed column widths in pixels so layout doesn't shift unexpectedly
+        allThs.forEach(header => {
+          const w = header.getBoundingClientRect().width;
+          header.style.width = w + 'px';
+          header.style.minWidth = '60px';
+        });
+
+        const startX = e.clientX;
+        const startWidth = th.getBoundingClientRect().width;
+        const startTableWidth = table.getBoundingClientRect().width;
+
+        handle.classList.add('active');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+
+        function onMouseMove(moveEvent) {
+          const diff = moveEvent.clientX - startX;
+          const newWidth = Math.max(70, Math.round(startWidth + diff));
+          th.style.width = newWidth + 'px';
+          const tableDelta = newWidth - startWidth;
+          if (tableDelta > 0) {
+            table.style.minWidth = (startTableWidth + tableDelta) + 'px';
+          }
+        }
+
+        function onMouseUp() {
+          handle.classList.remove('active');
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+        }
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+      });
+    });
+  }
+
+  function setupEarningsAnalytics() {
+    setupTableColumnResizing();
+
+    on('select-col-date-sort', 'change', (e) => {
+      analyticsState.sortOrder = e.target.value;
+      analyticsState.page = 1;
+      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+      fetchAndRenderLedger(activeProf);
+    });
+
+    on('select-analytics-month', 'change', (e) => {
+      analyticsState.month = e.target.value;
+      analyticsState.specificDate = '';
+      analyticsState.startDate = '';
+      analyticsState.endDate = '';
+      if (el('filter-col-date-from')) el('filter-col-date-from').value = '';
+      if (el('filter-col-date-to')) el('filter-col-date-to').value = '';
+
+      document.querySelectorAll('.analytics-range-btn').forEach(b => {
+        b.classList.toggle('active', e.target.value === 'all' && b.dataset.range === 'all');
+      });
+
+      analyticsState.page = 1;
+      fetchAndRenderAnalytics();
+    });
+
+    on('select-analytics-provider', 'change', (e) => {
+      analyticsState.provider = e.target.value;
+      if (el('filter-col-provider')) el('filter-col-provider').value = e.target.value;
+      analyticsState.page = 1;
+      fetchAndRenderAnalytics();
+    });
+
+    on('filter-col-provider', 'change', (e) => {
+      analyticsState.provider = e.target.value;
+      if (el('select-analytics-provider')) el('select-analytics-provider').value = e.target.value;
+      analyticsState.page = 1;
+      fetchAndRenderAnalytics();
+    });
+
+    on('filter-col-date-from', 'input', (e) => {
+      analyticsState.startDate = e.target.value;
+      analyticsState.specificDate = '';
+      analyticsState.page = 1;
+      fetchAndRenderAnalytics();
+    });
+
+    on('filter-col-date-to', 'input', (e) => {
+      analyticsState.endDate = e.target.value;
+      analyticsState.specificDate = '';
+      analyticsState.page = 1;
+      fetchAndRenderAnalytics();
+    });
+
+    on('filter-col-donor', 'input', (e) => {
+      clearTimeout(analyticsSearchDebounce);
+      analyticsSearchDebounce = setTimeout(() => {
+        analyticsState.searchDonor = e.target.value;
+        analyticsState.page = 1;
+        fetchAndRenderAnalytics();
+      }, 250);
+    });
+
+    on('filter-col-note', 'input', (e) => {
+      clearTimeout(analyticsSearchDebounce);
+      analyticsSearchDebounce = setTimeout(() => {
+        analyticsState.searchNote = e.target.value;
+        analyticsState.page = 1;
+        fetchAndRenderAnalytics();
+      }, 250);
+    });
+
+    on('filter-col-min-amount', 'input', (e) => {
+      clearTimeout(analyticsSearchDebounce);
+      analyticsSearchDebounce = setTimeout(() => {
+        analyticsState.minAmount = e.target.value;
+        analyticsState.page = 1;
+        fetchAndRenderAnalytics();
+      }, 250);
+    });
+
+    on('select-ledger-limit', 'change', (e) => {
+      analyticsState.limit = parseInt(e.target.value, 10) || 50;
+      analyticsState.page = 1;
+      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+      fetchAndRenderLedger(activeProf);
+    });
+
+    on('btn-clear-column-filters', 'click', () => {
+      if (el('filter-col-date-from')) el('filter-col-date-from').value = '';
+      if (el('filter-col-date-to')) el('filter-col-date-to').value = '';
+      if (el('filter-col-donor')) el('filter-col-donor').value = '';
+      if (el('filter-col-note')) el('filter-col-note').value = '';
+      if (el('filter-col-min-amount')) el('filter-col-min-amount').value = '';
+      if (el('filter-col-provider')) el('filter-col-provider').value = 'all';
+      if (el('select-col-date-sort')) el('select-col-date-sort').value = 'desc';
+      if (el('select-analytics-provider')) el('select-analytics-provider').value = 'all';
+      if (el('input-analytics-search')) el('input-analytics-search').value = '';
+
+      analyticsState.search = '';
+      analyticsState.searchDonor = '';
+      analyticsState.searchNote = '';
+      analyticsState.minAmount = '';
+      analyticsState.specificDate = '';
+      analyticsState.startDate = '';
+      analyticsState.endDate = '';
+      analyticsState.provider = 'all';
+      analyticsState.sortOrder = 'desc';
+      analyticsState.page = 1;
+      fetchAndRenderAnalytics();
+      showToast('<i data-lucide="filter-x"></i> Filters reset');
+    });
+
+    document.querySelectorAll('.analytics-range-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.analytics-range-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const range = btn.dataset.range;
+        analyticsState.range = range;
+        const now = new Date();
+        const yr = now.getFullYear();
+        const mo = String(now.getMonth() + 1).padStart(2, '0');
+        const da = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${yr}-${mo}-${da}`;
+
+        if (range === 'today') {
+          analyticsState.specificDate = '';
+          analyticsState.startDate = todayStr;
+          analyticsState.endDate = todayStr;
+          if (el('filter-col-date-from')) el('filter-col-date-from').value = todayStr;
+          if (el('filter-col-date-to')) el('filter-col-date-to').value = todayStr;
+        } else if (range === 'week') {
+          const past = new Date(now.getTime() - 7 * 86400000);
+          const pYr = past.getFullYear();
+          const pMo = String(past.getMonth() + 1).padStart(2, '0');
+          const pDa = String(past.getDate()).padStart(2, '0');
+          analyticsState.specificDate = '';
+          analyticsState.startDate = `${pYr}-${pMo}-${pDa}`;
+          analyticsState.endDate = todayStr;
+          if (el('filter-col-date-from')) el('filter-col-date-from').value = `${pYr}-${pMo}-${pDa}`;
+          if (el('filter-col-date-to')) el('filter-col-date-to').value = todayStr;
+        } else if (range === 'month') {
+          analyticsState.specificDate = '';
+          analyticsState.month = `${yr}-${mo}`;
+          analyticsState.startDate = '';
+          analyticsState.endDate = '';
+          if (el('select-analytics-month')) el('select-analytics-month').value = `${yr}-${mo}`;
+          if (el('filter-col-date-from')) el('filter-col-date-from').value = '';
+          if (el('filter-col-date-to')) el('filter-col-date-to').value = '';
+        } else {
+          analyticsState.specificDate = '';
+          analyticsState.month = 'all';
+          analyticsState.startDate = '';
+          analyticsState.endDate = '';
+          if (el('select-analytics-month')) el('select-analytics-month').value = 'all';
+          if (el('filter-col-date-from')) el('filter-col-date-from').value = '';
+          if (el('filter-col-date-to')) el('filter-col-date-to').value = '';
+        }
+
+        analyticsState.page = 1;
+        fetchAndRenderAnalytics();
+      });
+    });
+
+    on('input-analytics-search', 'input', (e) => {
+      clearTimeout(analyticsSearchDebounce);
+      analyticsSearchDebounce = setTimeout(() => {
+        analyticsState.search = e.target.value;
+        analyticsState.page = 1;
+        fetchAndRenderAnalytics();
+      }, 250);
+    });
+
+    on('btn-refresh-analytics', 'click', () => {
+      fetchAndRenderAnalytics();
+      showToast('<i data-lucide="rotate-cw"></i> Analytics refreshed');
+    });
+
+    on('btn-ledger-prev', 'click', () => {
+      if (analyticsState.page > 1) {
+        analyticsState.page -= 1;
+        const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+        fetchAndRenderLedger(activeProf);
+      }
+    });
+
+    on('btn-ledger-next', 'click', () => {
+      analyticsState.page += 1;
+      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+      fetchAndRenderLedger(activeProf);
+    });
+
+    on('select-trend-view-mode', 'change', (e) => {
+      analyticsState.timelineMode = e.target.value;
+      fetchAndRenderAnalytics();
+    });
+
+    on('select-donut-view-mode', 'change', (e) => {
+      analyticsState.donutMode = e.target.value;
+      fetchAndRenderAnalytics();
+    });
+
+    on('btn-analytics-export-csv', 'click', () => {
+      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+      window.open(`/api/donations/csv?profile=${encodeURIComponent(activeProf)}`, '_blank');
+      showToast('<i data-lucide="download"></i> Downloading donations.csv...');
+    });
+
+    // Manual Payment Modal (Record & Edit)
+    on('btn-open-record-modal', 'click', (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const modal = el('modal-manual-payment');
+      if (!modal) return;
+      const now = new Date();
+      const yr = now.getFullYear();
+      const mo = String(now.getMonth() + 1).padStart(2, '0');
+      const da = String(now.getDate()).padStart(2, '0');
+      const hr = String(now.getHours()).padStart(2, '0');
+      const mn = String(now.getMinutes()).padStart(2, '0');
+
+      if (el('input-manual-edit-id')) el('input-manual-edit-id').value = '';
+      if (el('input-manual-donor')) el('input-manual-donor').value = 'Anonymous Donor';
+      if (el('input-manual-amount')) el('input-manual-amount').value = '500';
+      if (el('select-manual-provider')) el('select-manual-provider').value = 'Manual Entry';
+      if (el('input-manual-date')) el('input-manual-date').value = `${yr}-${mo}-${da}`;
+      if (el('input-manual-time')) el('input-manual-time').value = `${hr}:${mn}`;
+      if (el('input-manual-note')) el('input-manual-note').value = '';
+
+      if (el('modal-manual-title-text')) el('modal-manual-title-text').textContent = 'Record Manual Payment';
+      if (el('btn-submit-manual-text')) el('btn-submit-manual-text').textContent = 'Record & Credit Goal';
+
+      modal.style.display = 'flex';
+      setTimeout(() => modal.classList.add('active'), 10);
+      if (window.lucide) lucide.createIcons();
+    });
+
+    const closeManualModal = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const modal = el('modal-manual-payment');
+      if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+      }
+    };
+
+    on('modal-manual-payment-close', 'click', closeManualModal);
+    on('btn-cancel-manual-payment', 'click', closeManualModal);
+
+    const manualModalOverlay = el('modal-manual-payment');
+    if (manualModalOverlay) {
+      manualModalOverlay.addEventListener('click', (e) => {
+        if (e.target === manualModalOverlay) {
+          closeManualModal(e);
+        }
+      });
+      const card = manualModalOverlay.querySelector('.modal-card');
+      if (card) {
+        card.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+      }
+    }
+
+    on('btn-submit-manual-payment', 'click', async () => {
+      const editId = (val('input-manual-edit-id', '') || '').trim();
+      const isEdit = !!editId;
+      const donor = (val('input-manual-donor', 'Anonymous Donor') || 'Anonymous Donor').trim();
+      const amount = parseFloat(val('input-manual-amount', '0')) || 0;
+      const source = val('select-manual-provider', 'Manual Entry');
+      const dateVal = val('input-manual-date', '');
+      const timeVal = val('input-manual-time', '');
+      const note = val('input-manual-note', '').trim();
+      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+
+      if (amount <= 0) {
+        return showToast('<i data-lucide="alert-triangle"></i> Please enter a valid donation amount');
+      }
+
+      try {
+        const payload = {
+          profile: activeProf,
+          sender: donor,
+          amount: amount,
+          currency: 'INR',
+          sourceApp: source,
+          date: dateVal,
+          time: timeVal,
+          message: note
+        };
+
+        const targetUrl = isEdit ? `/api/donations/${encodeURIComponent(editId)}` : '/api/donations/record';
+        const targetMethod = isEdit ? 'PUT' : 'POST';
+
+        const res = await fetch(targetUrl, {
+          method: targetMethod,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          closeManualModal();
+          if (data.metrics) {
+            config.widgets.goal.currentAmount = data.metrics.goalAmount;
+            config.widgets.leaderboard.supporters = data.metrics.supporters;
+            config.widgets.recent.recentDonations = data.metrics.recentDonations;
+            setVal('input-goal-current', data.metrics.goalAmount);
+            syncLivePreview();
+          }
+          await fetchAndRenderAnalytics();
+          const actionMsg = isEdit ? 'Updated transaction for ₹' : 'Recorded manual payment of ₹';
+          showToast('<i data-lucide="check-circle"></i> ' + actionMsg + amount.toLocaleString('en-IN') + ' (' + donor + ')');
+        } else {
+          showToast('<i data-lucide="alert-triangle"></i> ' + (data.error || 'Operation failed'));
+        }
+      } catch (err) {
+        showToast('<i data-lucide="alert-triangle"></i> Error: ' + err.message);
+      }
     });
   }
 
@@ -2344,6 +3216,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupActionButtons();
   setupSimulator();
   setupNetworkAndSystem();
+  setupEarningsAnalytics();
   setupPanelResizer();
   setupBoxExpanders();
   attachInputListeners();

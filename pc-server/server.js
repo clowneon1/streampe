@@ -359,7 +359,9 @@ function saveProfilesStore(store) {
 let profilesStore = loadProfilesStore();
 let alertSettings = profilesStore.profiles[profilesStore.activeProfile] || loadSettings();
 
-// ── Single Source of Truth: CSV Donations Storage ────────────────────
+// ── Single Source of Truth: In-Memory Cached CSV Ledger ─────────────
+const donationsCache = {};
+
 function getDonationsCsvPath(profileName) {
   const profile = (profileName || (profilesStore && profilesStore.activeProfile) || 'Default')
     .replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -367,29 +369,62 @@ function getDonationsCsvPath(profileName) {
 }
 
 function loadDonations(profileName) {
-  const filePath = getDonationsCsvPath(profileName);
+  const profile = profileName || (profilesStore && profilesStore.activeProfile) || 'Default';
+  if (donationsCache[profile]) {
+    return donationsCache[profile];
+  }
+  const filePath = getDonationsCsvPath(profile);
   try {
     if (fs.existsSync(filePath)) {
       const content = fs.readFileSync(filePath, 'utf8');
-      return PaymentsCsv.parseCsv(content);
+      const txs = PaymentsCsv.parseCsv(content);
+      donationsCache[profile] = txs;
+      return txs;
     }
   } catch (e) {
     log.error('DonationsCSV', `Failed to load donations CSV (${filePath}): ` + e.message);
   }
+  donationsCache[profile] = [];
   return [];
 }
 
 function saveDonations(profileName, transactions) {
-  const filePath = getDonationsCsvPath(profileName);
+  const profile = profileName || (profilesStore && profilesStore.activeProfile) || 'Default';
+  const filePath = getDonationsCsvPath(profile);
   try {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     // Guarantee that ONLY authentic payments are stored in the CSV ledger
     const realTransactions = (transactions || []).filter(t => !t.simulated);
     const content = PaymentsCsv.serializeCsv(realTransactions);
     fs.writeFileSync(filePath, content, 'utf8');
+    donationsCache[profile] = realTransactions;
     return true;
   } catch (e) {
     log.error('DonationsCSV', `Failed to save donations CSV (${filePath}): ` + e.message);
+    return false;
+  }
+}
+
+function appendDonation(profileName, tx) {
+  const profile = profileName || (profilesStore && profilesStore.activeProfile) || 'Default';
+  const filePath = getDonationsCsvPath(profile);
+  if (tx.simulated) return;
+
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(filePath)) {
+      return saveDonations(profile, [tx]);
+    }
+    const row = PaymentsCsv.formatCsvRow(tx) + '\n';
+    fs.appendFileSync(filePath, row, 'utf8');
+    if (!donationsCache[profile]) {
+      loadDonations(profile);
+    } else {
+      donationsCache[profile].unshift(tx);
+    }
+    return true;
+  } catch (e) {
+    log.error('DonationsCSV', `Failed to append donation (${filePath}): ` + e.message);
     return false;
   }
 }
@@ -565,10 +600,8 @@ function processPaymentForGoalAndLeaderboard(notification) {
       simulated: false
     };
 
-    // Single source of truth: Load, append, save CSV and compute derived metrics
-    const currentTxs = loadDonations(profilesStore.activeProfile);
-    currentTxs.unshift(tx);
-    saveDonations(profilesStore.activeProfile, currentTxs);
+    // Single source of truth: Append to ledger and compute derived metrics
+    appendDonation(profilesStore.activeProfile, tx);
 
     const metrics = syncDerivedMetricsToSettings(profilesStore.activeProfile, true);
     if (alertId) processedAlertIds.add(alertId);
@@ -595,7 +628,119 @@ app.get('/alert',               (req, res) => res.sendFile(path.join(__dirname, 
 app.get('/goal',                (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
 app.get('/leaderboard',         (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
 
-// ── CSV Donations Endpoints (Single Source of Truth) ──────────────────
+// ── CSV Donations & Analytics Endpoints ──────────────────────────────
+app.get('/api/donations/months', (req, res) => {
+  const profile = req.query.profile || profilesStore.activeProfile;
+  const transactions = loadDonations(profile);
+  const monthSet = new Set();
+  transactions.forEach(t => {
+    const m = PaymentsCsv.getMonthKey(t.date || t.timestamp);
+    if (m) monthSet.add(m);
+  });
+  const months = Array.from(monthSet).sort().reverse();
+  res.json({ ok: true, profile, months });
+});
+
+app.get('/api/analytics', (req, res) => {
+  const profile = req.query.profile || profilesStore.activeProfile;
+  const month = req.query.month || 'all';
+  const provider = req.query.provider || 'all';
+  const search = req.query.search || '';
+  const minAmount = req.query.minAmount || '';
+  const maxAmount = req.query.maxAmount || '';
+  const specificDate = req.query.date || req.query.specificDate || '';
+  const startDate = req.query.startDate || '';
+  const endDate = req.query.endDate || '';
+
+  const transactions = loadDonations(profile);
+  const targetSettings = profilesStore.profiles[profile] || alertSettings;
+  const startAmount = parseFloat(targetSettings.widgets?.goal?.startAmount) || 0;
+
+  const metrics = PaymentsCsv.computeMetrics(transactions, {
+    startAmount,
+    includeSimulated: false,
+    filters: {
+      month,
+      provider,
+      search,
+      minAmount,
+      maxAmount,
+      specificDate,
+      startDate,
+      endDate
+    }
+  });
+
+  const timelineMode = req.query.timelineMode || req.query.trendMode || 'month';
+  const timeline = PaymentsCsv.computeTimelineData(transactions, timelineMode);
+
+  const donutMode = req.query.donutMode || 'all';
+  const donutTxs = PaymentsCsv.filterByTimeframe(transactions, donutMode);
+  const detachedDonut = PaymentsCsv.computeDonutSegments(donutTxs);
+
+  res.json({
+    ok: true,
+    profile,
+    filters: { month, provider, search, minAmount, maxAmount, specificDate, startDate, endDate, timelineMode, donutMode },
+    analytics: {
+      ...metrics.analytics,
+      donut: detachedDonut,
+      timeline
+    },
+    count: metrics.totalCount
+  });
+});
+
+app.get('/api/donations/query', (req, res) => {
+  const profile = req.query.profile || profilesStore.activeProfile;
+  const month = req.query.month || 'all';
+  const provider = req.query.provider || 'all';
+  const search = req.query.search || '';
+  const minAmount = req.query.minAmount || '';
+  const maxAmount = req.query.maxAmount || '';
+  const specificDate = req.query.date || req.query.specificDate || '';
+  const startDate = req.query.startDate || '';
+  const endDate = req.query.endDate || '';
+  const sort = (req.query.sort || 'desc').toLowerCase();
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(10, parseInt(req.query.limit, 10) || 50));
+
+  const allTransactions = loadDonations(profile);
+  const filtered = PaymentsCsv.filterTransactions(allTransactions, {
+    month,
+    provider,
+    search,
+    minAmount,
+    maxAmount,
+    specificDate,
+    startDate,
+    endDate,
+    includeSimulated: false
+  });
+
+  if (sort === 'asc') {
+    filtered.sort((a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0));
+  } else {
+    filtered.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
+  }
+
+  const total = filtered.length;
+  const totalPages = Math.ceil(total / limit) || 1;
+  const startIndex = (page - 1) * limit;
+  const slice = filtered.slice(startIndex, startIndex + limit);
+
+  res.json({
+    ok: true,
+    profile,
+    sort,
+    page,
+    limit,
+    total,
+    totalPages,
+    transactions: slice
+  });
+});
+
 app.get('/api/donations', (req, res) => {
   const profile = req.query.profile || profilesStore.activeProfile;
   const transactions = loadDonations(profile);
@@ -687,6 +832,45 @@ app.post('/api/donations/record', (req, res) => {
     const metrics = syncDerivedMetricsToSettings(profile, true);
     log.info('DonationsCSV', `Recorded manual donation: ₹${amountNum} from "${tx.sender}" via ${tx.sourceApp}`);
     res.json({ ok: true, transaction: tx, metrics });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.put('/api/donations/:id', (req, res) => {
+  try {
+    const id = req.params.id;
+    const body = req.body || {};
+    const profile = body.profile || req.query.profile || profilesStore.activeProfile;
+    const currentTxs = loadDonations(profile);
+
+    const idx = currentTxs.findIndex(t => t.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ ok: false, error: 'Transaction ID not found' });
+    }
+
+    const amountNum = parseFloat(TemplateMatcher.parseAmount(body.amount)) || currentTxs[idx].amount || 0;
+    if (amountNum <= 0) return res.status(400).json({ ok: false, error: 'Valid amount is required' });
+
+    const currencyCode = (body.currency || currentTxs[idx].currency || 'INR').toUpperCase();
+    const now = body.timestamp || currentTxs[idx].timestamp || Date.now();
+
+    currentTxs[idx] = {
+      ...currentTxs[idx],
+      sender: (body.sender !== undefined ? body.sender : currentTxs[idx].sender).trim(),
+      amount: amountNum,
+      currency: currencyCode,
+      rawAmount: PaymentsCsv.formatCurrency(amountNum, currencyCode),
+      sourceApp: (body.sourceApp !== undefined ? body.sourceApp : currentTxs[idx].sourceApp).trim(),
+      date: body.date !== undefined ? body.date : currentTxs[idx].date,
+      time: body.time !== undefined ? body.time : currentTxs[idx].time,
+      message: (body.message !== undefined ? body.message : currentTxs[idx].message).trim()
+    };
+
+    saveDonations(profile, currentTxs);
+    const metrics = syncDerivedMetricsToSettings(profile, true);
+    log.info('DonationsCSV', `Updated transaction ${id} in ${profile}: ₹${amountNum} from "${currentTxs[idx].sender}"`);
+    res.json({ ok: true, transaction: currentTxs[idx], metrics });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
