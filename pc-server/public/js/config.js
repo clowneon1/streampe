@@ -1763,88 +1763,162 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.target.value = '';
     });
 
-    // ── Leaderboard helpers
+    // ── Leaderboard CSV helpers ──────────────────────────────
     on('btn-lb-export', 'click', () => {
-      readFormValues();
-      StorageHelper.exportToFile(config.widgets.leaderboard.supporters, 'leaderboard.json');
+      window.open('/api/donations/csv', '_blank');
+      showToast('<i data-lucide="file-spreadsheet"></i> Exporting donations.csv for Excel/Sheets...');
     });
 
     on('btn-lb-import', 'click', () => { const f = el('file-import-lb-input'); if (f) f.click(); });
-    on('file-import-lb-input', 'change', (e) => {
+    on('file-import-lb-input', 'change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         try {
-          readFormValues();
-          const parsed = JSON.parse(ev.target.result);
-          config.widgets.leaderboard.supporters = parsed.supporters || parsed;
-          populateForm(config);
-          showToast('<i data-lucide="download"></i> Leaderboard imported');
+          const text = ev.target.result;
+          let csvPayload = text;
+          if (file.name.endsWith('.json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+            const parsed = JSON.parse(text);
+            const supporters = parsed.supporters || parsed;
+            const txs = Object.entries(supporters).map(([name, total], i) => ({
+              id: `imported_${Date.now()}_${i}`,
+              timestamp: Date.now() - i * 1000,
+              date: new Date().toISOString().split('T')[0],
+              time: new Date().toTimeString().split(' ')[0],
+              sender: name,
+              amount: parseFloat(total) || 0,
+              rawAmount: `₹${total}`,
+              sourceApp: 'Imported JSON',
+              message: '',
+              templateId: '',
+              simulated: false
+            }));
+            csvPayload = PaymentsCsv.serializeCsv(txs);
+          }
+
+          const res = await fetch('/api/donations/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ csv: csvPayload, mode: 'replace' })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            config.widgets.goal.currentAmount = data.metrics.goalAmount;
+            config.widgets.leaderboard.supporters = data.metrics.supporters;
+            config.widgets.recent.recentDonations = data.metrics.recentDonations;
+            populateForm(config);
+            showToast(`<i data-lucide="file-spreadsheet"></i> Imported ${data.totalCount} transactions from CSV`);
+          } else {
+            showToast('<i data-lucide="alert-triangle"></i> Import error: ' + (data.error || 'Failed'));
+          }
         } catch (err) {
-          showToast('<i data-lucide="alert-triangle"></i> Invalid leaderboard JSON');
+          showToast('<i data-lucide="alert-triangle"></i> Invalid file format: ' + err.message);
         }
       };
       reader.readAsText(file);
       e.target.value = '';
     });
 
-    [['btn-lb-clear', 'Clear Leaderboard', 'Clear every supporter from the leaderboard?'],
-     ['btn-lb-clear-all', 'Clear Leaderboard', 'Clear every supporter from the leaderboard?']
+    [['btn-lb-clear', 'Reset Leaderboard Data', 'Clear every transaction and supporter from the data store?'],
+     ['btn-lb-clear-all', 'Reset Leaderboard Data', 'Clear every transaction and supporter from the data store?']
     ].forEach(([id, title, msg]) => {
       on(id, 'click', async () => {
-        const confirmed = await AppModal.show({ title, message: msg + ' This cannot be undone.' });
+        const confirmed = await AppModal.show({ title, message: msg + ' This will reset donations.csv data.' });
         if (!confirmed) return;
-        readFormValues();
-        config.widgets.leaderboard.supporters = {};
-        await saveToServer();
-        showToast('<i data-lucide="trash-2"></i> Leaderboard cleared and saved');
+        try {
+          const res = await fetch('/api/donations/clear', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+          const data = await res.json();
+          if (data.ok) {
+            config.widgets.goal.currentAmount = data.metrics.goalAmount;
+            config.widgets.leaderboard.supporters = data.metrics.supporters;
+            config.widgets.recent.recentDonations = data.metrics.recentDonations;
+            populateForm(config);
+            showToast('<i data-lucide="trash-2"></i> Leaderboard and donation transactions cleared');
+          }
+        } catch (err) {
+          showToast('<i data-lucide="alert-triangle"></i> Failed to clear data');
+        }
       });
     });
 
-    // ── Recent helpers
+    // ── Recent CSV helpers ──────────────────────────────────
     on('btn-recent-export', 'click', () => {
-      readFormValues();
-      StorageHelper.exportToFile(config.widgets.recent.recentDonations, 'donation-history.json');
+      window.open('/api/donations/csv', '_blank');
+      showToast('<i data-lucide="file-spreadsheet"></i> Exporting donations.csv for Excel/Sheets...');
     });
 
     on('btn-recent-import', 'click', () => { const f = el('file-import-recent-input'); if (f) f.click(); });
-    on('file-import-recent-input', 'change', (e) => {
+    on('file-import-recent-input', 'change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         try {
-          readFormValues();
-          const parsed = JSON.parse(ev.target.result);
-          config.widgets.recent.recentDonations = Array.isArray(parsed) ? parsed : (parsed.recentDonations || []);
-          populateForm(config);
-          showToast('<i data-lucide="download"></i> Recent history imported');
+          const text = ev.target.result;
+          let csvPayload = text;
+          if (file.name.endsWith('.json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
+            const parsed = JSON.parse(text);
+            const list = Array.isArray(parsed) ? parsed : (parsed.recentDonations || []);
+            const txs = list.map((r, i) => ({
+              id: r.id || `imported_recent_${Date.now()}_${i}`,
+              timestamp: Number(r.timestamp) || (Date.now() - i * 60000),
+              date: new Date(Number(r.timestamp) || Date.now()).toISOString().split('T')[0],
+              time: new Date(Number(r.timestamp) || Date.now()).toTimeString().split(' ')[0],
+              sender: r.sender || 'Unknown',
+              amount: parseFloat(r.amountValue || TemplateMatcher.parseAmount(r.amount)) || 0,
+              rawAmount: r.amount || `₹${r.amountValue || 0}`,
+              sourceApp: r.sourceApp || 'Imported Data',
+              message: r.message || '',
+              templateId: '',
+              simulated: false
+            }));
+            csvPayload = PaymentsCsv.serializeCsv(txs);
+          }
+
+          const res = await fetch('/api/donations/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ csv: csvPayload, mode: 'replace' })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            config.widgets.goal.currentAmount = data.metrics.goalAmount;
+            config.widgets.leaderboard.supporters = data.metrics.supporters;
+            config.widgets.recent.recentDonations = data.metrics.recentDonations;
+            populateForm(config);
+            showToast(`<i data-lucide="file-spreadsheet"></i> Imported ${data.totalCount} transactions from CSV`);
+          } else {
+            showToast('<i data-lucide="alert-triangle"></i> Import error: ' + (data.error || 'Failed'));
+          }
         } catch (err) {
-          showToast('<i data-lucide="alert-triangle"></i> Invalid JSON');
+          showToast('<i data-lucide="alert-triangle"></i> Invalid file format: ' + err.message);
         }
       };
       reader.readAsText(file);
       e.target.value = '';
     });
 
-    on('btn-recent-clear', 'click', () => {
-      readFormValues();
-      config.widgets.recent.recentDonations = [];
-      populateForm(config);
-      showToast('<i data-lucide="trash-2"></i> Local history cleared');
-    });
-
-    on('btn-recent-clear-all', 'click', async () => {
-      const confirmed = await AppModal.show({
-        title: 'Clear Recent History',
-        message: 'Clear every donation from the history? This cannot be undone.'
+    [['btn-recent-clear', 'Reset History Data', 'Clear all donation history transactions from the data store?'],
+     ['btn-recent-clear-all', 'Reset History Data', 'Clear all donation history transactions from the data store?']
+    ].forEach(([id, title, msg]) => {
+      on(id, 'click', async () => {
+        const confirmed = await AppModal.show({ title, message: msg + ' This will reset donations.csv data.' });
+        if (!confirmed) return;
+        try {
+          const res = await fetch('/api/donations/clear', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+          const data = await res.json();
+          if (data.ok) {
+            config.widgets.goal.currentAmount = data.metrics.goalAmount;
+            config.widgets.leaderboard.supporters = data.metrics.supporters;
+            config.widgets.recent.recentDonations = data.metrics.recentDonations;
+            populateForm(config);
+            showToast('<i data-lucide="trash-2"></i> Donation history and transactions cleared');
+          }
+        } catch (err) {
+          showToast('<i data-lucide="alert-triangle"></i> Failed to clear data');
+        }
       });
-      if (!confirmed) return;
-      readFormValues();
-      config.widgets.recent.recentDonations = [];
-      await saveToServer();
-      showToast('<i data-lucide="trash-2"></i> History cleared and saved');
     });
 
     // ── Code reset buttons

@@ -27,6 +27,8 @@ pc-server/config/
 config/settings.json
 pc-server/config/settings.json
 pc-server/config/profiles.json
+pc-server/data/
+data/
 widget-config.json
 pc-server/widget-config.json
 

@@ -1409,13 +1409,10 @@
 
               <div class="form-group" style="margin-top: 10px;">
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                  <button class="btn btn-danger" type="button" id="btn-lb-clear"><i data-lucide="trash-2"></i> Reset Leaderboard
-                    Data</button>
-                  <button class="btn btn-outline" type="button" id="btn-lb-export"><i data-lucide="upload"></i> Export Leaderboard
-                    Data</button>
-                  <button class="btn btn-outline" type="button" id="btn-lb-import"><i data-lucide="download"></i> Import Leaderboard
-                    Data</button>
-                  <input type="file" id="file-import-lb-input" accept=".json" style="display: none;" />
+                  <button class="btn btn-danger" type="button" id="btn-lb-clear"><i data-lucide="trash-2"></i> Reset Leaderboard Data</button>
+                  <button class="btn btn-outline" type="button" id="btn-lb-export"><i data-lucide="file-spreadsheet"></i> Export CSV</button>
+                  <button class="btn btn-outline" type="button" id="btn-lb-import"><i data-lucide="upload"></i> Import CSV</button>
+                  <input type="file" id="file-import-lb-input" accept=".csv,.json" style="display: none;" />
                 </div>
               </div>
             </div>
@@ -1766,10 +1763,10 @@
 
               <div class="form-group" style="margin-top: 10px;">
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                  <button class="btn btn-danger" type="button" id="btn-recent-clear"><i data-lucide="trash-2"></i> Clear History</button>
-                  <button class="btn btn-outline" type="button" id="btn-recent-export"><i data-lucide="upload"></i> Export History</button>
-                  <button class="btn btn-outline" type="button" id="btn-recent-import"><i data-lucide="download"></i> Import History</button>
-                  <input type="file" id="file-import-recent-input" accept=".json" style="display: none;" />
+                  <button class="btn btn-danger" type="button" id="btn-recent-clear"><i data-lucide="trash-2"></i> Reset History Data</button>
+                  <button class="btn btn-outline" type="button" id="btn-recent-export"><i data-lucide="file-spreadsheet"></i> Export CSV</button>
+                  <button class="btn btn-outline" type="button" id="btn-recent-import"><i data-lucide="upload"></i> Import CSV</button>
+                  <input type="file" id="file-import-recent-input" accept=".csv,.json" style="display: none;" />
                 </div>
               </div>
             </div>
@@ -2418,6 +2415,7 @@
   <script src="/js/lib/canvas-presets.js"></script>
   <script src="/js/lib/widget-style.js"></script>
   <script src="/js/lib/template-matcher.js"></script>
+  <script src="/js/lib/payments-csv.js"></script>
   <script src="/js/lib/config-schema.js"></script>
   <script src="/js/lib/config-migration.js"></script>
   <script src="/js/storage.js"></script>
