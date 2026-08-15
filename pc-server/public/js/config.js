@@ -772,9 +772,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    renderSupportersTable();
-    renderRecentTable();
-
     const simIsolatedVal = config.simulation ? config.simulation.isolatedMode !== false : true;
     setChecked('chk-sim-isolated-mode', simIsolatedVal);
 
@@ -953,73 +950,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast('<i data-lucide="copy"></i> Copied Cycling Widget URL');
     });
   }
-
-  // ── Supporters table ─────────────────────────────────────────
-  function renderSupportersTable() {
-    const body = el('lb-table-body');
-    if (!body) return;
-    const supporters = config.widgets.leaderboard.supporters || {};
-    const rows = Object.keys(supporters)
-      .map(name => ({ name, amount: parseFloat(supporters[name]) || 0 }))
-      .sort((a, b) => b.amount - a.amount);
-
-    if (!rows.length) {
-      body.innerHTML = '<tr><td colspan="3" style="padding: 10px; color: var(--text-muted);">No supporters yet</td></tr>';
-      return;
-    }
-
-    body.innerHTML = rows.map(r => `
-      <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 6px;">${TemplateEngine.escapeHtml(r.name)}</td>
-        <td style="padding: 6px;">₹${r.amount.toLocaleString('en-IN')}</td>
-        <td style="padding: 6px; text-align: right;">
-          <button type="button" class="btn btn-danger btn-remove-supporter" data-name="${TemplateEngine.escapeHtml(r.name)}" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i> Remove</button>
-        </td>
-      </tr>`).join('');
-
-    if (window.lucide) lucide.createIcons();
-
-    body.querySelectorAll('.btn-remove-supporter').forEach(btn => {
-      btn.addEventListener('click', () => {
-        delete config.widgets.leaderboard.supporters[btn.dataset.name];
-        renderSupportersTable();
-        syncLivePreview();
-      });
-    });
-  }
-
-  function renderRecentTable() {
-    const body = el('recent-table-body');
-    if (!body) return;
-    const history = config.widgets.recent.recentDonations || [];
-
-    if (!history.length) {
-      body.innerHTML = '<tr><td colspan="4" style="padding: 10px; color: var(--text-muted);">No donation history yet</td></tr>';
-      return;
-    }
-
-    body.innerHTML = history.map((r, idx) => `
-      <tr style="border-bottom: 1px solid var(--border);">
-        <td style="padding: 6px;">${TemplateEngine.escapeHtml(r.sender)}</td>
-        <td style="padding: 6px;">₹${(parseFloat(r.amountValue) || 0).toLocaleString('en-IN')}</td>
-        <td style="padding: 6px; color: var(--text-muted);">${new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-        <td style="padding: 6px; text-align: right;">
-          <button type="button" class="btn btn-danger btn-remove-recent" data-idx="${idx}" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="trash-2" style="width:12px;height:12px;"></i> Remove</button>
-        </td>
-      </tr>`).join('');
-
-    if (window.lucide) lucide.createIcons();
-
-    body.querySelectorAll('.btn-remove-recent').forEach(btn => {
-      btn.addEventListener('click', () => {
-        config.widgets.recent.recentDonations.splice(parseInt(btn.dataset.idx, 10), 1);
-        renderRecentTable();
-        syncLivePreview();
-      });
-    });
-  }
-
-
 
   // ── Server IO ────────────────────────────────────────────────
   async function saveToServer(profileName) {
@@ -1575,34 +1505,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    on('btn-export', 'click', () => {
-      readFormValues();
-      StorageHelper.exportToFile(config, 'alert-theme.json');
-      showToast('<i data-lucide="upload"></i> Exported configuration');
-    });
 
-    on('btn-import', 'click', () => { const f = el('file-import-input'); if (f) f.click(); });
-    on('file-import-input', 'change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      try {
-        const importedConfig = await StorageHelper.importFromFile(file);
-        const activeProfile = (el('select-profile') && el('select-profile').value) || 'Default';
-        const res = await fetch('/api/profiles/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: activeProfile, settings: importedConfig })
-        });
-        const data = await res.json();
-        if (data.ok) {
-          populateForm(data.settings);
-          showToast('<i data-lucide="download"></i> Imported configuration into current profile');
-        }
-      } catch (err) {
-        showToast('<i data-lucide="alert-triangle"></i> ' + err.message);
-      }
-      e.target.value = '';
-    });
 
     on('btn-reset', 'click', async () => {
       const confirmed = await AppModal.show({
@@ -1725,132 +1628,73 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.target.value = '';
     });
 
-    // ── Goal helpers
-    on('btn-goal-test-add', 'click', () => {
-      readFormValues();
-      config.widgets.goal.currentAmount += 100;
-      populateForm(config);
-      showToast('<i data-lucide="zap"></i> Added ₹100 to the goal');
-    });
-
-    on('btn-goal-reset', 'click', () => {
-      readFormValues();
-      config.widgets.goal.currentAmount = 0;
-      populateForm(config);
-      showToast('<i data-lucide="rotate-ccw"></i> Goal progress reset');
-    });
-
-    on('btn-goal-export', 'click', () => {
-      readFormValues();
-      StorageHelper.exportToFile(config.widgets.goal, 'goal-data.json');
-    });
-
-    on('btn-goal-import', 'click', () => { const f = el('file-import-goal-input'); if (f) f.click(); });
-    on('file-import-goal-input', 'change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          readFormValues();
-          config.widgets.goal = ConfigSchema.normalizeWidget('goal', JSON.parse(ev.target.result));
+    // ── Goal Controls (Derived from CSV Single Source of Truth) ──
+    on('btn-goal-test-add', async () => {
+      try {
+        const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+        const res = await fetch('/api/donations/record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profile: activeProf,
+            sender: 'Test Supporter',
+            amount: 100,
+            currency: 'INR',
+            sourceApp: 'Manual Test'
+          })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          config.widgets.goal.currentAmount = data.metrics.goalAmount;
+          config.widgets.leaderboard.supporters = data.metrics.supporters;
+          config.widgets.recent.recentDonations = data.metrics.recentDonations;
           populateForm(config);
-          showToast('<i data-lucide="download"></i> Goal data imported');
-        } catch (err) {
-          showToast('<i data-lucide="alert-triangle"></i> Invalid goal JSON');
+          showToast('<i data-lucide="zap"></i> Added ₹100 donation to Goal and CSV');
         }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
+      } catch (err) {
+        showToast('<i data-lucide="alert-triangle"></i> Failed to add amount: ' + err.message);
+      }
     });
 
-    // ── Leaderboard CSV helpers ──────────────────────────────
-    on('btn-lb-export', 'click', () => {
-      window.open('/api/donations/csv', '_blank');
-      showToast('<i data-lucide="file-spreadsheet"></i> Exporting donations.csv for Excel/Sheets...');
-    });
-
-    on('btn-lb-import', 'click', () => { const f = el('file-import-lb-input'); if (f) f.click(); });
-    on('file-import-lb-input', 'change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
-        try {
-          const text = ev.target.result;
-          let csvPayload = text;
-          if (file.name.endsWith('.json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
-            const parsed = JSON.parse(text);
-            const supporters = parsed.supporters || parsed;
-            const txs = Object.entries(supporters).map(([name, total], i) => ({
-              id: `imported_${Date.now()}_${i}`,
-              timestamp: Date.now() - i * 1000,
-              date: new Date().toISOString().split('T')[0],
-              time: new Date().toTimeString().split(' ')[0],
-              sender: name,
-              amount: parseFloat(total) || 0,
-              rawAmount: `₹${total}`,
-              sourceApp: 'Imported JSON',
-              message: '',
-              templateId: '',
-              simulated: false
-            }));
-            csvPayload = PaymentsCsv.serializeCsv(txs);
-          }
-
-          const res = await fetch('/api/donations/import', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ csv: csvPayload, mode: 'replace' })
-          });
-          const data = await res.json();
-          if (data.ok) {
-            config.widgets.goal.currentAmount = data.metrics.goalAmount;
-            config.widgets.leaderboard.supporters = data.metrics.supporters;
-            config.widgets.recent.recentDonations = data.metrics.recentDonations;
-            populateForm(config);
-            showToast(`<i data-lucide="file-spreadsheet"></i> Imported ${data.totalCount} transactions from CSV`);
-          } else {
-            showToast('<i data-lucide="alert-triangle"></i> Import error: ' + (data.error || 'Failed'));
-          }
-        } catch (err) {
-          showToast('<i data-lucide="alert-triangle"></i> Invalid file format: ' + err.message);
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
-    });
-
-    [['btn-lb-clear', 'Reset Leaderboard Data', 'Clear every transaction and supporter from the data store?'],
-     ['btn-lb-clear-all', 'Reset Leaderboard Data', 'Clear every transaction and supporter from the data store?']
-    ].forEach(([id, title, msg]) => {
-      on(id, 'click', async () => {
-        const confirmed = await AppModal.show({ title, message: msg + ' This will reset donations.csv data.' });
-        if (!confirmed) return;
-        try {
-          const res = await fetch('/api/donations/clear', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-          const data = await res.json();
-          if (data.ok) {
-            config.widgets.goal.currentAmount = data.metrics.goalAmount;
-            config.widgets.leaderboard.supporters = data.metrics.supporters;
-            config.widgets.recent.recentDonations = data.metrics.recentDonations;
-            populateForm(config);
-            showToast('<i data-lucide="trash-2"></i> Leaderboard and donation transactions cleared');
-          }
-        } catch (err) {
-          showToast('<i data-lucide="alert-triangle"></i> Failed to clear data');
-        }
+    on('btn-goal-reset', async () => {
+      const confirmed = await AppModal.show({
+        title: 'Reset Stream Goal',
+        message: 'Reset current goal progress and clear donation records for this profile?'
       });
+      if (!confirmed) return;
+      try {
+        const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+        const res = await fetch('/api/donations/clear', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profile: activeProf })
+        });
+        const data = await res.json();
+        if (data.ok) {
+          config.widgets.goal.currentAmount = data.metrics.goalAmount;
+          config.widgets.leaderboard.supporters = data.metrics.supporters;
+          config.widgets.recent.recentDonations = data.metrics.recentDonations;
+          populateForm(config);
+          showToast('<i data-lucide="rotate-ccw"></i> Goal progress reset');
+        }
+      } catch (err) {
+        showToast('<i data-lucide="alert-triangle"></i> Failed to reset goal progress');
+      }
     });
 
-    // ── Recent CSV helpers ──────────────────────────────────
-    on('btn-recent-export', 'click', () => {
-      window.open('/api/donations/csv', '_blank');
+    // ── Centralized Donations Data CSV Helpers ────────────────
+    on('btn-sidebar-export-donations', 'click', () => {
+      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+      window.open(`/api/donations/csv?profile=${encodeURIComponent(activeProf)}`, '_blank');
       showToast('<i data-lucide="file-spreadsheet"></i> Exporting donations.csv for Excel/Sheets...');
     });
 
-    on('btn-recent-import', 'click', () => { const f = el('file-import-recent-input'); if (f) f.click(); });
-    on('file-import-recent-input', 'change', async (e) => {
+    on('btn-sidebar-import-donations', 'click', () => {
+      const f = el('file-import-donations-csv');
+      if (f) f.click();
+    });
+
+    on('file-import-donations-csv', 'change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -1860,15 +1704,15 @@ document.addEventListener('DOMContentLoaded', async () => {
           let csvPayload = text;
           if (file.name.endsWith('.json') || text.trim().startsWith('{') || text.trim().startsWith('[')) {
             const parsed = JSON.parse(text);
-            const list = Array.isArray(parsed) ? parsed : (parsed.recentDonations || []);
+            const list = Array.isArray(parsed) ? parsed : (parsed.recentDonations || Object.entries(parsed.supporters || parsed).map(([name, total]) => ({ sender: name, amount: total })));
             const txs = list.map((r, i) => ({
-              id: r.id || `imported_recent_${Date.now()}_${i}`,
+              id: r.id || `imported_${Date.now()}_${i}`,
               timestamp: Number(r.timestamp) || (Date.now() - i * 60000),
               date: new Date(Number(r.timestamp) || Date.now()).toISOString().split('T')[0],
               time: new Date(Number(r.timestamp) || Date.now()).toTimeString().split(' ')[0],
               sender: r.sender || 'Unknown',
               amount: parseFloat(r.amountValue || TemplateMatcher.parseAmount(r.amount)) || 0,
-              rawAmount: r.amount || `₹${r.amountValue || 0}`,
+              rawAmount: r.amount ? String(r.amount) : `₹${r.amountValue || 0}`,
               sourceApp: r.sourceApp || 'Imported Data',
               message: r.message || '',
               templateId: '',
@@ -1877,10 +1721,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             csvPayload = PaymentsCsv.serializeCsv(txs);
           }
 
+          const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
           const res = await fetch('/api/donations/import', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ csv: csvPayload, mode: 'replace' })
+            body: JSON.stringify({ profile: activeProf, csv: csvPayload, mode: 'replace' })
           });
           const data = await res.json();
           if (data.ok) {
@@ -1888,7 +1733,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             config.widgets.leaderboard.supporters = data.metrics.supporters;
             config.widgets.recent.recentDonations = data.metrics.recentDonations;
             populateForm(config);
-            showToast(`<i data-lucide="file-spreadsheet"></i> Imported ${data.totalCount} transactions from CSV`);
+            showToast(`<i data-lucide="file-spreadsheet"></i> Imported ${data.totalCount} transactions into ${activeProf}`);
           } else {
             showToast('<i data-lucide="alert-triangle"></i> Import error: ' + (data.error || 'Failed'));
           }
@@ -1898,28 +1743,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
       reader.readAsText(file);
       e.target.value = '';
-    });
-
-    [['btn-recent-clear', 'Reset History Data', 'Clear all donation history transactions from the data store?'],
-     ['btn-recent-clear-all', 'Reset History Data', 'Clear all donation history transactions from the data store?']
-    ].forEach(([id, title, msg]) => {
-      on(id, 'click', async () => {
-        const confirmed = await AppModal.show({ title, message: msg + ' This will reset donations.csv data.' });
-        if (!confirmed) return;
-        try {
-          const res = await fetch('/api/donations/clear', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-          const data = await res.json();
-          if (data.ok) {
-            config.widgets.goal.currentAmount = data.metrics.goalAmount;
-            config.widgets.leaderboard.supporters = data.metrics.supporters;
-            config.widgets.recent.recentDonations = data.metrics.recentDonations;
-            populateForm(config);
-            showToast('<i data-lucide="trash-2"></i> Donation history and transactions cleared');
-          }
-        } catch (err) {
-          showToast('<i data-lucide="alert-triangle"></i> Failed to clear data');
-        }
-      });
     });
 
     // ── Code reset buttons
@@ -2163,8 +1986,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Refresh UI components for live data
             setVal('input-goal-current', config.widgets.goal.currentAmount);
-            renderSupportersTable();
-            renderRecentTable();
             syncLivePreview();
           }
         } catch (e) {}

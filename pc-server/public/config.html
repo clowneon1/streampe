@@ -86,6 +86,26 @@
         </div>
       </div>
 
+      <!-- Centralized Donations Data CSV Card in Sidebar -->
+      <div class="sidebar-donations-data-card" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 12px 14px 0 14px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--text); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span style="display: flex; align-items: center; gap: 5px;">
+            <i data-lucide="table" style="width: 14px; height: 14px; color: var(--accent);"></i>
+            <span>Donations Data</span>
+          </span>
+          <span style="font-size: 10px; background: rgba(0, 229, 255, 0.12); color: var(--accent); padding: 1px 6px; border-radius: 4px; font-weight: 700;">CSV</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <button class="btn btn-outline" type="button" id="btn-sidebar-export-donations" style="font-size: 11px; padding: 5px 8px; display: flex; align-items: center; justify-content: center; gap: 4px;" title="Export all donations history and supporter balances as CSV spreadsheet">
+            <i data-lucide="download" style="width: 12px; height: 12px;"></i> Export
+          </button>
+          <button class="btn btn-outline" type="button" id="btn-sidebar-import-donations" style="font-size: 11px; padding: 5px 8px; display: flex; align-items: center; justify-content: center; gap: 4px;" title="Import CSV spreadsheet to update Goal, Leaderboard & Recent donations">
+            <i data-lucide="upload" style="width: 12px; height: 12px;"></i> Import
+          </button>
+          <input type="file" id="file-import-donations-csv" accept=".csv,.json" style="display: none;" />
+        </div>
+      </div>
+
       <!-- Simulation Mode Quick Toggle Card in Sidebar -->
       <div class="sidebar-sim-mode-card" style="background: rgba(0, 229, 255, 0.06); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 8px; padding: 10px 12px; margin: 12px 14px 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
         <div style="flex: 1; min-width: 0;">
@@ -1093,13 +1113,8 @@
 
               <div class="form-group" style="margin-top: 10px;">
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                  <button class="btn btn-secondary" type="button" id="btn-goal-test-add"><i data-lucide="zap"></i> Add &#8377;100
-                    Test</button>
-                  <button class="btn btn-danger" type="button" id="btn-goal-reset"><i data-lucide="rotate-ccw"></i> Reset Current
-                    Amount</button>
-                  <button class="btn btn-outline" type="button" id="btn-goal-export"><i data-lucide="upload"></i> Export Goal Data</button>
-                  <button class="btn btn-outline" type="button" id="btn-goal-import"><i data-lucide="download"></i> Import Goal Data</button>
-                  <input type="file" id="file-import-goal-input" accept=".json" style="display: none;" />
+                  <button class="btn btn-secondary" type="button" id="btn-goal-test-add"><i data-lucide="zap"></i> Add &#8377;100 Test</button>
+                  <button class="btn btn-danger" type="button" id="btn-goal-reset"><i data-lucide="rotate-ccw"></i> Reset Current Amount</button>
                 </div>
               </div>
             </div>
@@ -1406,39 +1421,8 @@
                   <input type="number" id="lb-canvas-height" class="form-control" min="100" max="4320" value="1080" />
                 </div>
               </div>
-
-              <div class="form-group" style="margin-top: 10px;">
-                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                  <button class="btn btn-danger" type="button" id="btn-lb-clear"><i data-lucide="trash-2"></i> Reset Leaderboard Data</button>
-                  <button class="btn btn-outline" type="button" id="btn-lb-export"><i data-lucide="file-spreadsheet"></i> Export CSV</button>
-                  <button class="btn btn-outline" type="button" id="btn-lb-import"><i data-lucide="upload"></i> Import CSV</button>
-                  <input type="file" id="file-import-lb-input" accept=".csv,.json" style="display: none;" />
-                </div>
-              </div>
             </div>
           </details>
-
-          <div class="form-group" style="margin-top: 16px;">
-            <div class="label-with-switch">
-              <label><i data-lucide="users" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Live Supporters List</label>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="btn btn-secondary" type="button" id="btn-lb-clear-all"
-                  style="padding: 4px 10px; font-size: 11px;"><i data-lucide="trash-2"></i> Clear All</button>
-              </div>
-            </div>
-          </div>
-          <div id="lb-preview-container" class="code-preview-box box-expandable" style="white-space: normal; padding: 8px;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px;" id="lb-table">
-              <thead>
-                <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--text-muted);">
-                  <th style="padding: 6px;">Name</th>
-                  <th style="padding: 6px;">Total Contributed</th>
-                  <th style="padding: 6px; text-align: right;">Action</th>
-                </tr>
-              </thead>
-              <tbody id="lb-table-body"></tbody>
-            </table>
-          </div>
 
         <details class="collapsible-advanced">
           <summary class="collapsible-summary">
@@ -1760,40 +1744,8 @@
                   <input type="number" id="recent-canvas-height" class="form-control" min="100" max="4320" value="1080" />
                 </div>
               </div>
-
-              <div class="form-group" style="margin-top: 10px;">
-                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                  <button class="btn btn-danger" type="button" id="btn-recent-clear"><i data-lucide="trash-2"></i> Reset History Data</button>
-                  <button class="btn btn-outline" type="button" id="btn-recent-export"><i data-lucide="file-spreadsheet"></i> Export CSV</button>
-                  <button class="btn btn-outline" type="button" id="btn-recent-import"><i data-lucide="upload"></i> Import CSV</button>
-                  <input type="file" id="file-import-recent-input" accept=".csv,.json" style="display: none;" />
-                </div>
-              </div>
             </div>
           </details>
-
-          <div class="form-group" style="margin-top: 16px;">
-            <div class="label-with-switch">
-              <label><i data-lucide="list" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Live Recent History</label>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="btn btn-secondary" type="button" id="btn-recent-clear-all"
-                  style="padding: 4px 10px; font-size: 11px;"><i data-lucide="trash-2"></i> Clear All</button>
-              </div>
-            </div>
-          </div>
-          <div id="recent-preview-container" class="code-preview-box box-expandable" style="white-space: normal; padding: 8px;">
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px;" id="recent-table">
-              <thead>
-                <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--text-muted);">
-                  <th style="padding: 6px;">Name</th>
-                  <th style="padding: 6px;">Amount</th>
-                  <th style="padding: 6px;">Time</th>
-                  <th style="padding: 6px; text-align: right;">Action</th>
-                </tr>
-              </thead>
-              <tbody id="recent-table-body"></tbody>
-            </table>
-          </div>
 
         <details class="collapsible-advanced">
           <summary class="collapsible-summary">
@@ -2310,10 +2262,7 @@
   <div class="action-bar">
     <button class="btn btn-primary" id="btn-save"><i data-lucide="save"></i> Save Settings</button>
     <button class="btn btn-secondary" id="btn-test"><i data-lucide="zap"></i> Test Alert</button>
-    <button class="btn btn-outline" id="btn-export"><i data-lucide="upload"></i> Export</button>
-    <button class="btn btn-outline" id="btn-import"><i data-lucide="download"></i> Import</button>
     <button class="btn btn-danger" id="btn-reset"><i data-lucide="rotate-ccw"></i> Reset to Defaults</button>
-    <input type="file" id="file-import-input" accept=".json" style="display: none;" />
   </div>
   </section>
 

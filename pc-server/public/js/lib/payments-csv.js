@@ -18,12 +18,40 @@
     'time',
     'sender',
     'amount',
-    'rawAmount',
+    'currency',
     'sourceApp',
     'message',
     'templateId',
     'simulated'
   ];
+
+  const CURRENCY_SYMBOLS = {
+    INR: '₹',
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    JPY: '¥',
+    CAD: 'CA$',
+    AUD: 'A$'
+  };
+
+  /**
+   * Get display symbol for ISO currency code (default: ₹ for INR).
+   */
+  function getCurrencySymbol(curr) {
+    if (!curr) return '₹';
+    const code = String(curr).trim().toUpperCase();
+    return CURRENCY_SYMBOLS[code] || code;
+  }
+
+  /**
+   * Format numeric amount with currency symbol.
+   */
+  function formatCurrency(amount, curr = 'INR') {
+    const num = parseFloat(amount) || 0;
+    const sym = getCurrencySymbol(curr);
+    return `${sym}${num.toLocaleString('en-IN')}`;
+  }
 
   /**
    * Escape a field for CSV (RFC 4180).
@@ -47,6 +75,7 @@
     const timeStr = tx.time || (!isNaN(d.getTime()) ? d.toTimeString().split(' ')[0] : '');
     const amtNum = parseFloat(tx.amount);
     const effectiveAmount = isFinite(amtNum) ? amtNum.toFixed(2) : '0.00';
+    const currCode = (tx.currency ? String(tx.currency).trim().toUpperCase() : 'INR') || 'INR';
 
     return [
       escapeCsvField(tx.id || `evt_${ts}`),
@@ -55,7 +84,7 @@
       escapeCsvField(timeStr),
       escapeCsvField(tx.sender || 'Unknown'),
       effectiveAmount,
-      escapeCsvField(tx.rawAmount || `₹${effectiveAmount}`),
+      escapeCsvField(currCode),
       escapeCsvField(tx.sourceApp || 'Unknown'),
       escapeCsvField(tx.message || ''),
       escapeCsvField(tx.templateId || ''),
@@ -122,6 +151,7 @@
       time: headerRow.findIndex(h => h === 'time'),
       sender: headerRow.findIndex(h => h === 'sender' || h === 'name' || h === 'donor' || h === 'username'),
       amount: headerRow.findIndex(h => h === 'amount' || h === 'amt' || h === 'value'),
+      currency: headerRow.findIndex(h => h === 'currency' || h === 'curr' || h === 'iso'),
       rawAmount: headerRow.findIndex(h => h === 'rawamount' || h === 'rawamt' || h === 'amountformatted'),
       sourceApp: headerRow.findIndex(h => h === 'sourceapp' || h === 'app' || h === 'source' || h === 'appname' || h === 'provider'),
       message: headerRow.findIndex(h => h === 'message' || h === 'msg' || h === 'note' || h === 'comment'),
@@ -139,6 +169,15 @@
 
       const rawAmtStr = get(fieldIndex.amount, get(fieldIndex.rawAmount, '0'));
       const parsedAmount = parseFloat(rawAmtStr.replace(/[^0-9.-]/g, '')) || 0;
+
+      let currencyVal = get(fieldIndex.currency, '').toUpperCase().trim();
+      if (!currencyVal) {
+        // Detect from symbols if missing
+        if (rawAmtStr.includes('$')) currencyVal = 'USD';
+        else if (rawAmtStr.includes('€')) currencyVal = 'EUR';
+        else if (rawAmtStr.includes('£')) currencyVal = 'GBP';
+        else currencyVal = 'INR';
+      }
 
       let ts = Number(get(fieldIndex.timestamp, ''));
       if (!ts || isNaN(ts)) {
@@ -162,7 +201,8 @@
         time: get(fieldIndex.time, new Date(ts).toTimeString().split(' ')[0]),
         sender: get(fieldIndex.sender, 'Unknown').trim() || 'Unknown',
         amount: parsedAmount,
-        rawAmount: get(fieldIndex.rawAmount, `₹${parsedAmount}`),
+        currency: currencyVal,
+        rawAmount: formatCurrency(parsedAmount, currencyVal),
         sourceApp: get(fieldIndex.sourceApp, 'Manual Entry').trim() || 'Unknown',
         message: get(fieldIndex.message, '').trim(),
         templateId: get(fieldIndex.templateId, '').trim(),
@@ -225,17 +265,21 @@
     });
 
     // Recent donations (latest 50 items)
-    const recentDonations = validTxs.slice(0, 50).map(tx => ({
-      id: tx.id,
-      sender: tx.sender || 'Unknown',
-      amount: tx.rawAmount || `₹${tx.amount}`,
-      amountValue: tx.amount,
-      sourceApp: tx.sourceApp || '',
-      message: tx.message || '',
-      timestamp: tx.timestamp || Date.now(),
-      date: tx.date,
-      time: tx.time
-    }));
+    const recentDonations = validTxs.slice(0, 50).map(tx => {
+      const curr = tx.currency || 'INR';
+      return {
+        id: tx.id,
+        sender: tx.sender || 'Unknown',
+        amount: tx.rawAmount || formatCurrency(tx.amount, curr),
+        amountValue: tx.amount,
+        currency: curr,
+        sourceApp: tx.sourceApp || '',
+        message: tx.message || '',
+        timestamp: tx.timestamp || Date.now(),
+        date: tx.date,
+        time: tx.time
+      };
+    });
 
     // Leaderboard sorted list
     const sortedLeaderboard = Object.entries(supportersMap)
@@ -264,6 +308,9 @@
 
   return {
     CSV_HEADERS,
+    CURRENCY_SYMBOLS,
+    getCurrencySymbol,
+    formatCurrency,
     escapeCsvField,
     formatCsvRow,
     parseCsv,

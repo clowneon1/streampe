@@ -446,7 +446,8 @@ function autoMigrateInitialDonations() {
             time: new Date(ts).toTimeString().split(' ')[0],
             sender: r.sender || 'Unknown',
             amount: amtNum,
-            rawAmount: r.amount || `₹${amtNum}`,
+            currency: 'INR',
+            rawAmount: PaymentsCsv.formatCurrency(amtNum, 'INR'),
             sourceApp: r.sourceApp || 'Migrated Data',
             message: r.message || '',
             templateId: '',
@@ -467,7 +468,8 @@ function autoMigrateInitialDonations() {
               time: new Date(now).toTimeString().split(' ')[0],
               sender: name,
               amount: amt,
-              rawAmount: `₹${amt}`,
+              currency: 'INR',
+              rawAmount: PaymentsCsv.formatCurrency(amt, 'INR'),
               sourceApp: 'Migrated Data',
               message: '',
               templateId: '',
@@ -547,6 +549,7 @@ function processPaymentForGoalAndLeaderboard(notification) {
     const now = Number(notification.timestamp) || Date.now();
     const d = new Date(now);
 
+    const currencyCode = (notification.currency || 'INR').toUpperCase();
     const tx = {
       id: alertId || `evt_${now}_${Math.random().toString(36).slice(2, 6)}`,
       timestamp: now,
@@ -554,7 +557,8 @@ function processPaymentForGoalAndLeaderboard(notification) {
       time: !isNaN(d.getTime()) ? d.toTimeString().split(' ')[0] : '',
       sender: senderName,
       amount: effectiveAmount,
-      rawAmount: notification.amount || `₹${effectiveAmount}`,
+      currency: currencyCode,
+      rawAmount: PaymentsCsv.formatCurrency(effectiveAmount, currencyCode),
       sourceApp: notification.sourceApp || notification.appName || 'Unknown',
       message: notification.message || '',
       templateId: notification.alertTemplateId || '',
@@ -660,6 +664,7 @@ app.post('/api/donations/record', (req, res) => {
     const now = Number(body.timestamp) || Date.now();
     const d = new Date(now);
 
+    const currencyCode = (body.currency || 'INR').toUpperCase();
     const tx = {
       id: body.id || `manual_${now}_${Math.random().toString(36).slice(2, 6)}`,
       timestamp: now,
@@ -667,7 +672,8 @@ app.post('/api/donations/record', (req, res) => {
       time: body.time || (!isNaN(d.getTime()) ? d.toTimeString().split(' ')[0] : ''),
       sender: (body.sender || 'Anonymous').trim(),
       amount: amountNum,
-      rawAmount: body.amount ? `₹${amountNum}` : `₹${amountNum}`,
+      currency: currencyCode,
+      rawAmount: PaymentsCsv.formatCurrency(amountNum, currencyCode),
       sourceApp: (body.sourceApp || 'Manual Entry').trim(),
       message: (body.message || '').trim(),
       templateId: body.templateId || '',
