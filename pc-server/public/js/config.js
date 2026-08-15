@@ -190,10 +190,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!btn || btn._copying) return;
     btn._copying = true;
     const original = btn.innerHTML;
+    const originalTitle = btn.title;
     const originalBg = btn.style.background;
     const originalColor = btn.style.color;
     const originalBorder = btn.style.border;
-    btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;margin-right:4px;"></i> Copied!';
+    btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;"></i>';
+    btn.title = 'Copied!';
     if (window.lucide) lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide' });
     btn.style.background = '#00e676';
     btn.style.color = '#000';
@@ -201,11 +203,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     btn.classList.add('btn-copy-flash');
     setTimeout(() => {
       btn.innerHTML = original;
+      btn.title = originalTitle;
       btn.style.background = originalBg;
       btn.style.color = originalColor;
       btn.style.border = originalBorder;
       btn.classList.remove('btn-copy-flash');
       btn._copying = false;
+      if (window.lucide) lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide' });
     }, 1600);
   }
 
@@ -575,6 +579,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     config.widgets.cycling = cycling;
+    config.simulation = {
+      isolatedMode: checked('chk-sim-isolated-mode', true)
+    };
     config = ConfigSchema.normalizeConfig(config);
     return config;
   }
@@ -767,6 +774,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     renderSupportersTable();
     renderRecentTable();
+
+    const simIsolatedVal = config.simulation ? config.simulation.isolatedMode !== false : true;
+    setChecked('chk-sim-isolated-mode', simIsolatedVal);
 
     suppressSync = false;
     syncLivePreview();
@@ -1468,7 +1478,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       { sender: 'Amit Verma', amount: '₹250', sourceApp: 'Paytm', message: 'Chai paani subscription ☕' },
       { sender: 'Sneha Patel', amount: '₹300', sourceApp: 'BHIM UPI', message: 'Great gameplay! 🎮' }
     ];
-    const picked = { ...samples[Math.floor(Math.random() * samples.length)], timestamp: Date.now() };
+    const picked = { ...samples[Math.floor(Math.random() * samples.length)], timestamp: Date.now(), simulated: true };
     if (customAmount !== undefined && customAmount !== null && customAmount !== '') {
       const num = parseFloat(customAmount);
       if (Number.isFinite(num)) {
@@ -1917,6 +1927,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       return {
         type: 'payment_notification',
+        simulated: true,
         packageName,
         appName,
         title,
@@ -1948,6 +1959,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
+    on('chk-sim-isolated-mode', 'change', async (e) => {
+      readFormValues();
+      await saveToServer();
+      if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+      showToast(e.target.checked
+        ? '<i data-lucide="shield-check"></i> Isolated Simulation Mode active (Live stats safe)'
+        : '<i data-lucide="alert-triangle"></i> Isolated Simulation Mode OFF (Tests will update Goal/Leaderboard)',
+        e.target.checked ? 'info' : 'warning');
+    });
+
     on('btn-sim-random', 'click', () => {
       const sample = sampleAlert();
       const providers = ['phonepe', 'gpay', 'paytm', 'amazon', 'bhim'];
@@ -1976,6 +1997,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const rawAmount = val('sim-amount', '500');
       const message = val('sim-message', '');
       const forcedId = val('sim-template-override', '');
+      const isIsolated = config.simulation ? config.simulation.isolatedMode !== false : true;
 
       const rawNotif = buildSimulatedNotification(provider, sender, rawAmount, message);
       const numAmount = TemplateMatcher.parseAmount(rawAmount);
@@ -1983,6 +2005,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const logData = {
         inspectTime: new Date().toLocaleTimeString(),
+        simulationMode: isIsolated ? '🛡️ Isolated (Goal & Leaderboard untouched)' : '⚡ Live Mutation (Will update Goal & Leaderboard)',
         simulatedRawMobileNotification: rawNotif,
         parsedDetails: {
           extractedSender: sender,
@@ -2010,6 +2033,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const rawAmount = val('sim-amount', '500');
       const message = val('sim-message', '');
       const forcedId = val('sim-template-override', '');
+      const isIsolated = config.simulation ? config.simulation.isolatedMode !== false : true;
 
       // Generate a fresh unique ID for every dispatch so the server counts it for goal/leaderboard
       const alertId = `sim_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -2020,7 +2044,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (forcedId) rawNotif.alertTemplateId = forcedId;
 
       const c = el('sim-console');
-      if (c) c.textContent = `[DISPATCHING RAW MOBILE NOTIFICATION...]\n${JSON.stringify(rawNotif, null, 2)}`;
+      if (c) c.textContent = `[DISPATCHING RAW MOBILE NOTIFICATION (${isIsolated ? '🛡️ ISOLATED' : '⚡ LIVE'})...]\n${JSON.stringify(rawNotif, null, 2)}`;
 
       try {
         const res = await fetch('/api/test', {
@@ -2031,10 +2055,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await res.json();
         if (c) {
           c.textContent = `[DISPATCH SUCCESS - ${new Date().toLocaleTimeString()}]\n` +
+            `Simulation Mode: ${isIsolated ? '🛡️ ISOLATED (Live stats protected)' : '⚡ LIVE MUTATION (Goal & Leaderboard updated)'}\n` +
             `Server Output: ${JSON.stringify(data, null, 2)}\n\n` +
             `Raw Mobile Notification Payload Sent:\n${JSON.stringify(rawNotif, null, 2)}`;
         }
-        showToast('<i data-lucide="send"></i> Dispatched raw event (' + provider.toUpperCase() + ' ₹' + rawAmount + ')');
+        showToast('<i data-lucide="send"></i> Dispatched raw event (' + provider.toUpperCase() + ' ₹' + rawAmount + ' · ' + (isIsolated ? 'Isolated' : 'Live') + ')');
       } catch (err) {
         if (c) c.textContent += `\n\n[ERROR]: ${err.message}`;
         showToast('<i data-lucide="alert-triangle"></i> Dispatch failed: ' + err.message);

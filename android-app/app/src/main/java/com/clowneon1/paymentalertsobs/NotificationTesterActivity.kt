@@ -168,6 +168,7 @@ class NotificationTesterActivity : AppCompatActivity() {
             val json = JSONObject().apply {
                 put("alertId",     alertId)
                 put("source",      "tester")
+                put("simulated",   true)
                 put("packageName", pkgVal)
                 put("appName",     appName)
                 put("title",       title)

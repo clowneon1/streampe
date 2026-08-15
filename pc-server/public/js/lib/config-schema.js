@@ -551,7 +551,8 @@
           recent: this.normalizeWidget('recent', WIDGET_DEFAULTS.recent),
           cycling: this.normalizeWidget('cycling', WIDGET_DEFAULTS.cycling)
         },
-        filter: { allowedAmounts: [] }
+        filter: { allowedAmounts: [] },
+        simulation: { isolatedMode: true }
       };
     },
 
@@ -584,6 +585,10 @@
         .map(a => num(a, NaN))
         .filter(a => Number.isFinite(a));
 
+      const isolatedMode = (src.simulation && src.simulation.isolatedMode !== undefined)
+        ? !!src.simulation.isolatedMode
+        : true;
+
       return {
         version: CONFIG_VERSION,
         activeWidget: WIDGET_KINDS.indexOf(src.activeWidget) !== -1 ? src.activeWidget : 'alert',
@@ -596,7 +601,8 @@
           recent: this.normalizeWidget('recent', src.widgets && src.widgets.recent),
           cycling: this.normalizeWidget('cycling', src.widgets && src.widgets.cycling)
         },
-        filter: { allowedAmounts }
+        filter: { allowedAmounts },
+        simulation: { isolatedMode }
       };
     }
   };

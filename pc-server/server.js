@@ -312,7 +312,8 @@ function applySettingsPatch(current, patch) {
       acc[kind] = { ...current.widgets[kind], ...(widgetPatch[kind] || {}) };
       return acc;
     }, {}),
-    filter: { ...current.filter, ...(body.filter || {}) }
+    filter: { ...current.filter, ...(body.filter || {}) },
+    simulation: { ...(current.simulation || { isolatedMode: true }), ...(body.simulation || {}) }
   };
   return ConfigMigration.migrate(merged);
 }
@@ -385,6 +386,14 @@ function decorateWithTemplate(event) {
 
 function processPaymentForGoalAndLeaderboard(notification) {
   try {
+    const isSimulated = notification.simulated === true || notification.source === 'tester';
+    const isIsolated = alertSettings.simulation ? alertSettings.simulation.isolatedMode !== false : true;
+
+    if (isSimulated && isIsolated) {
+      log.info('Payment', `[Simulation Mode: Isolated] Skipped live goal/leaderboard/recent updates for ₹${notification.amount || '0'} from "${notification.sender || 'Test'}"`);
+      return;
+    }
+
     const alertId = notification.alertId || notification.eventId || notification.id || (notification.timestamp ? `${notification.packageName || notification.appName || ''}_${notification.timestamp}_${notification.amount || ''}` : null);
     if (alertId && processedAlertIds.has(alertId)) {
       log.dedup('Dedup', `alertId ${alertId} already processed — overlay only`);
@@ -719,8 +728,10 @@ app.post('/api/logs/clear', (req, res) => {
 
 function broadcastSample(sample) {
   const parsed = parsePayment(sample);
+  const isSimulated = sample.simulated !== undefined ? !!sample.simulated : true;
   const decorated = decorateWithTemplate({
     ...sample,
+    simulated: isSimulated,
     sender   : parsed ? parsed.sender    : (sample.sender    || ''),
     amount   : parsed ? parsed.amount    : (sample.amount    || ''),
     sourceApp: parsed ? parsed.sourceApp : (sample.sourceApp || sample.appName)
@@ -733,23 +744,29 @@ function broadcastSample(sample) {
   if (count > 0) {
     processPaymentForGoalAndLeaderboard(decorated);
   }
-  log.event('TestEvent', `Sample alert triggered: ₹${decorated.amount || '0'} from "${decorated.sender || 'Test'}"`, decorated);
-  return { count, templateId: decorated.alertTemplateId, templateName: decorated.alertTemplateName };
+  log.event('TestEvent', `Sample alert triggered (simulated=${isSimulated}): ₹${decorated.amount || '0'} from "${decorated.sender || 'Test'}"`, decorated);
+  return { count, templateId: decorated.alertTemplateId, templateName: decorated.alertTemplateName, simulated: isSimulated };
 }
 
 app.get('/api/test', (req, res) => {
   const result = broadcastSample({
-    type: 'payment_notification', packageName: 'com.phonepe.app', appName: 'PhonePe',
-    title: 'PhonePe', text: 'D SINGH has sent Rs. 500.00 to your bank account',
+    type: 'payment_notification',
+    simulated: true,
+    packageName: 'com.phonepe.app',
+    appName: 'PhonePe',
+    title: 'PhonePe',
+    text: 'D SINGH has sent Rs. 500.00 to your bank account',
     timestamp: Date.now()
   });
-  res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId });
+  res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId, simulated: true });
 });
 
 app.post('/api/test', (req, res) => {
   const body = req.body || {};
+  const isSimulated = body.simulated !== undefined ? !!body.simulated : true;
   const result = broadcastSample({
     type: 'payment_notification',
+    simulated:       isSimulated,
     packageName:     body.packageName     || 'com.phonepe.app',
     appName:         body.appName         || 'PhonePe',
     title:           body.title           || 'PhonePe',
@@ -761,7 +778,7 @@ app.post('/api/test', (req, res) => {
     alertTemplateId: body.alertTemplateId || null,
     timestamp:       Date.now()
   });
-  res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId });
+  res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId, simulated: isSimulated });
 });
 
 // Fix: use getActiveWsCount() so /health never reports stale/dead sockets
@@ -798,8 +815,10 @@ wss.on('connection', (ws, req) => {
         if (!title && !text) return;
 
         const parsed = parsePayment(notification);
+        const isSimulated = notification.simulated === true || notification.source === 'tester';
         const enriched = {
           ...notification,
+          simulated : isSimulated,
           appName,
           title,
           text,
