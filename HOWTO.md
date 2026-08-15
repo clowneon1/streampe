@@ -6,12 +6,13 @@ This guide covers everything from downloading the application to configuring you
 
 ## 💻 Part 1: PC Setup (Windows)
 
-### 1. Download and Extract
-- Download the latest `Payment Alerts for OBS-1.0.0-win.zip` from the [GitHub Releases](https://github.com/clowneon1/payment-alerts-for-obs/releases) page.
-- Extract the ZIP file to a folder (e.g., `C:\StreamTools\PaymentAlerts`).
+### 1. Download and Install
+- Download the latest **`Payment-Alerts-for-OBS-v2.0.0-Setup.exe`** (Installer) or **`Payment-Alerts-for-OBS-v2.0.0-Portable.zip`** (Standalone Portable) from the [GitHub Releases](https://github.com/clowneon1/payment-alerts-for-obs/releases) page.
+- **Installer**: Run the `.exe` setup to install Payment Alerts for OBS.
+- **Portable**: Extract the ZIP file to any folder (e.g., `C:\StreamTools\PaymentAlerts`) and run `Payment Alerts for OBS.exe`.
 
 ### 2. Run as Administrator
-- Right-click **`Payment Alerts for OBS.exe`** and select **Run as Administrator**.
+- Right-click **`Payment Alerts for OBS.exe`** (or the shortcut) and select **Run as Administrator**.
 - **Why?** This allows the app to automatically configure the Windows Firewall and setup "Run on Startup" if you choose to enable it.
 
 ### 3. Allow Network Access (Firewall)
