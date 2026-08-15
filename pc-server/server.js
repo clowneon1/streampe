@@ -25,14 +25,11 @@ app.get('/', (req, res) => {
 // ── Debug Logger ─────────────────────────────────────────────────────
 let writableBaseDir = __dirname;
 try {
-  // Detect if running inside Electron's main process
-  const { app: electronApp } = require('electron');
-  if (electronApp && typeof electronApp.getPath === 'function') {
-    writableBaseDir = electronApp.getPath('userData');
+  // In Tauri the TAURI_APP_DATA env var is set by the Rust launcher
+  if (process.env.TAURI_APP_DATA) {
+    writableBaseDir = process.env.TAURI_APP_DATA;
   }
-} catch (e) {
-  // Not in Electron or require('electron') failed (standalone mode)
-}
+} catch (e) {}
 
 const LOG_DIR       = path.join(writableBaseDir, 'logs');
 const LOG_FILE      = path.join(LOG_DIR, 'events.log');
@@ -108,17 +105,6 @@ function getPrimaryIp() {
 function isWindowsStartupEnabled(callback) {
   if (process.platform !== 'win32') return callback(false);
 
-  try {
-    const electron = require('electron');
-    const appObj = electron.app || electron.remote?.app;
-    if (appObj && typeof appObj.getLoginItemSettings === 'function') {
-      const settings = appObj.getLoginItemSettings();
-      if (settings && settings.openAtLogin) {
-        return callback(true);
-      }
-    }
-  } catch (e) {}
-
   exec('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS"', (err, stdout) => {
     if (!err && stdout && (stdout.includes('PaymentAlertsOBS') || stdout.includes('Payment Alerts'))) {
       return callback(true);
@@ -142,30 +128,15 @@ function isWindowsStartupEnabled(callback) {
 function setWindowsStartup(enable, callback) {
   if (process.platform !== 'win32') return callback ? callback(false, 'Windows platform required') : null;
 
-  let usedElectron = false;
-  try {
-    const electron = require('electron');
-    const appObj = electron.app || electron.remote?.app;
-    if (appObj && typeof appObj.setLoginItemSettings === 'function') {
-      appObj.setLoginItemSettings({
-        openAtLogin: enable,
-        path: process.execPath
-      });
-      usedElectron = true;
-    }
-  } catch (e) {}
-
-  // Always delete manual registry entry if Electron handled it, to avoid duplicate startup entries
+  // Use registry directly (Tauri handles autostart via tauri-plugin-autostart on the Rust side)
   exec('reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /f', () => {
-    if (!usedElectron) {
-      if (enable) {
-        const exePath = process.execPath;
-        const cmd = `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /t REG_SZ /d "\"${exePath}\"" /f`;
-        exec(cmd, (err) => {
-          if (callback) callback(!err, err ? err.message : null);
-        });
-        return;
-      }
+    if (enable) {
+      const exePath = process.execPath;
+      const cmd = `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /t REG_SZ /d "\"${exePath}\"" /f`;
+      exec(cmd, (err) => {
+        if (callback) callback(!err, err ? err.message : null);
+      });
+      return;
     }
     if (!enable) {
       try {
@@ -583,11 +554,28 @@ app.get('/api/network-info', (req, res) => {
   });
 });
 
-let systemConfig = {
-  minimizeOnClose: true
-};
+const SYSTEM_CONFIG_FILE = path.join(SETTINGS_DIR, 'system.json');
+
+function loadSystemConfig() {
+  try {
+    if (fs.existsSync(SYSTEM_CONFIG_FILE)) {
+      return JSON.parse(fs.readFileSync(SYSTEM_CONFIG_FILE, 'utf8'));
+    }
+  } catch (_) {}
+  return { minimizeOnClose: true, startMinimized: false };
+}
+
+function saveSystemConfig(cfg) {
+  try {
+    if (!fs.existsSync(SETTINGS_DIR)) fs.mkdirSync(SETTINGS_DIR, { recursive: true });
+    fs.writeFileSync(SYSTEM_CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
+  } catch (_) {}
+}
+
+let systemConfig = loadSystemConfig();
 
 server.getMinimizeOnClose = () => systemConfig.minimizeOnClose;
+server.getStartMinimized = () => systemConfig.startMinimized;
 
 app.get('/api/system/startup', (req, res) => {
   isWindowsStartupEnabled((enabled) => res.json({ enabled, isWindows: process.platform === 'win32' }));
@@ -608,7 +596,29 @@ app.get('/api/system/minimize-on-close', (req, res) => {
 app.post('/api/system/minimize-on-close', (req, res) => {
   const { enabled } = req.body || {};
   systemConfig.minimizeOnClose = !!enabled;
+  saveSystemConfig(systemConfig);
   res.json({ ok: true, enabled: systemConfig.minimizeOnClose });
+});
+
+app.get('/api/system/start-minimized', (req, res) => {
+  res.json({ enabled: !!systemConfig.startMinimized });
+});
+
+app.post('/api/system/start-minimized', (req, res) => {
+  const { enabled } = req.body || {};
+  systemConfig.startMinimized = !!enabled;
+  saveSystemConfig(systemConfig);
+  res.json({ ok: true, enabled: systemConfig.startMinimized });
+});
+
+app.post('/api/system/open-browser', (req, res) => {
+  const { url } = req.body || {};
+  const actualPort = server.address() ? server.address().port : (process.env.PORT || 2907);
+  const targetUrl = url || `http://127.0.0.1:${actualPort}/config`;
+  if (process.platform === 'win32') {
+    exec(`start "" "${targetUrl}"`);
+  }
+  res.json({ ok: true });
 });
 
 let isServerListening = true;

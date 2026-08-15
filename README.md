@@ -11,7 +11,7 @@ A free, open-source, ultra-fast, and self-hosted solution to display real-time m
 | 💻 Lightweight Desktop App Window | 🎛️ Live Alert Customizer & OBS Preview |
 | :---: | :---: |
 | <img src="readme-assets/Screenshot%202026-07-28%20212603.png" width="420" alt="Desktop App Window" /> | <img src="readme-assets/Screenshot%202026-07-28%20212617.png" width="420" alt="Live Alert Customizer" /> |
-| *Native Electron app window with IP URL copy & auto-start toggle* | *Real-time alert customizer with live transparent OBS overlay grid* |
+| *Native Tauri v2 app window with IP URL copy & auto-start toggle* | *Real-time alert customizer with live transparent OBS overlay grid* |
 
 | 🎯 Payment Goal Bar Widget | 🏆 Top Supporters Leaderboard |
 | :---: | :---: |
@@ -34,10 +34,11 @@ A free, open-source, ultra-fast, and self-hosted solution to display real-time m
 
 ## 📌 Key Highlights & Features
 
-### ⚡ Ultra-Lightweight Desktop Client
-- **Minimal Resource Footprint**: Native Electron window uses < 20 MB RAM with zero UI rendering lag.
+### ⚡ Ultra-Lightweight Desktop Client (Tauri v2 + Bun)
+- **Minimal Resource Footprint**: Built with **Tauri v2** and **Bun** — uses < 25 MB RAM with instant startup and zero UI rendering lag.
+- **Dual Release Distribution**: Available as both a standard **Windows Setup Installer (`.exe`)** and a **Zero-Install Portable ZIP (`.zip`)**.
 - **System Tray Integration**: Minimizes cleanly to the taskbar system tray so your server stays running invisibly in the background.
-- **Windows Start on Boot**: Toggle auto-start on Windows boot directly from the desktop client or web dashboard.
+- **Start Minimized & Start on Boot**: Option to launch silently into the system tray or on Windows startup automatically.
 - **One-Click Control Panel**: Launch the full web control panel in your default web browser at `http://127.0.0.1:2907/config`.
 
 ### 🎨 Fully Customizable Overlays & Live Preview
@@ -78,12 +79,12 @@ A free, open-source, ultra-fast, and self-hosted solution to display real-time m
 
 ### 1. Download Pre-Built Release
 - Visit the official [GitHub Releases Page](https://github.com/clowneon1/payment-alerts-for-obs/releases).
-- Download `Payment Alerts for OBS-1.0.0-win.zip` (or portable `.exe`).
-- Extract the ZIP file to any folder on your PC.
+- Download **`Payment-Alerts-for-OBS-v2.0.0-Setup.exe`** (Installer) or **`Payment-Alerts-for-OBS-v2.0.0-Portable.zip`** (Zero-install portable archive).
+- Run the installer or extract the portable ZIP to any folder on your PC.
 
 ### 2. Launch the Application
-- Double-click **`Payment Alerts for OBS.exe`** to start the app.
-- **Run as Administrator**: If network discovery isn't working, right-click the `.exe` and select **Run as Administrator**.
+- Run **`Payment Alerts for OBS.exe`** (or launch from Start Menu if installed).
+- **Run as Administrator**: If network discovery isn't working, right-click the app and select **Run as Administrator**.
 - **Firewall Permission**: When Windows Security Alert appears, check **both Private and Public networks** and click **Allow Access**.
 - The app starts on **port 2907** by default.
 - Click **Open Control Panel in Browser** to open the full dashboard in Chrome/Edge/Brave.
@@ -127,18 +128,20 @@ npm install
 
 ### Development Server:
 ```bash
+# Start local Node.js server (with auto-reload)
 npm run dev
 ```
 
-### Run Electron Desktop Client:
+### Run Tauri Desktop Client in Dev Mode:
 ```bash
-npm run app:start
+npm run app:dev
 ```
 
-### Build Distribution ZIP Package:
+### Build Final Release Packages (Installer + Portable ZIP):
 ```bash
 npm run app:dist
 ```
+*Outputs both `Payment-Alerts-for-OBS-v2.0.0-Setup.exe` and `Payment-Alerts-for-OBS-v2.0.0-Portable.zip` into `dist/`.*
 
 ---
 
