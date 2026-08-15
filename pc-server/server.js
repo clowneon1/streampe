@@ -383,7 +383,9 @@ function saveDonations(profileName, transactions) {
   const filePath = getDonationsCsvPath(profileName);
   try {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    const content = PaymentsCsv.serializeCsv(transactions);
+    // Guarantee that ONLY authentic payments are stored in the CSV ledger
+    const realTransactions = (transactions || []).filter(t => !t.simulated);
+    const content = PaymentsCsv.serializeCsv(realTransactions);
     fs.writeFileSync(filePath, content, 'utf8');
     return true;
   } catch (e) {
@@ -524,8 +526,9 @@ function processPaymentForGoalAndLeaderboard(notification) {
     const isSimulated = notification.simulated === true || notification.source === 'tester';
     const isIsolated = alertSettings.simulation ? alertSettings.simulation.isolatedMode !== false : true;
 
+    // Strict guard: Never write simulated test alerts to persistent CSV if they are not real alerts
     if (isSimulated && isIsolated) {
-      log.info('Payment', `[Simulation Mode: Isolated] Skipped live goal/leaderboard/recent updates for ₹${notification.amount || '0'} from "${notification.sender || 'Test'}"`);
+      log.info('Payment', `[Simulation Mode: Isolated] Skipped live payment recording to CSV for ₹${notification.amount || '0'} from "${notification.sender || 'Test'}"`);
       return;
     }
 
@@ -555,7 +558,7 @@ function processPaymentForGoalAndLeaderboard(notification) {
       sourceApp: notification.sourceApp || notification.appName || 'Unknown',
       message: notification.message || '',
       templateId: notification.alertTemplateId || '',
-      simulated: isSimulated
+      simulated: false
     };
 
     // Single source of truth: Load, append, save CSV and compute derived metrics
@@ -1008,21 +1011,23 @@ function broadcastSample(sample) {
 }
 
 app.get('/api/test', (req, res) => {
+  const isIsolated = alertSettings.simulation ? alertSettings.simulation.isolatedMode !== false : true;
   const result = broadcastSample({
     type: 'payment_notification',
-    simulated: true,
+    simulated: isIsolated,
     packageName: 'com.phonepe.app',
     appName: 'PhonePe',
     title: 'PhonePe',
     text: 'D SINGH has sent Rs. 500.00 to your bank account',
     timestamp: Date.now()
   });
-  res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId, simulated: true });
+  res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId, simulated: isIsolated });
 });
 
 app.post('/api/test', (req, res) => {
   const body = req.body || {};
-  const isSimulated = body.simulated !== undefined ? !!body.simulated : true;
+  const isIsolated = alertSettings.simulation ? alertSettings.simulation.isolatedMode !== false : true;
+  const isSimulated = body.simulated !== undefined ? !!body.simulated : isIsolated;
   const result = broadcastSample({
     type: 'payment_notification',
     simulated:       isSimulated,
@@ -1074,7 +1079,9 @@ wss.on('connection', (ws, req) => {
         if (!title && !text) return;
 
         const parsed = parsePayment(notification);
-        const isSimulated = notification.simulated === true || notification.source === 'tester';
+        const isIsolated = alertSettings.simulation ? alertSettings.simulation.isolatedMode !== false : true;
+        const isFromTester = notification.source === 'tester' || notification.simulated === true;
+        const isSimulated = isFromTester ? isIsolated : false;
         const enriched = {
           ...notification,
           simulated : isSimulated,

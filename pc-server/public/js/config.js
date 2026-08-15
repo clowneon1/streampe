@@ -1478,7 +1478,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       { sender: 'Amit Verma', amount: '₹250', sourceApp: 'Paytm', message: 'Chai paani subscription ☕' },
       { sender: 'Sneha Patel', amount: '₹300', sourceApp: 'BHIM UPI', message: 'Great gameplay! 🎮' }
     ];
-    const picked = { ...samples[Math.floor(Math.random() * samples.length)], timestamp: Date.now(), simulated: true };
+    const isIsolated = config.simulation ? config.simulation.isolatedMode !== false : true;
+    const picked = { ...samples[Math.floor(Math.random() * samples.length)], timestamp: Date.now(), simulated: isIsolated };
     if (customAmount !== undefined && customAmount !== null && customAmount !== '') {
       const num = parseFloat(customAmount);
       if (Number.isFinite(num)) {
@@ -1999,9 +2000,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         text = `${sender} has sent Rs. ${formattedAmount}.00 to your bank account`;
       }
 
+      const isIsolated = config.simulation ? config.simulation.isolatedMode !== false : true;
       return {
         type: 'payment_notification',
-        simulated: true,
+        simulated: isIsolated,
         packageName,
         appName,
         title,
