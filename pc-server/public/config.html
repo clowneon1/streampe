@@ -70,13 +70,7 @@
           <span class="icon"><i data-lucide="bell"></i></span> Alert Templates
         </button>
         <button class="tab-btn" data-tab="style">
-          <span class="icon"><i data-lucide="palette"></i></span> Alert Style &amp; Colors
-        </button>
-        <button class="tab-btn" data-tab="animation">
-          <span class="icon"><i data-lucide="sparkles"></i></span> Animations
-        </button>
-        <button class="tab-btn" data-tab="alert-widget">
-          <span class="icon"><i data-lucide="layout-template"></i></span> Alert Widget Base
+          <span class="icon"><i data-lucide="palette"></i></span> Alert Style &amp; Animations
         </button>
         <button class="tab-btn" data-tab="goal">
           <span class="icon"><i data-lucide="target"></i></span> Payment Goal
@@ -262,7 +256,7 @@
           </details>
 
           <!-- Collapsible Section: Media & Sound -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="clapperboard" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Media &amp; Sound Settings</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -319,7 +313,7 @@
           </details>
 
           <!-- Collapsible Section: Amount Filters & Matching -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="target" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Amount Matching &amp; Trigger Filters</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -365,12 +359,11 @@
           </details>
         </div>
 
-        <!-- Tab 3: Style (per template) -->
+        <!-- Tab 2: Style & Animations (per template) -->
         <div class="tab-content" id="tab-style">
           <div class="panel-header">
-            <h2 class="panel-title">Style, Colors &amp; Custom Code</h2>
-            <p class="panel-desc">Typography, colors, canvas dimensions, card borders and advanced code overrides for
-              the template.</p>
+            <h2 class="panel-title">Alert Style &amp; Animations</h2>
+            <p class="panel-desc">Typography, colors, motion animations, canvas dimensions, card borders, and advanced code overrides for the selected template.</p>
           </div>
 
           <!-- Collapsible Section: Typography -->
@@ -484,7 +477,7 @@
           </details>
 
           <!-- Collapsible Section: Colors & Borders -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Colors, Borders &amp; Backgrounds</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -537,8 +530,40 @@
             </div>
           </details>
 
+          <!-- Collapsible Section: Motion & Entry Animations -->
+          <details class="collapsible-advanced" style="margin-top: 16px;">
+            <summary class="collapsible-summary">
+              <span><i data-lucide="sparkles" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Motion &amp; Entry Animations</span>
+              <span><i data-lucide="chevron-down"></i></span>
+            </summary>
+            <div class="collapsible-content">
+              <div class="form-group">
+                <label for="select-anim-type">Animation Type</label>
+                <select id="select-anim-type" class="form-control">
+                  <option value="slide-up">Slide Up</option>
+                  <option value="slide-down">Slide Down</option>
+                  <option value="fade-in">Fade In</option>
+                  <option value="zoom-in">Zoom In</option>
+                  <option value="bounce">Bounce</option>
+                </select>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="input-anim-duration">Animation Speed (ms)</label>
+                  <input type="number" id="input-anim-duration" class="form-control" min="0" max="10000" step="10" value="600" />
+                </div>
+
+                <div class="form-group">
+                  <label for="input-display-duration">Alert Display Duration (ms)</label>
+                  <input type="number" id="input-display-duration" class="form-control" min="100" max="60000" step="100" value="5000" />
+                </div>
+              </div>
+            </div>
+          </details>
+
           <!-- Collapsible Section: Canvas & Layout -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="maximize" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Canvas &amp; Layout Dimensions</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -585,7 +610,7 @@
           </details>
 
           <!-- Advanced Custom Code Overrides -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="code" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Custom Code Overrides (HTML/CSS/JS)</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -664,186 +689,7 @@
           </details>
         </div>
 
-        <!-- Tab 4: Animation (per template) -->
-        <div class="tab-content" id="tab-animation">
-          <div class="panel-header">
-            <h2 class="panel-title">Animations</h2>
-            <p class="panel-desc">Motion effects and display timing for the selected alert template.</p>
-          </div>
-
-          <div class="form-group">
-            <label for="select-anim-type">Animation Type</label>
-            <select id="select-anim-type" class="form-control">
-              <option value="slide-up">Slide Up</option>
-              <option value="slide-down">Slide Down</option>
-              <option value="fade-in">Fade In</option>
-              <option value="zoom-in">Zoom In</option>
-              <option value="bounce">Bounce</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="input-anim-duration">Animation Speed (ms)</label>
-            <input type="number" id="input-anim-duration" class="form-control" min="0" max="10000" step="10"
-              value="600" />
-          </div>
-
-          <div class="form-group">
-            <label for="input-display-duration">Alert Display Duration (ms)</label>
-            <input type="number" id="input-display-duration" class="form-control" min="100" max="60000" step="100"
-              value="5000" />
-          </div>
-        </div>
-
-        <!-- Tab 5: Alert widget base -->
-        <div class="tab-content" id="tab-alert-widget">
-          <div class="panel-header-with-switch">
-            <div>
-              <h2 class="panel-title">Alert Widget Base</h2>
-              <p class="panel-desc">Defaults for the alert widget itself. New templates start from these values, and
-                they fill in anything a template leaves unset.</p>
-            </div>
-            <label class="switch-container">
-              <input type="checkbox" id="chk-enable-alert" checked />
-              <span class="switch-slider"></span>
-              <span class="switch-label">Enable Alert Widget</span>
-            </label>
-          </div>
-
-          <div class="panel-header">
-            <h2 class="panel-title">Alert Widget Typography</h2>
-            <p class="panel-desc">Text style used as the starting point for new alert templates.</p>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="alert-font-family">Font Family</label>
-              <select id="alert-font-family" class="form-control">
-                <option value="Inter" selected>Inter</option>
-                <option value="Outfit">Outfit</option>
-                <option value="Poppins">Poppins</option>
-                <option value="Roboto">Roboto</option>
-                <option value="Montserrat">Montserrat</option>
-                <option value="Segoe UI">Segoe UI</option>
-                <option value="Arial">Arial</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="alert-font-size">Font Size</label>
-              <div class="input-unit-group">
-                <input type="number" id="alert-font-size" class="form-control" step="0.1" value="24" />
-                <select id="alert-font-size-unit" class="form-control unit-select">
-                  <option value="px">px</option>
-                  <option value="%">%</option>
-                  <option value="em">em</option>
-                  <option value="rem">rem</option>
-                  <option value="vw">vw</option>
-                  <option value="vh">vh</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="alert-font-weight">Font Weight</label>
-              <select id="alert-font-weight" class="form-control">
-                <option value="100">100</option>
-                <option value="200">200</option>
-                <option value="300">300</option>
-                <option value="400">400</option>
-                <option value="500">500</option>
-                <option value="600">600</option>
-                <option value="700" selected>700</option>
-                <option value="800">800</option>
-                <option value="900">900</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="alert-font-style">Font Style</label>
-              <select id="alert-font-style" class="form-control">
-                <option value="normal">Normal</option>
-                <option value="italic">Italic</option>
-                <option value="oblique">Oblique</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="alert-text-align">Text Alignment</label>
-              <select id="alert-text-align" class="form-control">
-                <option value="left">Left</option>
-                <option value="center" selected>Center</option>
-                <option value="right">Right</option>
-                <option value="justify">Justify</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="alert-text-transform">Capitalization</label>
-              <select id="alert-text-transform" class="form-control">
-                <option value="none">Normal Text</option>
-                <option value="uppercase">UPPERCASE</option>
-                <option value="lowercase">lowercase</option>
-                <option value="capitalize">Capitalize Words</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="alert-letter-spacing">Letter Spacing</label>
-              <div class="input-unit-group">
-                <input type="number" id="alert-letter-spacing" class="form-control" step="0.1" value="0" />
-                <select id="alert-letter-spacing-unit" class="form-control unit-select">
-                  <option value="px">px</option>
-                  <option value="em">em</option>
-                  <option value="rem">rem</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="alert-line-height">Line Height</label>
-              <input type="number" id="alert-line-height" class="form-control" min="0.1" max="10" step="0.05" value="1.3" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Text Color</label>
-            <div class="color-picker-row">
-              <input type="color" id="alert-text-color" class="color-picker" value="#ffffff" />
-              <input type="text" id="alert-text-color-hex" class="form-control" value="#ffffff" />
-            </div>
-          </div>
-
-          <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;" />
-
-          <div class="panel-header">
-            <h2 class="panel-title">Alert Widget Canvas</h2>
-            <p class="panel-desc">This canvas size applies to this widget only — it never changes the other widgets.</p>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="alert-canvas-preset">Canvas Preset</label>
-              <select id="alert-canvas-preset" class="form-control" data-canvas-preset="alert">
-                <option value="1080p">1080p — 1920 × 1080</option>
-                <option value="720p">720p — 1280 × 720</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="alert-canvas-width">Canvas Width (px)</label>
-              <input type="number" id="alert-canvas-width" class="form-control" min="100" max="7680" value="1920" />
-            </div>
-            <div class="form-group">
-              <label for="alert-canvas-height">Canvas Height (px)</label>
-              <input type="number" id="alert-canvas-height" class="form-control" min="100" max="4320" value="1080" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab 6: Goal -->
+        <!-- Tab 3: Goal -->
         <div class="tab-content" id="tab-goal">
           <div class="panel-header-with-switch">
             <div>
@@ -923,7 +769,7 @@
           </details>
 
           <!-- Collapsible Section: Goal Colors & Bar -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Colors, Progress Bar &amp; Track</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -1017,7 +863,7 @@
           </details>
 
           <!-- Collapsible Section: Goal Typography -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Typography &amp; Text Style</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -1127,7 +973,7 @@
           </details>
 
           <!-- Collapsible Section: Goal Canvas & Actions -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="maximize" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Canvas &amp; Controls</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -1326,7 +1172,7 @@
           </details>
 
           <!-- Collapsible Section: Colors & Card Styling -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Colors &amp; Card Style</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -1391,7 +1237,7 @@
           </details>
 
           <!-- Collapsible Section: Typography -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Typography &amp; Text Style</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -1501,7 +1347,7 @@
           </details>
 
           <!-- Collapsible Section: Canvas & Layout -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="maximize" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Canvas &amp; Position Controls</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -1672,7 +1518,7 @@
             </div>
           </details>
 
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Style, Borders &amp; Media</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -1741,7 +1587,7 @@
             </div>
           </details>
 
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Typography</span>
               <span><i data-lucide="chevron-down"></i></span>

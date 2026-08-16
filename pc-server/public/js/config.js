@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const node = el(id);
     if (node) node.addEventListener(evt, fn);
   };
-  const TEXT_PREFIXES = { template: 'tpl', alert: 'alert', goal: 'goal', leaderboard: 'lb', recent: 'recent', list: 'list', cycling: 'cycling' };
+  const TEXT_PREFIXES = { template: 'tpl', goal: 'goal', leaderboard: 'lb', recent: 'recent', list: 'list', cycling: 'cycling' };
 
   let config = ConfigSchema.createDefaultConfig();
   let suppressSync = false;
@@ -491,11 +491,6 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     }
 
-    const alertWidget = config.widgets.alert;
-    alertWidget.enabled = checked('chk-enable-alert', alertWidget.enabled);
-    alertWidget.text = readTextStyle(TEXT_PREFIXES.alert, alertWidget.text);
-    alertWidget.canvas = readCanvas(TEXT_PREFIXES.alert, alertWidget.canvas);
-
     const goal = config.widgets.goal;
     goal.enabled = checked('chk-enable-goal', goal.enabled);
     goal.allowOverflow = checked('chk-goal-allow-overflow', !!goal.allowOverflow);
@@ -677,11 +672,6 @@ document.addEventListener('DOMContentLoaded', () => {
       setVal('input-custom-css', template.code.customCSS);
       setVal('input-custom-js', template.code.customJS);
     }
-
-    const alertWidget = config.widgets.alert;
-    setChecked('chk-enable-alert', alertWidget.enabled);
-    writeTextStyle(TEXT_PREFIXES.alert, alertWidget.text);
-    writeCanvas(TEXT_PREFIXES.alert, alertWidget.canvas);
 
     const goal = config.widgets.goal;
     setChecked('chk-enable-goal', goal.enabled);
@@ -1084,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const manager = el('template-manager');
         if (manager) {
-          const alertTabs = ['text', 'media', 'style', 'animation'];
+          const alertTabs = ['text', 'style'];
           manager.style.display = alertTabs.indexOf(tab) === -1 ? 'none' : '';
         }
 
