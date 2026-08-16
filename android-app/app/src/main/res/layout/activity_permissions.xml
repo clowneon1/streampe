@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0a0c14">
+
+    <!-- ══ TOP APP BAR ══════════════════════════════════════════════ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="#12151f"
+        android:elevation="8dp">
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@mipmap/ic_launcher"
+            android:scaleType="centerInside"
+            android:background="#1a1d2b"
+            android:padding="4dp"
+            android:contentDescription="App Logo" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Permissions &amp; Setup"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#F0F2FF"
+            android:paddingStart="10dp" />
+
+        <TextView
+            android:id="@+id/tvStepCounter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Step 1 of 3"
+            android:textSize="12sp"
+            android:textColor="#00E5FF"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- ══ STEP TABS / PILLS ════════════════════════════════════════ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="8dp"
+        android:background="#0e111a"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/tabStep1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="1. Notifications"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="#00E5FF"
+            android:gravity="center"
+            android:padding="6dp"
+            android:background="#1a2538" />
+
+        <View
+            android:layout_width="6dp"
+            android:layout_height="1dp" />
+
+        <TextView
+            android:id="@+id/tabStep2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="2. Battery"
+            android:textSize="11sp"
+            android:textColor="#555D7A"
+            android:gravity="center"
+            android:padding="6dp"
+            android:background="#12151f" />
+
+        <View
+            android:layout_width="6dp"
+            android:layout_height="1dp" />
+
+        <TextView
+            android:id="@+id/tabStep3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="3. Accessibility"
+            android:textSize="11sp"
+            android:textColor="#555D7A"
+            android:gravity="center"
+            android:padding="6dp"
+            android:background="#12151f" />
+
+    </LinearLayout>
+
+    <!-- ══ VIEW PAGER (CAROUSEL SLIDES) ══════════════════════════════ -->
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPagerPermissions"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- ══ BOTTOM ACTION BAR & CAROUSEL NAVIGATION ═══════════════════ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="#12151f"
+        android:elevation="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <Button
+                android:id="@+id/btnPrevSlide"
+                android:layout_width="wrap_content"
+                android:layout_height="46dp"
+                android:text="◀ Back"
+                android:textSize="13sp"
+                android:textColor="#8890AA"
+                android:backgroundTint="#1a1d2b"
+                android:visibility="invisible"
+                android:stateListAnimator="@null" />
+
+            <LinearLayout
+                android:id="@+id/layoutDots"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/dot1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="●"
+                    android:textSize="18sp"
+                    android:textColor="#00E5FF"
+                    android:padding="4dp" />
+
+                <TextView
+                    android:id="@+id/dot2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="●"
+                    android:textSize="18sp"
+                    android:textColor="#555D7A"
+                    android:padding="4dp" />
+
+                <TextView
+                    android:id="@+id/dot3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="●"
+                    android:textSize="18sp"
+                    android:textColor="#555D7A"
+                    android:padding="4dp" />
+
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnNextSlide"
+                android:layout_width="wrap_content"
+                android:layout_height="46dp"
+                android:text="Next ▶"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#6C63FF"
+                android:stateListAnimator="@null" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnFinishPermissions"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Done &amp; Connect to Server ➔"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#00E5FF"
+            android:visibility="gone"
+            android:layout_marginTop="8dp"
+            android:stateListAnimator="@null" />
+
+    </LinearLayout>
+
+</LinearLayout>

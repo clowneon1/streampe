@@ -1,14 +1,10 @@
 package com.clowneon1.paymentalertsobs
 
 import android.Manifest
-import android.annotation.SuppressLint
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.PowerManager
 import android.provider.Settings
 import android.text.TextUtils
 import android.view.View
@@ -21,42 +17,222 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 class MainActivity : AppCompatActivity() {
 
     private lateinit var prefs: AppPrefs
+    private lateinit var discoveryManager: ServerDiscoveryManager
     private lateinit var btnConnect: Button
-    private lateinit var btnPermission: Button
-    private lateinit var btnAccessibility: Button
-    private lateinit var btnBatteryOptimization: Button
-    private lateinit var tvPermStatus: TextView
-    private lateinit var tvNotifAccess: TextView
-    private lateinit var tvAccessibilityStatus: TextView
-    private lateinit var tvBatteryStatus: TextView
     private lateinit var tvStatus: TextView
     private lateinit var etServerUrl: EditText
 
-    private var batteryDialogAutoShownThisLaunch = false
+    // Auto-Discovery Views
+    private lateinit var pbDiscovery: ProgressBar
+    private lateinit var tvDiscoveryStatus: TextView
+    private lateinit var btnRefreshDiscovery: Button
+    private lateinit var layoutDiscoveredServers: LinearLayout
+    private lateinit var layoutSavedServersContainer: LinearLayout
+    private lateinit var layoutSavedServersChips: LinearLayout
 
     private val notifPermLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        updateUI()
-        if (granted && !isNotificationAccessGranted()) {
-            showNotificationAccessDialog()
-        }
+    ) {
+        // Handled silently
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Transition from Splash theme immediately to avoid "freeze" feel
         setTheme(R.style.Theme_PaymentAlertsOBS)
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
+        discoveryManager = ServerDiscoveryManager(this)
+
+        // If notification listener is not granted, launch PermissionsActivity first
+        if (!isNotificationAccessGranted()) {
+            startActivity(Intent(this, PermissionsActivity::class.java))
+            finish()
+            return
+        }
 
         setContentView(R.layout.activity_main)
         bindViews()
+        setupDiscoveryListener()
         requestPostNotificationPermissionSilently()
         setupClickListeners()
-        updateUI()
+        renderSavedServersChips()
 
         if (prefs.serverUrl.isNotBlank() && prefs.isConnected) {
             autoReconnect()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!isNotificationAccessGranted()) {
+            startActivity(Intent(this, PermissionsActivity::class.java))
+            finish()
+            return
+        }
+        renderSavedServersChips()
+        discoveryManager.startDiscovery()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        discoveryManager.stopDiscovery()
+    }
+
+    private fun setupDiscoveryListener() {
+        discoveryManager.listener = object : ServerDiscoveryManager.DiscoveryListener {
+            override fun onServerFound(server: DiscoveredServer) {
+                runOnUiThread {
+                    updateDiscoveredServersUI()
+                    val currentText = etServerUrl.text.toString().trim()
+                    if (currentText.isBlank() || currentText == "http://192.168.1.100:2907") {
+                        etServerUrl.setText(server.httpUrl)
+                    }
+                }
+            }
+
+            override fun onServerLost(serviceName: String) {
+                runOnUiThread { updateDiscoveredServersUI() }
+            }
+
+            override fun onDiscoveryStateChanged(isSearching: Boolean) {
+                runOnUiThread {
+                    pbDiscovery.visibility = if (isSearching) View.VISIBLE else View.GONE
+                    val count = discoveryManager.getDiscoveredServers().size
+                    tvDiscoveryStatus.text = if (isSearching) {
+                        if (count > 0) "Found $count server(s) on Wi-Fi" else "Scanning local Wi-Fi for PC server..."
+                    } else {
+                        if (count > 0) "Found $count server(s)" else "No servers found — tap Scan to retry"
+                    }
+                }
+            }
+        }
+    }
+
+    private fun updateDiscoveredServersUI() {
+        layoutDiscoveredServers.removeAllViews()
+        val servers = discoveryManager.getDiscoveredServers()
+
+        if (servers.isEmpty()) {
+            val emptyTv = TextView(this).apply {
+                text = "No PC servers detected yet. Make sure PC and phone are on the same Wi-Fi network."
+                textSize = 11f
+                setTextColor(android.graphics.Color.parseColor("#555D7A"))
+                setPadding(0, 4, 0, 4)
+            }
+            layoutDiscoveredServers.addView(emptyTv)
+            return
+        }
+
+        servers.forEach { srv ->
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setBackgroundColor(android.graphics.Color.parseColor("#1a1d2b"))
+                setPadding(12, 10, 12, 10)
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                val params = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, 0, 8) }
+                layoutParams = params
+            }
+
+            val iconTv = TextView(this).apply {
+                text = "🖥️"
+                textSize = 18f
+                setPadding(0, 0, 10, 0)
+            }
+
+            val textLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+
+            val titleTv = TextView(this).apply {
+                text = srv.serviceName
+                textSize = 13f
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                setTextColor(android.graphics.Color.parseColor("#F0F2FF"))
+            }
+
+            val urlTv = TextView(this).apply {
+                text = "${srv.httpUrl} (Port ${srv.port})"
+                textSize = 11f
+                setTextColor(android.graphics.Color.parseColor("#00E5FF"))
+            }
+
+            textLayout.addView(titleTv)
+            textLayout.addView(urlTv)
+
+            val connectBtn = Button(this).apply {
+                text = "Connect"
+                textSize = 11f
+                setTextColor(android.graphics.Color.WHITE)
+                backgroundTintList = ContextCompat.getColorStateList(this@MainActivity, R.color.colorPrimary)
+                setPadding(12, 0, 12, 0)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    (36 * resources.displayMetrics.density).toInt()
+                )
+                stateListAnimator = null
+                setOnClickListener {
+                    etServerUrl.setText(srv.httpUrl)
+                    connectToServer(srv.httpUrl)
+                }
+            }
+
+            card.addView(iconTv)
+            card.addView(textLayout)
+            card.addView(connectBtn)
+            layoutDiscoveredServers.addView(card)
+        }
+    }
+
+    private fun renderSavedServersChips() {
+        layoutSavedServersChips.removeAllViews()
+        val saved = prefs.savedServers
+
+        if (saved.isEmpty()) {
+            layoutSavedServersContainer.visibility = View.GONE
+            return
+        }
+
+        layoutSavedServersContainer.visibility = View.VISIBLE
+        saved.forEach { url ->
+            val chip = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setBackgroundColor(android.graphics.Color.parseColor("#1a1d2b"))
+                setPadding(10, 6, 8, 6)
+                val params = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, 8, 0) }
+                layoutParams = params
+            }
+
+            val label = TextView(this).apply {
+                text = url.replace("http://", "").replace("https://", "")
+                textSize = 11f
+                setTextColor(android.graphics.Color.parseColor("#00E5FF"))
+                setOnClickListener {
+                    etServerUrl.setText(url)
+                    connectToServer(url)
+                }
+            }
+
+            val removeBtn = TextView(this).apply {
+                text = " ✕"
+                textSize = 11f
+                setTextColor(android.graphics.Color.parseColor("#8890AA"))
+                setPadding(4, 0, 2, 0)
+                setOnClickListener {
+                    prefs.removeSavedServer(url)
+                    renderSavedServersChips()
+                }
+            }
+
+            chip.addView(label)
+            chip.addView(removeBtn)
+            layoutSavedServersChips.addView(chip)
         }
     }
 
@@ -69,7 +245,7 @@ class MainActivity : AppCompatActivity() {
         HealthCheck.check(prefs.serverUrl) { success, message ->
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
-                
+
                 if (success) {
                     val wsUrl = prefs.serverUrl
                         .replace("http://", "ws://")
@@ -84,31 +260,36 @@ class MainActivity : AppCompatActivity() {
                     goToAppSelector()
                 } else {
                     prefs.isConnected = false
-                    tvStatus.text = "" // Clear the reconnecting status
-                    
+                    tvStatus.text = ""
+
                     MaterialAlertDialogBuilder(this)
                         .setTitle("Connection Failed")
                         .setMessage("Failed to connect to server: ${prefs.serverUrl}\n\n$message")
                         .setPositiveButton("OK", null)
                         .show()
-
-                    updateUI()
                 }
             }
         }
     }
 
     private fun bindViews() {
-        btnConnect             = findViewById(R.id.btnConnect)
-        btnPermission          = findViewById(R.id.btnPermission)
-        btnAccessibility       = findViewById(R.id.btnAccessibility)
-        btnBatteryOptimization = findViewById(R.id.btnBatteryOptimization)
-        tvPermStatus           = findViewById(R.id.tvPermStatus)
-        tvNotifAccess          = findViewById(R.id.tvNotifAccess)
-        tvAccessibilityStatus  = findViewById(R.id.tvAccessibilityStatus)
-        tvBatteryStatus        = findViewById(R.id.tvBatteryStatus)
-        tvStatus               = findViewById(R.id.tvStatus)
-        etServerUrl            = findViewById(R.id.etServerUrl)
+        btnConnect                  = findViewById(R.id.btnConnect)
+        btnConnect.isEnabled        = true
+        btnConnect.alpha            = 1.0f
+        tvStatus                    = findViewById(R.id.tvStatus)
+        etServerUrl                 = findViewById(R.id.etServerUrl)
+
+        pbDiscovery                 = findViewById(R.id.pbDiscovery)
+        tvDiscoveryStatus           = findViewById(R.id.tvDiscoveryStatus)
+        btnRefreshDiscovery         = findViewById(R.id.btnRefreshDiscovery)
+        layoutDiscoveredServers     = findViewById(R.id.layoutDiscoveredServers)
+        layoutSavedServersContainer = findViewById(R.id.layoutSavedServersContainer)
+        layoutSavedServersChips     = findViewById(R.id.layoutSavedServersChips)
+
+        findViewById<Button>(R.id.btnOpenPermissions)?.setOnClickListener {
+            startActivity(Intent(this, PermissionsActivity::class.java))
+        }
+
         etServerUrl.setText(prefs.serverUrl.ifBlank { "http://192.168.1.100:2907" })
     }
 
@@ -123,197 +304,58 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        btnPermission.setOnClickListener { showNotificationAccessDialog() }
-
-        btnAccessibility.setOnClickListener { showAccessibilityDialog() }
-
-        btnBatteryOptimization.setOnClickListener {
-            batteryDialogAutoShownThisLaunch = false
-            showBatteryOptimizationDialog(fromUser = true)
+        btnRefreshDiscovery.setOnClickListener {
+            discoveryManager.stopDiscovery()
+            discoveryManager.startDiscovery()
+            showToast("Scanning Wi-Fi for PC servers...")
         }
 
         btnConnect.setOnClickListener {
-            if (!isNotificationAccessGranted()) {
-                showNotificationAccessDialog()
-                return@setOnClickListener
-            }
             var url = etServerUrl.text.toString().trim()
             if (url.isBlank()) { showToast("Enter server URL"); return@setOnClickListener }
             if (!url.startsWith("http://") && !url.startsWith("https://")) {
                 url = "http://$url"
                 etServerUrl.setText(url)
             }
+            connectToServer(url)
+        }
+    }
 
-            tvStatus.text = "\u23f3 Checking server..."
-            btnConnect.isEnabled = false
+    private fun connectToServer(url: String) {
+        if (!isNotificationAccessGranted()) {
+            startActivity(Intent(this, PermissionsActivity::class.java))
+            return
+        }
 
-            HealthCheck.check(url) { success, message ->
-                runOnUiThread {
-                    if (success) {
-                        prefs.serverUrl   = url
-                        prefs.isConnected = true
+        tvStatus.text = "\u23f3 Checking server..."
+        btnConnect.isEnabled = false
 
-                        val wsUrl = url
-                            .replace("http://", "ws://")
-                            .replace("https://", "wss://") + "/android"
-                        WebSocketManager.connect(wsUrl)
+        HealthCheck.check(url) { success, message ->
+            runOnUiThread {
+                if (success) {
+                    prefs.serverUrl   = url
+                    prefs.isConnected = true
+                    prefs.addSavedServer(url)
 
-                        val serviceIntent = Intent(this, NotificationForwarderService::class.java)
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            startForegroundService(serviceIntent)
-                        } else {
-                            startService(serviceIntent)
-                        }
+                    val wsUrl = url
+                        .replace("http://", "ws://")
+                        .replace("https://", "wss://") + "/android"
+                    WebSocketManager.connect(wsUrl)
 
-                        goToAppSelector()
+                    val serviceIntent = Intent(this, NotificationForwarderService::class.java)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(serviceIntent)
                     } else {
-                        tvStatus.text = "\u274c $message"
-                        btnConnect.isEnabled = true
+                        startService(serviceIntent)
                     }
+
+                    goToAppSelector()
+                } else {
+                    tvStatus.text = "\u274c $message"
+                    btnConnect.isEnabled = true
                 }
             }
         }
-    }
-
-    private fun showNotificationAccessDialog() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Notification Access Required")
-            .setMessage(
-                "Payment Alerts for OBS needs Notification Access to forward alerts to your stream overlay.\n\n" +
-                "📱 If Android says 'Restricted Setting':\n" +
-                "1. Tap 'App Info' below (or go to Settings ➔ Apps ➔ Payment Alerts for OBS)\n" +
-                "2. Tap the 3 dots (⋮) in the top-right corner\n" +
-                "3. Tap 'Allow restricted settings'\n\n" +
-                "Then come back here and turn ON Notification Access."
-            )
-            .setPositiveButton("Open Settings") { _, _ ->
-                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-            }
-            .setNeutralButton("App Info") { _, _ ->
-                try {
-                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.parse("package:$packageName")
-                    }
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    showToast("Open Settings ➔ Apps ➔ Payment Alerts for OBS")
-                }
-            }
-            .setNegativeButton("Not Now", null)
-            .show()
-    }
-
-    private fun showAccessibilityDialog() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Accessibility Access — Android 15 Fix")
-            .setMessage(
-                "This is optional and only needed on Android 15+ if payment amounts are missing.\n\n" +
-                "\u26a0\ufe0f Warning: Accessibility services can interfere with some payment apps " +
-                "(e.g. PhonePe screen-lock security). Only enable if you need this fix.\n\n" +
-                "On the next screen:\n" +
-                "1. Find \u201cPayment Alerts for OBS\u201d\n" +
-                "2. Tap it and turn it ON\n" +
-                "3. Tap Allow on the confirmation dialog"
-            )
-            .setPositiveButton("Open Settings") { _, _ ->
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            }
-            .setNegativeButton("Not Now", null)
-            .show()
-    }
-
-    private fun showBatteryOptimizationDialog(fromUser: Boolean = false) {
-        if (!fromUser && batteryDialogAutoShownThisLaunch) return
-        if (!fromUser) batteryDialogAutoShownThisLaunch = true
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Disable Battery Optimization")
-            .setMessage(
-                "Android may kill the notification service after a few minutes of screen off.\n\n" +
-                "Disabling battery optimization ensures notifications are forwarded reliably " +
-                "during long streams."
-            )
-            .setPositiveButton("Disable Now") { _, _ -> openBatterySettings() }
-            .setNegativeButton("Skip", null)
-            .show()
-    }
-
-    @SuppressLint("BatteryLife")
-    private fun openBatterySettings() {
-        try {
-            startActivity(
-                Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                    data = Uri.parse("package:$packageName")
-                }
-            )
-            return
-        } catch (_: ActivityNotFoundException) {}
-        try {
-            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-            return
-        } catch (_: ActivityNotFoundException) {}
-        try {
-            startActivity(
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.parse("package:$packageName")
-                }
-            )
-        } catch (_: ActivityNotFoundException) {
-            showToast("Please disable battery optimization manually in Settings")
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (::tvPermStatus.isInitialized) updateUI()
-    }
-
-    private fun updateUI() {
-        val notifAccess    = isNotificationAccessGranted()
-        val a11yAccess     = isAccessibilityGranted()
-        val postNotifOk    = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
-            PackageManager.PERMISSION_GRANTED
-        val batteryOk = isBatteryOptimizationIgnored()
-
-        // Notification Access
-        tvNotifAccess.text = if (notifAccess)
-            "\u2705 Notification Access granted"
-        else
-            "\u274c Notification Access required — tap below to grant"
-        btnPermission.visibility = if (notifAccess) View.GONE else View.VISIBLE
-
-        // Accessibility Access (optional)
-        tvAccessibilityStatus.text = if (a11yAccess)
-            "\u2705 Accessibility enabled (Android 15 fix active)"
-        else
-            "\u26a0\ufe0f Not enabled — grant only if payment amounts are missing on Android 15"
-        // Accessibility button always shown so user can toggle it on/off
-        btnAccessibility.visibility = View.VISIBLE
-        btnAccessibility.text = if (a11yAccess) "Disable Accessibility" else "Enable Accessibility (Optional)"
-
-        tvPermStatus.visibility = if (postNotifOk) View.GONE else View.VISIBLE
-        if (!postNotifOk) tvPermStatus.text = "\u26a0\ufe0f POST_NOTIFICATIONS permission not granted"
-
-        tvBatteryStatus.text = "\u26a0\ufe0f Battery optimization active — may interrupt during long streams"
-        tvBatteryStatus.visibility = if (batteryOk) View.GONE else View.VISIBLE
-        btnBatteryOptimization.visibility = if (batteryOk) View.GONE else View.VISIBLE
-
-        btnConnect.isEnabled = notifAccess
-        btnConnect.alpha     = if (notifAccess) 1.0f else 0.5f
-    }
-
-    private fun isAccessibilityGranted(): Boolean {
-        val flat = Settings.Secure.getString(
-            contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        return flat.contains(packageName, ignoreCase = true)
-    }
-
-    private fun isBatteryOptimizationIgnored(): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
-        val pm = getSystemService(POWER_SERVICE) as PowerManager
-        return pm.isIgnoringBatteryOptimizations(packageName)
     }
 
     private fun isNotificationAccessGranted(): Boolean {

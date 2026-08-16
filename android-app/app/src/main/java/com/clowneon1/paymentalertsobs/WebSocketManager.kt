@@ -4,19 +4,26 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import okhttp3.*
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 object WebSocketManager {
 
-    private const val TAG            = "WebSocketManager"
-    private const val MAX_QUEUE      = 100
-    private const val RECONNECT_MS   = 5_000L
+    private const val TAG          = "WebSocketManager"
+    private const val MAX_QUEUE    = 100
+    private const val RECONNECT_MS = 3_000L
+
+    interface ConnectionStateListener {
+        fun onConnectionStateChanged(isConnected: Boolean, message: String)
+    }
+
+    private val listeners = CopyOnWriteArrayList<ConnectionStateListener>()
 
     private val client = OkHttpClient.Builder()
-        .pingInterval(20, TimeUnit.SECONDS)  // OkHttp-level WebSocket ping
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.SECONDS)    // No timeout for persistent WS
+        .pingInterval(10, TimeUnit.SECONDS)  // Fast OkHttp WebSocket ping
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(0, TimeUnit.SECONDS)
         .build()
 
     private var webSocket: WebSocket? = null
@@ -26,30 +33,66 @@ object WebSocketManager {
     private val messageQueue          = ArrayDeque<String>(MAX_QUEUE)
     private val handler               = Handler(Looper.getMainLooper())
 
+    fun isConnected(): Boolean = isConnected.get()
+
+    fun addListener(listener: ConnectionStateListener) {
+        listeners.add(listener)
+        // Immediately notify current state
+        listener.onConnectionStateChanged(
+            isConnected.get(),
+            if (isConnected.get()) "Connected" else "Disconnected"
+        )
+    }
+
+    fun removeListener(listener: ConnectionStateListener) {
+        listeners.remove(listener)
+    }
+
+    private fun notifyState(connected: Boolean, message: String) {
+        handler.post {
+            for (l in listeners) {
+                try { l.onConnectionStateChanged(connected, message) } catch (_: Exception) {}
+            }
+        }
+    }
+
     fun connect(url: String) {
         serverUrl = url
         openSocket()
     }
 
     fun connectIfNeeded(url: String) {
-        if (isConnected.get()) return
+        if (isConnected.get() && webSocket != null) return
         serverUrl = url
         openSocket()
     }
 
     fun send(message: String) {
         if (isConnected.get() && webSocket != null) {
-            webSocket!!.send(message)
+            val sent = webSocket!!.send(message)
+            if (!sent) {
+                queueMessage(message)
+                scheduleReconnect()
+            }
         } else {
-            if (messageQueue.size >= MAX_QUEUE) messageQueue.removeFirst()
-            messageQueue.addLast(message)
+            queueMessage(message)
             if (!isReconnecting.get()) scheduleReconnect()
         }
     }
 
+    private fun queueMessage(message: String) {
+        if (messageQueue.size >= MAX_QUEUE) messageQueue.removeFirst()
+        messageQueue.addLast(message)
+    }
+
     fun ping() {
         if (isConnected.get()) {
-            webSocket?.send("{\"type\":\"ping\"}")
+            val sent = webSocket?.send("{\"type\":\"ping\"}") ?: false
+            if (!sent) {
+                isConnected.set(false)
+                notifyState(false, "Server ping failed — Reconnecting...")
+                scheduleReconnect()
+            }
         } else if (!isReconnecting.get()) {
             scheduleReconnect()
         }
@@ -57,11 +100,12 @@ object WebSocketManager {
 
     fun disconnect() {
         handler.removeCallbacksAndMessages(null)
-        webSocket?.close(1000, "User disconnected")
+        try { webSocket?.close(1000, "User disconnected") } catch (_: Exception) {}
         webSocket     = null
         isConnected.set(false)
         isReconnecting.set(false)
         messageQueue.clear()
+        notifyState(false, "Disconnected by user")
     }
 
     private fun openSocket() {
@@ -73,6 +117,8 @@ object WebSocketManager {
                 Log.d(TAG, "Connected to $serverUrl")
                 isConnected.set(true)
                 isReconnecting.set(false)
+                notifyState(true, "Connected to PC Server")
+
                 // Flush queued messages
                 while (messageQueue.isNotEmpty()) {
                     ws.send(messageQueue.removeFirst())
@@ -80,14 +126,22 @@ object WebSocketManager {
             }
 
             override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
-                Log.w(TAG, "Connection failed: ${t.message}")
+                Log.w(TAG, "Connection failure to $serverUrl: ${t.message}")
                 isConnected.set(false)
+                notifyState(false, "Server Offline / Reconnecting...")
                 scheduleReconnect()
             }
 
             override fun onClosing(ws: WebSocket, code: Int, reason: String) {
                 ws.close(1000, null)
                 isConnected.set(false)
+                notifyState(false, "Server Closed Connection")
+                if (code != 1000) scheduleReconnect()
+            }
+
+            override fun onClosed(ws: WebSocket, code: Int, reason: String) {
+                isConnected.set(false)
+                notifyState(false, "Disconnected")
                 if (code != 1000) scheduleReconnect()
             }
         })
@@ -97,8 +151,11 @@ object WebSocketManager {
         if (isReconnecting.getAndSet(true)) return
         handler.postDelayed({
             isReconnecting.set(false)
-            Log.d(TAG, "Reconnecting to $serverUrl...")
-            openSocket()
+            if (!isConnected.get() && serverUrl.isNotBlank()) {
+                Log.d(TAG, "Attempting auto-reconnect to $serverUrl...")
+                notifyState(false, "Reconnecting to server...")
+                openSocket()
+            }
         }, RECONNECT_MS)
     }
 }

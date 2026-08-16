@@ -23,20 +23,36 @@ class AppSelectorActivity : AppCompatActivity() {
     private lateinit var adapter: AppListAdapter
     private var allApps: List<AppItem> = emptyList()
 
+    private lateinit var tvServer: TextView
+
+    private val wsStateListener = object : WebSocketManager.ConnectionStateListener {
+        override fun onConnectionStateChanged(isConnected: Boolean, message: String) {
+            runOnUiThread {
+                if (isConnected) {
+                    tvServer.text = "🟢 Connected: ${prefs.serverUrl}"
+                    tvServer.setTextColor(android.graphics.Color.parseColor("#4ADE80"))
+                    tvServer.setBackgroundColor(android.graphics.Color.parseColor("#14291e"))
+                } else {
+                    tvServer.text = "🔴 Server Closed / Reconnecting..."
+                    tvServer.setTextColor(android.graphics.Color.parseColor("#F87171"))
+                    tvServer.setBackgroundColor(android.graphics.Color.parseColor("#2d1515"))
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_app_selector)
         prefs = AppPrefs(this)
 
-        val tvServer   = findViewById<TextView>(R.id.tvServerStatus)
+        tvServer       = findViewById(R.id.tvServerStatus)
         val etSearch   = findViewById<EditText>(R.id.etSearch)
         val recycler   = findViewById<RecyclerView>(R.id.recyclerApps)
         val btnSave    = findViewById<Button>(R.id.btnSave)
         val btnDisconn = findViewById<Button>(R.id.btnDisconnect)
         val btnTest    = findViewById<Button>(R.id.btnTest)
         val btnAlertLog = findViewById<Button>(R.id.btnAlertLog)
-
-        tvServer.text = "\uD83D\uDFE2 Connected to ${prefs.serverUrl}"
 
         val savedPkgs = prefs.selectedPackages
         adapter = AppListAdapter(mutableListOf(), savedPkgs)
@@ -88,6 +104,16 @@ class AppSelectorActivity : AppCompatActivity() {
 
         NotificationService.allowedPackages = savedPkgs
         promptBatteryOptimization()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        WebSocketManager.addListener(wsStateListener)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        WebSocketManager.removeListener(wsStateListener)
     }
 
     private val TARGET_PACKAGES = setOf(
