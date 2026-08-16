@@ -7,7 +7,6 @@
 - [ ] **1. Non-Payment Notification Filter** — Add strict filtering to ignore promotional messages, security/OTP alerts, reward cashbacks, and bank balance updates from supported payment apps (PhonePe, GPay, Paytm, etc.).
 - [ ] **4. Google Pay (GPay) Parser Support** — Add dedicated regex pattern matching and notification listener parser support for Google Pay transactions.
 - [ ] **6. Server Auto-Discovery (mDNS/Bonjour)** — Implement mDNS/Bonjour-based server discovery so the Android app can automatically find the PC server on the local network without manual IP entry. Also allow users to manually add a server by IP/port, with saved servers persisted in local storage for quick reconnection.
-- [ ] **10. Unified List Widget System (Leaderboard + Recent → List Configs)** — Leaderboard and Recent Donations are fundamentally the same widget: a sorted/filtered list of transactions with a title. Instead of two hardcoded widget types, introduce a single **List Widget** with a config system modelled on Alert Templates — users can create multiple named list configs (e.g. "Top Supporters", "Recent Donations", "Top by PhonePe", "Last 10 Transactions"), each with its own: sort key (total amount vs. recency), filter (provider, min amount, date range), max entries, display style, and custom HTML/CSS. Each list config gets its own OBS browser source URL (e.g. `/overlay/list?id=<configId>`). Retire the separate `/overlay/leaderboard` and `/overlay/recent` routes once migrated.
 - [ ] **12. Defaults & Payment App Cleanup (Support PhonePe, Amazon Pay, GPay & Cash Only)** — Streamline supported payment apps across the entire application for v2. Officially support only **PhonePe**, **Amazon Pay**, **Google Pay (GPay)**, and **Cash / Manual Entry** (for offline donations/ledger). Remove legacy/unused apps and tags like Paytm, BHIM UPI, and other third-party UPI apps from default alert templates, simulation dropdowns, tag pickers, preset badges, and analytics filters.
 
 ---
@@ -15,6 +14,8 @@
 ## ✅ Completed
 
 ### Version 2.0.0 (`feature/version-2`)
+
+- [x] **10. Unified List Widget System (Leaderboard + Recent → List Configs)** — Leaderboard and Recent Donations have been unified into a clean **List Widget** system. Streamers can customize the two default lists (**"Top Supporters"** at `/overlay/list?id=top-supporters` and **"Recent Donations"** at `/overlay/list?id=recent-donations`) with provider/minAmount filters, card styling, typography, canvas dimensions, and custom HTML/CSS/JS with Handlebars support. Legacy overlay routes (`/overlay/leaderboard`, `/overlay/recent`) are preserved with automatic backward compatibility.
 
 - [x] **11. Goal Widget — Allow Percentage Overflow Beyond 100%** — Added a checkbox setting in the Goal setup: **"Allow Percentage Overflow (Exceed 100%)"**. When checked, the progress bar and `{{percent}}` template variable can visually exceed 100% (e.g. 140%) when donations surpass the goal target, allowing streamers to celebrate exceeding goals live on stream. When unchecked (default), progress is clamped to 100%.
 
