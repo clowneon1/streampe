@@ -25,57 +25,65 @@ class NotificationTesterActivity : AppCompatActivity() {
         val label   : String,
         val title   : String,
         val text    : String,
+        val bigText : String = "",
         val pkg     : String,
         val appName : String
     )
 
     private val presets = listOf(
         Preset(
+            label   = "Google Pay (₹500)",
+            title   = "Google Pay",
+            text    = "Awesome stream! 🔥",
+            bigText = "Rahul Kumar paid you ₹500",
+            pkg     = "com.google.android.apps.nbu.paisa.user",
+            appName = "Google Pay"
+        ),
+        Preset(
+            label   = "Google Pay (500 rupees)",
+            title   = "Google Pay",
+            text    = "GG WP for the next match!",
+            bigText = "Amit Sharma paid you 500 rupees",
+            pkg     = "com.google.android.apps.nbu.paisa.user",
+            appName = "Google Pay"
+        ),
+        Preset(
+            label   = "Google Pay (UPI Suffix)",
+            title   = "Google Pay",
+            text    = "ULTRA DONATION! 👑",
+            bigText = "Vikramaditya paid you ₹2,500.00 using UPI",
+            pkg     = "com.google.android.apps.nbu.paisa.user",
+            appName = "Google Pay"
+        ),
+        Preset(
+            label   = "PhonePe (₹500)",
+            title   = "PhonePe",
+            text    = "Received \u20b9500 from D SINGH",
+            bigText = "Received \u20b9500 from D SINGH",
+            pkg     = "com.phonepe.app",
+            appName = "PhonePe"
+        ),
+        Preset(
+            label   = "PhonePe (has sent)",
+            title   = "PhonePe",
+            text    = "D SINGH has sent Rs. 500.00 to your bank account",
+            bigText = "D SINGH has sent Rs. 500.00 to your bank account",
+            pkg     = "com.phonepe.app",
+            appName = "PhonePe"
+        ),
+        Preset(
             label   = "Amazon Pay",
             title   = "1.00 received",
             text    = "Money received from RJ on amazon pay",
+            bigText = "Money received from RJ on amazon pay",
             pkg     = "in.amazon.mShop.android.shopping",
             appName = "Amazon Pay"
-        ),
-        Preset(
-            label   = "PhonePe (old)",
-            title   = "PhonePe",
-            text    = "D SINGH has sent Rs. 500.00 to your bank account",
-            pkg     = "com.phonepe.app",
-            appName = "PhonePe"
-        ),
-        Preset(
-            label   = "PhonePe (mid)",
-            title   = "PhonePe",
-            text    = "D SINGH sent \u20b9500 to your account",
-            pkg     = "com.phonepe.app",
-            appName = "PhonePe"
-        ),
-        Preset(
-            label   = "PhonePe (new)",
-            title   = "PhonePe",
-            text    = "Received \u20b9500 from D SINGH",
-            pkg     = "com.phonepe.app",
-            appName = "PhonePe"
-        ),
-        Preset(
-            label   = "PhonePe (title-split)",
-            title   = "\u20b9500 received",
-            text    = "From D SINGH",
-            pkg     = "com.phonepe.app",
-            appName = "PhonePe"
-        ),
-        Preset(
-            label   = "PhonePe (compact)",
-            title   = "\u20b9500 from D SINGH",
-            text    = "PhonePe UPI",
-            pkg     = "com.phonepe.app",
-            appName = "PhonePe"
         ),
         Preset(
             label   = "Custom",
             title   = "",
             text    = "",
+            bigText = "",
             pkg     = "",
             appName = "Custom"
         )
@@ -160,7 +168,8 @@ class NotificationTesterActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            fireNotification(title, text)
+            val bigTextVal = if (preset.bigText.isNotBlank()) preset.bigText else text
+            fireNotification(title, text, bigTextVal)
 
             val alertId = UUID.randomUUID().toString()
 
@@ -173,14 +182,14 @@ class NotificationTesterActivity : AppCompatActivity() {
                 put("appName",     appName)
                 put("title",       title)
                 put("text",        text)
-                put("bigText",     text)   // tester has no bigText so mirror text
+                put("bigText",     bigTextVal)
                 put("timestamp",   System.currentTimeMillis())
             }
 
             AlertLog.add(AlertLog.fromJson(json))
             WebSocketManager.send(json.toString())
 
-            val logLine = "[${preset.label}] $title: $text\n"
+            val logLine = "[${preset.label}] $title: $text (BigText: $bigTextVal)\n"
             tvLog.text = logLine + tvLog.text
             Toast.makeText(this, "\uD83D\uDD14 Sent to OBS!", Toast.LENGTH_SHORT).show()
         }
@@ -188,7 +197,7 @@ class NotificationTesterActivity : AppCompatActivity() {
         btnBack.setOnClickListener { finish() }
     }
 
-    private fun fireNotification(title: String, text: String) {
+    private fun fireNotification(title: String, text: String, bigText: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this, "Permission POST_NOTIFICATIONS not granted", Toast.LENGTH_SHORT).show()
@@ -196,14 +205,18 @@ class NotificationTesterActivity : AppCompatActivity() {
             }
         }
 
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
-            .build()
-        NotificationManagerCompat.from(this).notify(notifId++, notification)
+
+        if (bigText.isNotBlank()) {
+            builder.setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
+        }
+
+        NotificationManagerCompat.from(this).notify(notifId++, builder.build())
     }
 
     private fun createNotificationChannel() {

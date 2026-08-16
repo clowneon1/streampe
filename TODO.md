@@ -4,10 +4,12 @@
 
 ## 🚀 Upcoming Features & Tasks
 
-- [ ] **1. Non-Payment Notification Filter** — Add strict filtering to ignore promotional messages, security/OTP alerts, reward cashbacks, and bank balance updates from supported payment apps (PhonePe, GPay, Paytm, etc.).
-- [ ] **4. Google Pay (GPay) Parser Support** — Add dedicated regex pattern matching and notification listener parser support for Google Pay transactions.
-- [ ] **12. Defaults & Payment App Cleanup (Support PhonePe, Amazon Pay, GPay & Cash Only)** — Streamline supported payment apps across the entire application for v2. Officially support only **PhonePe**, **Amazon Pay**, **Google Pay (GPay)**, and **Cash / Manual Entry** (for offline donations/ledger). Remove legacy/unused apps and tags like Paytm, BHIM UPI, and other third-party UPI apps from default alert templates, simulation dropdowns, tag pickers, preset badges, and analytics filters.
 - [ ] **19. Security & Access Control (PIN / Password / 2FA Authentication)** — Add optional password/PIN protection for the PC Dashboard (`/config`) and the Android companion connection (`ws://.../android` & `/api/*`). Prevents unauthorized devices on shared Wi-Fi networks (roommates, shared studios, public Wi-Fi) from accessing financial analytics, triggering bogus alerts, or connecting without entering the streamer's configured PIN/password.
+- [ ] **20. Money / Amount Text Highlight & Styling Settings** — Add dedicated styling and highlight options for payment amounts (`{{amount}}`) in Alert Templates, Leaderboards, and Cycling Widgets:
+  - **Highlight Color Picker**: Custom text color for the amount (e.g. Glowing Gold `#ffd700`, Neon Emerald `#10b981`, Vibrant Cyan `#00e5ff`).
+  - **Highlight Text Shadow / Glow**: Configurable glow radius, glow color, and intensity for the amount to make high-value donations stand out on stream.
+  - **Pill / Badge Background**: Optional glassmorphic pill/badge background wrap around the currency amount (`<span class="amount-badge">₹500</span>`).
+  - **Font Weight & Sizing**: Dedicated font weight (e.g. 700 / 800 / 900) and relative size modifier for the currency amount within text templates (`{sender} sent {amount}`).
 
 ---
 
@@ -15,6 +17,11 @@
 
 ### Version 2.0.0 (`feature/version-2`)
 
+- [x] **21. Automatic Stale WebSocket Connection Cleanup & Accurate Connection Counter** — Implemented fast 5s ping/pong heartbeat, IP-based socket deduplication, and `getActiveWsCount()` to guarantee phantom connections (e.g. "3 Android connected") are immediately evicted when a phone disconnects or switches network.
+- [x] **22. Android Companion Alert History & Recent Donation Persistence** — Implemented local atomic disk storage (`alert_log.json` in [AlertLog.kt](file:///d:/xwork/projects/payment-alerts-for-obs/android-app/app/src/main/java/com/clowneon1/paymentalertsobs/AlertLog.kt)) and fixed PC server recent donations timestamp descending sorting in [payments-csv.js](file:///d:/xwork/projects/payment-alerts-for-obs/pc-server/public/js/lib/payments-csv.js). Alert History on the phone persists permanently across reboots and app kills.
+- [x] **4. Google Pay (GPay) Parser Support** — Added dedicated Google Pay notification parsing matching `<Name> paid you ₹<Amount>` and `<Name> paid you <Amount> rupees`, with donor message extraction from `text` when `title`/`bigText` holds the transaction line. Added GPay presets to mobile `NotificationTesterActivity` and PC simulator.
+- [x] **1. Non-Payment Notification Filter** — Added negative regex filtering across all payment apps to reject promotional messages, security/OTP alerts, reward cashbacks/scratch cards, bank balance updates, bill reminders, and recharge notices.
+- [x] **12. Defaults & Payment App Cleanup (Support PhonePe, Amazon Pay, GPay & Cash Only)** — Streamlined supported payment apps across the entire application for v2. Officially supports **PhonePe**, **Google Pay**, **Amazon Pay**, and **Cash / Manual Entry** (plus WhatsApp tagged strictly for testing). Updated simulator dropdowns, quick presets, provider metadata, and `AppSelectorActivity`.
 - [x] **18. Live Connection State & Real-Time Disconnect Monitoring (Zero Restart Auto-Recovery)** — Implemented real-time connection state listeners in [WebSocketManager.kt](file:///d:/xwork/projects/payment-alerts-for-obs/android-app/app/src/main/java/com/clowneon1/paymentalertsobs/WebSocketManager.kt) and live status badge in [AppSelectorActivity.kt](file:///d:/xwork/projects/payment-alerts-for-obs/android-app/app/src/main/java/com/clowneon1/paymentalertsobs/AppSelectorActivity.kt):
   - Automatically detects PC server closures, network drops, or socket terminations within 1 second.
   - Flips UI dynamically to 🔴 *Server Closed / Reconnecting...* without freezing or requiring an app restart.

@@ -19,6 +19,7 @@ class NotificationService : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         allowedPackages = AppPrefs(applicationContext).selectedPackages
+        AlertLog.init(applicationContext)
         Log.d(TAG, "Listener connected — allowedPackages loaded: ${allowedPackages?.size} entries")
     }
 
@@ -56,11 +57,14 @@ class NotificationService : NotificationListenerService() {
         } catch (e: Exception) { pkg }
 
         val alertId = UUID.randomUUID().toString()
+        val isTestApp = pkg.contains("whatsapp", ignoreCase = true) || appName.contains("whatsapp", ignoreCase = true)
 
         // Send all raw notification fields — parsing happens on the server
         val payload = JSONObject().apply {
             put("alertId",     alertId)
-            put("source",      "notification")
+            put("source",      if (isTestApp) "tester" else "notification")
+            put("simulated",   isTestApp)
+            put("isTestEvent", isTestApp)
             put("packageName", pkg)
             put("appName",     appName)
             put("timestamp",   sbn.postTime)

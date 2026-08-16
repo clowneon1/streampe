@@ -57,12 +57,16 @@ object WebSocketManager {
     }
 
     fun connect(url: String) {
+        if (isConnected.get() && serverUrl == url && webSocket != null) {
+            Log.d(TAG, "Already connected to $url — skipping duplicate connection")
+            return
+        }
         serverUrl = url
         openSocket()
     }
 
     fun connectIfNeeded(url: String) {
-        if (isConnected.get() && webSocket != null) return
+        if (isConnected.get() && serverUrl == url && webSocket != null) return
         serverUrl = url
         openSocket()
     }
@@ -100,16 +104,23 @@ object WebSocketManager {
 
     fun disconnect() {
         handler.removeCallbacksAndMessages(null)
-        try { webSocket?.close(1000, "User disconnected") } catch (_: Exception) {}
+        val oldWs = webSocket
         webSocket     = null
         isConnected.set(false)
         isReconnecting.set(false)
+        try { oldWs?.close(1000, "User disconnected") } catch (_: Exception) {}
+        try { oldWs?.cancel() } catch (_: Exception) {}
         messageQueue.clear()
         notifyState(false, "Disconnected by user")
     }
 
     private fun openSocket() {
         if (serverUrl.isBlank()) return
+        val oldWs = webSocket
+        webSocket = null
+        try { oldWs?.close(1000, "Replaced by new connection") } catch (_: Exception) {}
+        try { oldWs?.cancel() } catch (_: Exception) {}
+
         val request = Request.Builder().url(serverUrl).build()
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
 

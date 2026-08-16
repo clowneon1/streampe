@@ -13,9 +13,11 @@
     <!-- Query strictly target packages without broad launcher intent queries -->
     <queries>
         <package android:name="com.phonepe.app" />
+        <package android:name="com.google.android.apps.nbu.paisa.user" />
         <package android:name="in.amazon.mShop.android.shopping" />
         <package android:name="com.amazon.mShop.android.shopping" />
         <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
     </queries>
 
     <application

@@ -18,6 +18,7 @@ class AlertLogActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_alert_log)
+        AlertLog.init(this)
 
         recycler    = findViewById(R.id.recyclerAlertLog)
         layoutEmpty = findViewById(R.id.layoutEmpty)

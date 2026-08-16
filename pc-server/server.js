@@ -50,6 +50,7 @@ const customLevels = {
     event: 3,
     parse: 4,
     dedup: 5,
+    debug: 6,
   },
   colors: {
     error: 'red',
@@ -58,6 +59,7 @@ const customLevels = {
     event: 'magenta',
     parse: 'green',
     dedup: 'gray',
+    debug: 'blue',
   },
 };
 
@@ -91,7 +93,7 @@ const dailyRotateTransport = new winston.transports.DailyRotateFile({
 
 const winstonLogger = winston.createLogger({
   levels: customLevels.levels,
-  level: 'dedup',
+  level: 'debug',
   transports: [
     new winston.transports.Console({
       format: winston.format.combine(
@@ -148,6 +150,7 @@ const log = {
   error : (tag, msg, data) => writeLog('error', tag, msg, data),
   event : (tag, msg, data) => writeLog('event', tag, msg, data),
   dedup : (tag, msg, data) => writeLog('dedup', tag, msg, data),
+  debug : (tag, msg, data) => writeLog('debug', tag, msg, data),
   parse : (tag, msg, data) => writeLog('parse', tag, msg, data),
 };
 
@@ -252,6 +255,9 @@ log.info('Server', `Log directory: ${LOG_DIR} (daily rotating with 7-day retenti
 // ── Payment Parser (JS) ────────────────────────────────────────────
 const STRIP_SUFFIXES = [
   / on amazon pay$/i,
+  / on google pay$/i,
+  / using upi$/i,
+  / on upi$/i,
   / to your( bank)? account$/i,
   / via \w+$/i,
 ];
@@ -262,39 +268,99 @@ function cleanSender(name) {
   return s.trim();
 }
 
+function cleanMessage(text) {
+  if (!text) return '';
+  const trimmed = String(text).trim();
+  if (/^(?:tap\s+to\s+view(?:\s+details|\s+transaction)?\.?|payment\s+received\.?|completed\.?|view\s+transaction\.?|received\.?)$/i.test(trimmed)) {
+    return '';
+  }
+  return trimmed;
+}
+
 function normaliseAmount(raw) {
-  const stripped = raw.trim()
+  if (!raw) return '₹0';
+  const stripped = String(raw).trim()
     .replace(/^\u20B9\s*/, '')
     .replace(/^[Rr][Ss]\.?\s*/, '')
+    .replace(/\s*rupees$/i, '')
     .trim();
   return `\u20B9${stripped}`;
 }
 
-const RE_PHONEPE_AMOUNT     = /has\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
-const RE_HAS_SENT           = /^(.+?)\s+has\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
-const RE_AMT_RECEIVED_FROM  = /(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+received\s+from\s+(.+)/i;
-const RE_PAYMENT_OF         = /payment\s+of\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+received\s+from\s+(.+)/i;
-const RE_NAME_SENT          = /^(.+?)\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
-const RE_YOU_PAID           = /you\s+(?:have\s+)?paid\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+to\s+(.+)/i;
-const RE_RECEIVED_FROM      = /received\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+from\s+(.+)/i;
-const RE_FROM_NAME          = /^from\s+(.+)/i;
-const RE_AMT_TITLE          = /(?:\u20B9|rs\.?\s*)?([\d,.]+(?:\.\d{1,2})?)\s+received/i;
-const RE_AMT_FROM_TITLE     = /(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+from\s+(.+)/i;
-const RE_AMAZON_SENDER      = /money\s+rec(?:ei)?ved\s+from\s+(.+?)\s+on\s+amazon\s+pay/i;
+const RE_PHONEPE_AMOUNT       = /has\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
+const RE_HAS_SENT             = /^(.+?)\s+has\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
+const RE_AMT_RECEIVED_FROM    = /(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+received\s+from\s+(.+)/i;
+const RE_PAYMENT_OF           = /payment\s+of\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+received\s+from\s+(.+)/i;
+const RE_NAME_SENT            = /^(.+?)\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
+const RE_YOU_PAID             = /you\s+(?:have\s+)?paid\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+to\s+(.+)/i;
+const RE_RECEIVED_FROM        = /received\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+from\s+(.+)/i;
+const RE_FROM_NAME            = /^from\s+(.+)/i;
+const RE_AMT_TITLE            = /(?:\u20B9|rs\.?\s*)?([\d,.]+(?:\.\d{1,2})?)\s+received/i;
+const RE_AMT_FROM_TITLE       = /(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+from\s+(.+)/i;
+const RE_AMAZON_SENDER        = /money\s+rec(?:ei)?ved\s+from\s+(.+?)\s+on\s+amazon\s+pay/i;
+
+// Google Pay (GPay) Patterns
+const RE_GPAY_PAID_YOU_SYMBOL = /^(.+?)\s+paid\s+you\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
+const RE_GPAY_PAID_YOU_WORDS  = /^(.+?)\s+paid\s+you\s+([\d,.]+(?:\.\d{1,2})?)\s+rupees/i;
+const RE_GPAY_YOU_RECEIVED    = /you\s+received\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+from\s+(.+)/i;
+
+// Non-payment filter regex
+const RE_NON_PAYMENT = /(?:otp|verification code|one time password|security code|cashback won|scratch card|reward earned|reward points|congratulations.*reward|bank balance|available balance|account balance|bill due|bill generated|recharge successful|recharge of|check your credit score|exclusive offer|flat .* off|discount on|special offer)/i;
 
 function parsePayment(notification) {
-  const pkg     = (notification.packageName || '').trim().toLowerCase();
-  const appName = (notification.appName     || '').trim();
-  const title   = (notification.title       || '').trim().toLowerCase();
-  const text    = (notification.text        || '').trim().toLowerCase();
-  const bigText = (notification.bigText     || '').trim().toLowerCase();
+  const pkg      = (notification.packageName || '').trim().toLowerCase();
+  const appName  = (notification.appName     || '').trim();
+  const title    = (notification.title       || '').trim();
+  const titleBig = (notification.titleBig    || '').trim();
+  const text     = (notification.text        || '').trim();
+  const bigText  = (notification.bigText     || '').trim();
 
+  // Combine content for non-payment filtering
+  const allContent = `${title} ${titleBig} ${text} ${bigText}`;
+  if (RE_NON_PAYMENT.test(allContent)) {
+    const isPaymentMatch = RE_GPAY_PAID_YOU_SYMBOL.test(title) || RE_GPAY_PAID_YOU_SYMBOL.test(titleBig) || RE_GPAY_PAID_YOU_SYMBOL.test(bigText) ||
+                           RE_PHONEPE_AMOUNT.test(title) || RE_PHONEPE_AMOUNT.test(text) || RE_PHONEPE_AMOUNT.test(bigText);
+    if (!isPaymentMatch) {
+      return null; // Ignore promotional, OTP, or balance alert
+    }
+  }
+
+  const isGPay    = pkg.includes('paisa') || pkg.includes('gpay') || appName.toLowerCase().includes('google pay') || appName.toLowerCase().includes('gpay');
   const isPhonePe = pkg.includes('phonepe') || appName.toLowerCase().includes('phonepe');
   const isAmazon  = pkg.includes('amazon')  || appName.toLowerCase().includes('amazon');
 
   const body = bigText || text;
 
-  // ─ 1. Amazon Pay ───────────────────────────────────────────────
+  // ─ 1. Google Pay (GPay) ───────────────────────────────────────────
+  if (isGPay) {
+    for (const candidate of [title, titleBig, bigText, text].filter(Boolean)) {
+      let m;
+      if ((m = RE_GPAY_PAID_YOU_SYMBOL.exec(candidate))) {
+        const sender = cleanSender(m[1]);
+        const amount = normaliseAmount(m[2]);
+        const rawMsg = (text && text !== candidate && !RE_GPAY_PAID_YOU_SYMBOL.test(text)) ? text : (notification.message || '');
+        return { sender, amount, sourceApp: 'Google Pay', message: cleanMessage(rawMsg) };
+      }
+      if ((m = RE_GPAY_PAID_YOU_WORDS.exec(candidate))) {
+        const sender = cleanSender(m[1]);
+        const amount = normaliseAmount(m[2]);
+        const rawMsg = (text && text !== candidate && !RE_GPAY_PAID_YOU_WORDS.test(text)) ? text : (notification.message || '');
+        return { sender, amount, sourceApp: 'Google Pay', message: cleanMessage(rawMsg) };
+      }
+      if ((m = RE_GPAY_YOU_RECEIVED.exec(candidate))) {
+        const sender = cleanSender(m[2]);
+        const amount = normaliseAmount(m[1]);
+        return { sender, amount, sourceApp: 'Google Pay', message: cleanMessage(notification.message || '') };
+      }
+      if ((m = RE_AMT_RECEIVED_FROM.exec(candidate))) {
+        const sender = cleanSender(m[2]);
+        const amount = normaliseAmount(m[1]);
+        return { sender, amount, sourceApp: 'Google Pay', message: cleanMessage(notification.message || '') };
+      }
+    }
+  }
+
+  // ─ 2. Amazon Pay ───────────────────────────────────────────────
   if (isAmazon) {
     const senderM = RE_AMAZON_SENDER.exec(body);
     const amtM    = RE_AMT_TITLE.exec(title);
@@ -305,7 +371,7 @@ function parsePayment(notification) {
     if (m) return { sender: cleanSender(m[2]), amount: normaliseAmount(m[1]), sourceApp: 'Amazon Pay' };
   }
 
-  // ─ 2. PhonePe ─────────────────────────────────────────────────
+  // ─ 3. PhonePe ─────────────────────────────────────────────────
   if (isPhonePe) {
     for (const candidate of [body, text, title].filter(Boolean)) {
       const hasIdx = candidate.indexOf(' has ');
@@ -329,21 +395,21 @@ function parsePayment(notification) {
     }
   }
 
-  // ─ 3. Generic fallbacks ──────────────────────────────────────────
+  // ─ 4. Generic fallbacks ──────────────────────────────────────────
   for (const candidate of [body, title].filter(Boolean)) {
     let m;
     if ((m = RE_HAS_SENT.exec(candidate)))
-      return { sender: cleanSender(m[1]), amount: normaliseAmount(m[2]), sourceApp: appName };
+      return { sender: cleanSender(m[1]), amount: normaliseAmount(m[2]), sourceApp: appName || 'UPI' };
     if ((m = RE_PAYMENT_OF.exec(candidate)))
-      return { sender: cleanSender(m[2]), amount: normaliseAmount(m[1]), sourceApp: appName };
+      return { sender: cleanSender(m[2]), amount: normaliseAmount(m[1]), sourceApp: appName || 'UPI' };
     if ((m = RE_RECEIVED_FROM.exec(candidate)))
-      return { sender: cleanSender(m[2]), amount: normaliseAmount(m[1]), sourceApp: appName };
+      return { sender: cleanSender(m[2]), amount: normaliseAmount(m[1]), sourceApp: appName || 'UPI' };
     if ((m = RE_AMT_RECEIVED_FROM.exec(candidate)))
-      return { sender: cleanSender(m[2]), amount: normaliseAmount(m[1]), sourceApp: appName };
+      return { sender: cleanSender(m[2]), amount: normaliseAmount(m[1]), sourceApp: appName || 'UPI' };
     if ((m = RE_NAME_SENT.exec(candidate)))
-      return { sender: cleanSender(m[1]), amount: normaliseAmount(m[2]), sourceApp: appName };
+      return { sender: cleanSender(m[1]), amount: normaliseAmount(m[2]), sourceApp: appName || 'UPI' };
     if ((m = RE_YOU_PAID.exec(candidate)))
-      return { sender: cleanSender(m[2]), amount: normaliseAmount(m[1]), sourceApp: appName };
+      return { sender: cleanSender(m[2]), amount: normaliseAmount(m[1]), sourceApp: appName || 'UPI' };
   }
 
   return null;
@@ -1331,25 +1397,46 @@ app.post('/api/test', (req, res) => {
   res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId, simulated: isSimulated });
 });
 
+// ── WebSocket Helpers ───────────────────────────────────────────────────
+const obsClients     = new Set();
+const androidClients = new Set();
+
+function getActiveWsCount(clientSet) {
+  if (!clientSet) return 0;
+  for (const client of clientSet) {
+    if (!client || client.readyState === 2 || client.readyState === 3) {
+      clientSet.delete(client);
+    }
+  }
+  return clientSet.size;
+}
+
 // Fix: use getActiveWsCount() so /health never reports stale/dead sockets
 app.get('/health', (req, res) =>
   res.json({ status: 'ok', androidClients: getActiveWsCount(androidClients), obsClients: getActiveWsCount(obsClients) })
 );
 
-// ── WebSocket ───────────────────────────────────────────────────────────
-const obsClients     = new Set();
-const androidClients = new Set();
-
+// ── WebSocket Handler ───────────────────────────────────────────────────
 wss.on('connection', (ws, req) => {
   const url        = req.url ? req.url.split('?')[0] : '/';
   const clientType = url === '/android' ? 'android' : 'obs';
+  const remoteIp   = req.socket?.remoteAddress || '';
 
   if (clientType === 'android') {
-    // Evict any stale CLOSING/CLOSED sockets before adding the new one
-    // so the count is always accurate from the moment of connection.
-    getActiveWsCount(androidClients);
+    const rawIp = req.socket?.remoteAddress || '';
+    const normIp = rawIp.replace(/^::ffff:/, '');
+
+    // Evict any existing or stale android sockets
+    for (const existing of androidClients) {
+      const existingNormIp = (existing.remoteIp || '').replace(/^::ffff:/, '');
+      if (existing.readyState !== 1 || existingNormIp === normIp || existing !== ws) {
+        androidClients.delete(existing);
+        try { existing.terminate(); } catch (_) {}
+      }
+    }
+    ws.remoteIp = normIp;
     androidClients.add(ws);
-    log.info('WS', `Android connected (${androidClients.size} total)`);
+    log.info('WS', `Android connected [IP: ${normIp || 'unknown'}] (${androidClients.size} active)`);
 
     ws.isAlive = true;
     ws.on('pong', () => { ws.isAlive = true; });
@@ -1365,6 +1452,11 @@ wss.on('connection', (ws, req) => {
         if (!title && !text) return;
 
         const parsed = parsePayment(notification);
+        if (!parsed && notification.source !== 'tester' && !notification.sender) {
+          log.debug('PaymentParser', `Ignored non-payment or unparseable notification from ${appName}: "${title || text}"`);
+          return;
+        }
+
         const isIsolated = alertSettings.simulation ? alertSettings.simulation.isolatedMode !== false : true;
         const isFromTester = notification.source === 'tester' || notification.simulated === true;
         const isSimulated = isFromTester ? isIsolated : false;
@@ -1377,12 +1469,13 @@ wss.on('connection', (ws, req) => {
           sender    : parsed ? parsed.sender    : (notification.sender    || ''),
           amount    : parsed ? parsed.amount    : (notification.amount    || ''),
           sourceApp : parsed ? parsed.sourceApp : (notification.sourceApp || appName),
+          message   : parsed && parsed.message  ? parsed.message          : (notification.message || ''),
         };
 
         const decorated = decorateWithTemplate(enriched);
         const payload   = JSON.stringify({ type: 'payment_notification', ...decorated });
 
-        log.event('PaymentEvent', `Payment received: ₹${decorated.amount || '0'} from "${decorated.sender || 'Unknown'}" via ${decorated.sourceApp} [Template: ${decorated.alertTemplateName || 'Default'}]`, decorated);
+        log.event('PaymentEvent', `Payment received: ${decorated.amount || '₹0'} from "${decorated.sender || 'Unknown'}" via ${decorated.sourceApp} [Template: ${decorated.alertTemplateName || 'Default'}]`, decorated);
 
         obsClients.forEach(client => {
           if (client.readyState === 1) {
@@ -1398,7 +1491,15 @@ wss.on('connection', (ws, req) => {
       }
     });
 
-    ws.on('close', () => { androidClients.delete(ws); log.info('WS', 'Android disconnected'); });
+    ws.on('error', (err) => {
+      androidClients.delete(ws);
+      log.warn('WS', `Android socket error: ${err.message}`);
+    });
+
+    ws.on('close', () => {
+      androidClients.delete(ws);
+      log.info('WS', `Android disconnected (${getActiveWsCount(androidClients)} active)`);
+    });
 
   } else {
     // Evict any stale CLOSING/CLOSED OBS sockets before adding the new one
@@ -1415,23 +1516,37 @@ wss.on('connection', (ws, req) => {
   }
 });
 
-// Heartbeat for Android clients — terminate unresponsive sockets within 30 s
+// Fast 5s Heartbeat for Android clients — promptly purge dead/dropped connections
 const androidHeartbeat = setInterval(() => {
+  getActiveWsCount(androidClients);
   androidClients.forEach(ws => {
-    if (ws.isAlive === false) { androidClients.delete(ws); return ws.terminate(); }
+    if (ws.isAlive === false || ws.readyState !== 1) {
+      androidClients.delete(ws);
+      try { ws.terminate(); } catch (_) {}
+      return;
+    }
     ws.isAlive = false;
-    ws.ping();
+    try { ws.ping(); } catch (_) {
+      androidClients.delete(ws);
+    }
   });
-}, 30000);
+}, 5000);
 
-// Heartbeat for OBS browser-source clients — same logic as Android
+// Heartbeat for OBS browser-source clients
 const obsHeartbeat = setInterval(() => {
+  getActiveWsCount(obsClients);
   obsClients.forEach(ws => {
-    if (ws.isAlive === false) { obsClients.delete(ws); return ws.terminate(); }
+    if (ws.isAlive === false || ws.readyState !== 1) {
+      obsClients.delete(ws);
+      try { ws.terminate(); } catch (_) {}
+      return;
+    }
     ws.isAlive = false;
-    ws.ping();
+    try { ws.ping(); } catch (_) {
+      obsClients.delete(ws);
+    }
   });
-}, 30000);
+}, 15000);
 
 wss.on('close', () => {
   clearInterval(androidHeartbeat);

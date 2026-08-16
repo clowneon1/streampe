@@ -43,15 +43,19 @@ class AppListAdapter(
 
         if (item.packageName == "com.phonepe.app") {
             holder.tvWarning.visibility = View.VISIBLE
-            holder.tvWarning.text = "⚡ Recommended (Requires only Notification Access)"
-            holder.tvWarning.setTextColor(android.graphics.Color.parseColor("#10B981"))
+            holder.tvWarning.text = "⚡ Fast Alert (Amount only • PhonePe doesn't support messages)"
+            holder.tvWarning.setTextColor(android.graphics.Color.parseColor("#A78BFA"))
+        } else if (item.packageName.contains("paisa") || item.packageName.contains("gpay")) {
+            holder.tvWarning.visibility = View.VISIBLE
+            holder.tvWarning.text = "💬 Supports Amount + Donor Messages (Notification Access only)"
+            holder.tvWarning.setTextColor(android.graphics.Color.parseColor("#38BDF8"))
         } else if (item.packageName.contains("amazon", ignoreCase = true)) {
             holder.tvWarning.visibility = View.VISIBLE
-            holder.tvWarning.text = "⚠️ Requires Accessibility Permission (Not Recommended)"
+            holder.tvWarning.text = "🛒 Amazon Pay (May require Accessibility fallback if masked)"
             holder.tvWarning.setTextColor(android.graphics.Color.parseColor("#FBBF24"))
-        } else if (item.packageName == "com.whatsapp") {
+        } else if (item.packageName.contains("whatsapp", ignoreCase = true)) {
             holder.tvWarning.visibility = View.VISIBLE
-            holder.tvWarning.text = "🧪 Used for Testing"
+            holder.tvWarning.text = "🧪 Used for Testing (Simulated alerts only)"
             holder.tvWarning.setTextColor(android.graphics.Color.parseColor("#00E5FF"))
         } else {
             holder.tvWarning.visibility = View.GONE
