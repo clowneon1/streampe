@@ -117,17 +117,7 @@ body, html {
   border-radius: var(--goal-bar-roundness, 40px);
   position: relative;
   overflow: hidden;
-  background-color: var(--goal-fill-color);
-  background-image: none;
-}
-
-[style*="--goal-use-gradient: 1"] .goal-bar-fill {
-  background-image: linear-gradient(90deg, var(--goal-fill-color), var(--goal-fill-color2));
-}
-
-[style*="--goal-use-gradient: 0"] .goal-bar-fill {
-  background-image: none;
-  background-color: var(--goal-fill-color);
+  background: var(--goal-fill-bg, var(--goal-fill-color));
 }
 
 /* Effects */

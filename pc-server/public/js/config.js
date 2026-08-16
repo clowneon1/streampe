@@ -454,6 +454,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const goal = config.widgets.goal;
     goal.enabled = checked('chk-enable-goal', goal.enabled);
+    goal.allowOverflow = checked('chk-goal-allow-overflow', !!goal.allowOverflow);
     goal.title = val('input-goal-title', goal.title);
     goal.targetAmount = numVal('input-goal-target', goal.targetAmount);
     goal.currentAmount = numVal('input-goal-current', goal.currentAmount);
@@ -637,6 +638,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const goal = config.widgets.goal;
     setChecked('chk-enable-goal', goal.enabled);
+    setChecked('chk-goal-allow-overflow', !!goal.allowOverflow);
     setVal('input-goal-title', goal.text.titleTemplate || goal.title);
     setVal('input-goal-target', goal.targetAmount);
     setVal('input-goal-current', goal.currentAmount);

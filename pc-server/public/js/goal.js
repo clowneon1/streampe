@@ -28,7 +28,12 @@
     root.style.setProperty('--goal-bar-color', goal.style.barColor);
     root.style.setProperty('--goal-fill-color', goal.style.fillColor);
     root.style.setProperty('--goal-fill-color2', goal.style.fillColor2 || goal.style.fillColor);
-    root.style.setProperty('--goal-use-gradient', goal.style.useGradient ? '1' : '0');
+    const isGradient = goal.style.useGradient !== false;
+    const fillBg = isGradient
+      ? `linear-gradient(90deg, ${goal.style.fillColor}, ${goal.style.fillColor2 || goal.style.fillColor})`
+      : goal.style.fillColor;
+    root.style.setProperty('--goal-fill-bg', fillBg);
+    root.style.setProperty('--goal-use-gradient', isGradient ? '1' : '0');
     root.style.setProperty('--goal-bar-roundness', (goal.style.barRoundness ?? 40) + 'px');
     root.style.setProperty('--goal-accent-color', goal.style.accentColor);
     root.style.setProperty('--goal-bar-height', goal.style.barHeight + 'px');
@@ -65,7 +70,11 @@
       const current = parseFloat(goal.currentAmount) || 0;
       const target = Math.max(start + 1, parseFloat(goal.targetAmount) || 5000);
       const range = Math.max(1, target - start);
-      const percent = Math.min(100, Math.max(0, ((current - start) / range) * 100));
+      const rawPercent = ((current - start) / range) * 100;
+      const allowOverflow = !!goal.allowOverflow;
+      const percent = allowOverflow
+        ? Math.max(0, rawPercent)
+        : Math.min(100, Math.max(0, rawPercent));
 
       const context = {
         title: goal.title,
@@ -97,7 +106,12 @@
     const current = parseFloat(goal.currentAmount) || 0;
     const target = Math.max(start + 1, parseFloat(goal.targetAmount) || 5000);
     const range = Math.max(1, target - start);
-    const percent = Math.min(100, Math.max(0, ((current - start) / range) * 100)).toFixed(1);
+    const rawPercent = ((current - start) / range) * 100;
+    const allowOverflow = !!goal.allowOverflow;
+    const percentNum = allowOverflow
+      ? Math.max(0, rawPercent)
+      : Math.min(100, Math.max(0, rawPercent));
+    const percent = percentNum.toFixed(1);
 
     const formattedCurrent = `₹${current.toLocaleString('en-IN')}`;
     const formattedTarget = `₹${target.toLocaleString('en-IN')}`;
@@ -118,6 +132,8 @@
       return;
     }
 
+    const barFillWidth = Math.min(100, Math.max(0, rawPercent)).toFixed(1);
+
     container.innerHTML = `
       <div class="goal-card">
         <div class="goal-header">
@@ -128,7 +144,7 @@
           ${goal.endDate ? `<div class="goal-end-date">Ends: ${TemplateEngine.escapeHtml(goal.endDate)}</div>` : ''}
         </div>
         <div class="goal-bar-wrapper">
-          <div class="goal-bar-fill effect-${goal.style.effect || 'none'}" style="width: ${percent}%;"></div>
+          <div class="goal-bar-fill effect-${goal.style.effect || 'none'}" style="width: ${barFillWidth}%;"></div>
           <div class="goal-bar-text">
             <span>${formattedCurrent} (${percent}%)</span>
             <span>${formattedTarget}</span>
