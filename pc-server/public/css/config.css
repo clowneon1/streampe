@@ -1897,9 +1897,14 @@ input[type="time"].form-control::-webkit-calendar-picker-indicator {
   transform: translateY(-1px);
 }
 
+.btn-table-action.btn-delete-danger {
+  color: var(--danger, #ff4444) !important;
+  border-color: rgba(255, 68, 68, 0.35) !important;
+}
+
 .btn-table-action.btn-delete-danger:hover {
-  background: rgba(255, 68, 68, 0.18) !important;
-  border-color: var(--danger) !important;
+  background: rgba(255, 68, 68, 0.2) !important;
+  border-color: var(--danger, #ff4444) !important;
   color: #ffffff !important;
 }
 
