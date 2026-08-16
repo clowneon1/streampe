@@ -7,6 +7,7 @@ const os = require('os');
 const { exec } = require('child_process');
 const winston = require('winston');
 require('winston-daily-rotate-file');
+const { Bonjour } = require('bonjour-service');
 
 const app = express();
 const server = http.createServer(app);
@@ -1441,6 +1442,90 @@ wss.on('error', () => {});
 // HTTP and WS share the same underlying server — one port covers both.
 const PREFERRED_PORT = parseInt(process.env.PORT || '2907', 10);
 
+// ── mDNS Auto-Discovery (Bonjour / Zeroconf) ─────────────────────────
+let bonjourInstance = null;
+let publishedService = null;
+
+function startMdnsDiscovery(port, retryCount = 0) {
+  try {
+    if (!bonjourInstance) {
+      bonjourInstance = new Bonjour();
+      // Catch any unexpected socket errors on the underlying registry
+      if (bonjourInstance._server && typeof bonjourInstance._server.on === 'function') {
+        bonjourInstance._server.on('error', () => {});
+      }
+    }
+    const hostName = os.hostname() || 'Streamer-PC';
+    let serviceName = `Payment Alerts - ${hostName}`;
+    if (port !== PREFERRED_PORT || retryCount > 0) {
+      serviceName += ` (Port ${port}${retryCount > 0 ? ` #${retryCount}` : ''})`;
+    }
+
+    publishedService = bonjourInstance.publish({
+      name: serviceName,
+      type: 'payment-alerts',
+      protocol: 'tcp',
+      port: port,
+      probe: false,
+      txt: {
+        version: '2.0.0',
+        server: 'payment-alerts-obs',
+        hostname: hostName,
+        wsPath: '/android'
+      }
+    });
+
+    publishedService.on('up', () => {
+      log.info('mDNS', `Auto-Discovery active: _payment-alerts._tcp.local on port ${port} ("${serviceName}")`);
+    });
+
+    publishedService.on('error', (err) => {
+      log.warn('mDNS', `Auto-Discovery notice for "${serviceName}": ${err.message}`);
+      if (err.message && err.message.includes('already in use') && retryCount < 5) {
+        try { if (publishedService) publishedService.destroy(); } catch (_) {}
+        setTimeout(() => startMdnsDiscovery(port, retryCount + 1), 300);
+      }
+    });
+  } catch (e) {
+    log.warn('mDNS', `Failed to initialize mDNS auto-discovery: ${e.message}`);
+  }
+}
+
+function stopMdnsDiscovery() {
+  if (publishedService) {
+    try { publishedService.destroy(); } catch (_) {}
+    publishedService = null;
+  }
+  if (bonjourInstance) {
+    try {
+      bonjourInstance.unpublishAll();
+      bonjourInstance.destroy();
+    } catch (_) {}
+    bonjourInstance = null;
+    log.info('mDNS', 'Auto-Discovery service closed cleanly');
+  }
+}
+
+process.on('exit', () => stopMdnsDiscovery());
+
+process.on('SIGINT', () => {
+  stopMdnsDiscovery();
+  setTimeout(() => process.exit(0), 50);
+});
+
+process.on('SIGTERM', () => {
+  stopMdnsDiscovery();
+  setTimeout(() => process.exit(0), 50);
+});
+
+// Nodemon graceful restart handler
+process.once('SIGUSR2', () => {
+  stopMdnsDiscovery();
+  setTimeout(() => {
+    process.kill(process.pid, 'SIGUSR2');
+  }, 50);
+});
+
 function startServer(port) {
   server.listen(port, '0.0.0.0');
 
@@ -1450,11 +1535,13 @@ function startServer(port) {
       log.warn('Server', `⚠️  Port ${PREFERRED_PORT} was in use — started on fallback port ${actualPort}`);
     }
     ensureWindowsFirewallRule();
+    startMdnsDiscovery(actualPort);
     const primaryIp = getPrimaryIp();
     const ips = getLocalIpAddresses();
     log.info('Server', `\n🚀 Payment Alerts for OBS PC Server Running!`);
     log.info('Server', `   -------------------------------------------------`);
     log.info('Server', `   📱 Mobile App Connection IP: http://${primaryIp}:${actualPort}`);
+    log.info('Server', `   🔍 mDNS Auto-Discovery:      _payment-alerts._tcp (Port ${actualPort})`);
     ips.forEach(ip => log.info('Server', `      Network Adapter [${ip.name}]: ${ip.address}`));
     log.info('Server', `   🖥️ OBS Config Dashboard:   http://${primaryIp}:${actualPort}/config`);
     log.info('Server', `   📡 OBS Alert Overlay:       http://${primaryIp}:${actualPort}/overlay/alerts`);

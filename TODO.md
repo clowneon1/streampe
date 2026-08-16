@@ -6,8 +6,8 @@
 
 - [ ] **1. Non-Payment Notification Filter** — Add strict filtering to ignore promotional messages, security/OTP alerts, reward cashbacks, and bank balance updates from supported payment apps (PhonePe, GPay, Paytm, etc.).
 - [ ] **4. Google Pay (GPay) Parser Support** — Add dedicated regex pattern matching and notification listener parser support for Google Pay transactions.
-- [ ] **6. Server Auto-Discovery (mDNS/Bonjour)** — Implement mDNS/Bonjour-based server discovery so the Android app can automatically find the PC server on the local network without manual IP entry. Also allow users to manually add a server by IP/port, with saved servers persisted in local storage for quick reconnection.
 - [ ] **12. Defaults & Payment App Cleanup (Support PhonePe, Amazon Pay, GPay & Cash Only)** — Streamline supported payment apps across the entire application for v2. Officially support only **PhonePe**, **Amazon Pay**, **Google Pay (GPay)**, and **Cash / Manual Entry** (for offline donations/ledger). Remove legacy/unused apps and tags like Paytm, BHIM UPI, and other third-party UPI apps from default alert templates, simulation dropdowns, tag pickers, preset badges, and analytics filters.
+- [ ] **19. Security & Access Control (PIN / Password / 2FA Authentication)** — Add optional password/PIN protection for the PC Dashboard (`/config`) and the Android companion connection (`ws://.../android` & `/api/*`). Prevents unauthorized devices on shared Wi-Fi networks (roommates, shared studios, public Wi-Fi) from accessing financial analytics, triggering bogus alerts, or connecting without entering the streamer's configured PIN/password.
 
 ---
 
@@ -15,6 +15,20 @@
 
 ### Version 2.0.0 (`feature/version-2`)
 
+- [x] **18. Live Connection State & Real-Time Disconnect Monitoring (Zero Restart Auto-Recovery)** — Implemented real-time connection state listeners in [WebSocketManager.kt](file:///d:/xwork/projects/payment-alerts-for-obs/android-app/app/src/main/java/com/clowneon1/paymentalertsobs/WebSocketManager.kt) and live status badge in [AppSelectorActivity.kt](file:///d:/xwork/projects/payment-alerts-for-obs/android-app/app/src/main/java/com/clowneon1/paymentalertsobs/AppSelectorActivity.kt):
+  - Automatically detects PC server closures, network drops, or socket terminations within 1 second.
+  - Flips UI dynamically to 🔴 *Server Closed / Reconnecting...* without freezing or requiring an app restart.
+  - Automatically reconnects within 3 seconds when the PC server restarts, flipping back to 🟢 *Connected*.
+
+- [x] **17. Dedicated Permissions & Setup Onboarding Screen for Android App** — Separated permission requests into a concise 3-slide swipeable carousel ([PermissionsActivity.kt](file:///d:/xwork/projects/payment-alerts-for-obs/android-app/app/src/main/java/com/clowneon1/paymentalertsobs/PermissionsActivity.kt)):
+  - **Slide 1 (Notification Access - Required)**: Clear instructions with quick Android 13/14/15 "Restricted setting" fix guide.
+  - **Slide 2 (Battery Keepalive - Recommended)**: Explains background sleep prevention for long stream continuity.
+  - **Slide 3 (Accessibility Reader - Optional / Caution)**: Highlights why PhonePe is preferred (no accessibility needed), warns about banking UPI interference, and clarifies Amazon Pay / Android 15 fallback usage.
+  - **Clean Connection Dashboard**: Streamlined [MainActivity.kt](file:///d:/xwork/projects/payment-alerts-for-obs/android-app/app/src/main/java/com/clowneon1/paymentalertsobs/MainActivity.kt) purely for server discovery and connection.
+
+- [x] **6. Server Auto-Discovery (mDNS/Bonjour)**:
+  - **PC Server (`server.js`)**: Integrated `bonjour-service` to broadcast `_payment-alerts._tcp` on local Wi-Fi, supporting dynamic fallback ports (`Port 58024`), collision auto-recovery, and clean teardown on app exit / nodemon restarts (`SIGINT`, `SIGTERM`, `SIGUSR2`).
+  - **Android Companion (`ServerDiscoveryManager.kt`)**: Native `NsdManager` discovery with on-demand timed scanning (stops automatically after 5 seconds to conserve battery) and saved server history chips for quick reconnection.
 - [x] **16. Sidebar Navigation Restructure (Earning Overview as Default Home Landing Tab)** — Placed Earning Overview at the top of the sidebar navigation as the default landing view upon dashboard boot, followed by overlay customization widgets and diagnostic tools.
 - [x] **15. Default Collapsed State for Secondary Setting Panels** — Collapsed all settings sections (`<details class="collapsible-advanced">`) by default except the first section in each configuration tab (Alert Templates, Alert Style & Animations, Payment Goal, List Widgets, and Cycling Widget), giving streamers a sleek, focused, and uncluttered dashboard experience.
 - [x] **13. Remove Alert Widget Base Tab & Redundant Controls** — Removed the obsolete "Alert Widget Base" sidebar tab, duplicate canvas dimensions, and duplicate baseline typography controls. Alert templates are now the sole source of truth for alert appearance and canvas setup.

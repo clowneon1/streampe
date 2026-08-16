@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#0a0c14">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Title & Status Badge -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="3. Accessibility Reader"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:textColor="#F0F2FF" />
+
+            <TextView
+                android:id="@+id/tvSlide3Badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="OPTIONAL"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#555D7A"
+                android:background="#1a1d2b"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp" />
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Fallback reader only needed if payment amounts are masked."
+            android:textSize="13sp"
+            android:textColor="#8890AA"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Warning & Recommendations Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#241908"
+            android:padding="14dp"
+            android:layout_marginBottom="14dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⚠️ Caution: Can trigger UPI security locks"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#FBBF24"
+                android:layout_marginBottom="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Accessibility services can interfere with banking apps like PhonePe and block pin/screen access."
+                android:textSize="12sp"
+                android:textColor="#FDE68A"
+                android:lineSpacingExtra="3dp" />
+
+        </LinearLayout>
+
+        <!-- Concise Guidance Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#141824"
+            android:padding="14dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="💡 Recommendations:"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#00E5FF"
+                android:layout_marginBottom="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="• PhonePe (Preferred): Works 100% with Notification Access alone. Do NOT enable accessibility.\n• Amazon Pay / Android 15+: Only enable if payment amounts are masked in notifications."
+                android:textSize="12sp"
+                android:textColor="#C3C9DD"
+                android:lineSpacingExtra="3dp" />
+
+        </LinearLayout>
+
+        <!-- Action Button -->
+        <Button
+            android:id="@+id/btnGrantSlide3"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Configure Accessibility (Optional)"
+            android:textSize="13sp"
+            android:textColor="#FBBF24"
+            android:backgroundTint="#1c1800"
+            android:stateListAnimator="@null" />
+
+    </LinearLayout>
+</ScrollView>

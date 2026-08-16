@@ -18,4 +18,24 @@ class AppPrefs(context: Context) {
     var selectedPackages: Set<String>
         get() = prefs.getStringSet("selected_packages", emptySet()) ?: emptySet()
         set(value) = prefs.edit().putStringSet("selected_packages", value).apply()
+
+    var savedServers: Set<String>
+        get() = prefs.getStringSet("saved_servers", emptySet()) ?: emptySet()
+        set(value) = prefs.edit().putStringSet("saved_servers", value).apply()
+
+    fun addSavedServer(url: String) {
+        val trimmed = url.trim()
+        if (trimmed.isNotBlank()) {
+            val current = savedServers.toMutableSet()
+            current.add(trimmed)
+            savedServers = current
+        }
+    }
+
+    fun removeSavedServer(url: String) {
+        val current = savedServers.toMutableSet()
+        if (current.remove(url.trim())) {
+            savedServers = current
+        }
+    }
 }

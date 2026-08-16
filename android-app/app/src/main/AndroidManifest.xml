@@ -37,6 +37,7 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".PermissionsActivity" android:exported="false" />
         <activity android:name=".AppSelectorActivity" android:exported="false" />
         <activity android:name=".NotificationTesterActivity" android:exported="false" />
         <activity android:name=".AlertLogActivity" android:exported="false" />

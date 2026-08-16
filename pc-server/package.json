@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
+    "bonjour-service": "^1.4.4",
     "express": "^4.18.2",
     "handlebars": "^4.7.8",
     "winston": "^3.17.0",
