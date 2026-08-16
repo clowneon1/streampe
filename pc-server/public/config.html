@@ -2106,7 +2106,14 @@
             </tr>
           </thead>
           <tbody id="analytics-ledger-body">
-            <tr><td colspan="6" style="padding: 20px; text-align: center; color: var(--text-muted);">Loading transactions ledger...</td></tr>
+            <tr>
+              <td colspan="6" style="padding: 40px 20px; text-align: center;">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                  <div class="rotation-spinner spinner-lg"></div>
+                  <div style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Loading donations &amp; analytics...</div>
+                </div>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>

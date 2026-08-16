@@ -973,11 +973,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ── Server IO ────────────────────────────────────────────────
+  // ── Server IO & Profile Helpers ───────────────────────────────
+  function getCurrentProfileName() {
+    const select = el('select-profile');
+    if (select && select.value && select.value.trim()) {
+      return select.value.trim();
+    }
+    if (window.__activeProfile && window.__activeProfile.trim()) {
+      return window.__activeProfile.trim();
+    }
+    return 'Default';
+  }
+
   async function saveToServer(profileName) {
     console.log('[Server IO] Saving profile to server:', profileName);
     readFormValues();
-    const targetName = profileName || (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+    const targetName = profileName || getCurrentProfileName();
     try {
       const res = await fetch('/api/profiles/save', {
         method: 'POST',
@@ -1010,10 +1021,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ? data.profiles
         : Object.keys(data.profiles);
       const active = activeProfile || data.activeProfile || profileNames[0] || 'Default';
+      window.__activeProfile = active;
       console.log('[Profiles] Populating select dropdown with profiles:', profileNames, '| Active:', active);
       select.innerHTML = profileNames.map(name =>
         `<option value="${TemplateEngine.escapeHtml(name)}"${name === active ? ' selected' : ''}>${TemplateEngine.escapeHtml(name)}</option>`
       ).join('');
+      select.value = active;
     } catch (e) {
       console.error('[Profiles] Failed to load profiles list:', e);
     }
@@ -1714,7 +1727,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Goal Controls (Derived from CSV Single Source of Truth) ──
     on('btn-goal-test-add', async () => {
       try {
-        const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+        const activeProf = getCurrentProfileName();
         const res = await fetch('/api/donations/record', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1746,7 +1759,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (!confirmed) return;
       try {
-        const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+        const activeProf = getCurrentProfileName();
         const res = await fetch('/api/donations/clear', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1767,7 +1780,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Centralized Donations Data CSV Helpers ────────────────
     on('btn-sidebar-export-donations', 'click', () => {
-      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+      const activeProf = getCurrentProfileName();
       window.open(`/api/donations/csv?profile=${encodeURIComponent(activeProf)}`, '_blank');
       showToast('<i data-lucide="file-spreadsheet"></i> Exporting donations.csv for Excel/Sheets...');
     });
@@ -1804,7 +1817,7 @@ document.addEventListener('DOMContentLoaded', () => {
             csvPayload = PaymentsCsv.serializeCsv(txs);
           }
 
-          const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+          const activeProf = getCurrentProfileName();
           const res = await fetch('/api/donations/import', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2359,7 +2372,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function fetchAndRenderAnalytics() {
     try {
-      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+      const activeProf = getCurrentProfileName();
 
       // 1. Fetch available months list
       try {
@@ -2647,6 +2660,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function fetchAndRenderLedger(activeProf) {
+    const targetProf = activeProf || getCurrentProfileName();
     const body = el('analytics-ledger-body');
     const info = el('ledger-pagination-info');
     const countLbl = el('ledger-count-label');
@@ -2654,10 +2668,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnNext = el('btn-ledger-next');
     if (!body) return;
 
+    body.innerHTML = `
+      <tr>
+        <td colspan="6" style="padding: 40px 20px; text-align: center;">
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+            <div class="rotation-spinner spinner-lg"></div>
+            <div style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Loading transactions ledger...</div>
+          </div>
+        </td>
+      </tr>
+    `;
+
     try {
       const effectiveSearch = [analyticsState.search, analyticsState.searchDonor, analyticsState.searchNote].filter(Boolean).join(' ');
       const params = new URLSearchParams({
-        profile: activeProf,
+        profile: targetProf,
         month: analyticsState.month,
         provider: analyticsState.provider,
         search: effectiveSearch,
@@ -2763,7 +2788,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!confirmed) return;
 
           try {
-            const delRes = await fetch(`/api/donations/${encodeURIComponent(txId)}?profile=${encodeURIComponent(activeProf)}`, {
+            const delRes = await fetch(`/api/donations/${encodeURIComponent(txId)}?profile=${encodeURIComponent(targetProf)}`, {
               method: 'DELETE'
             });
             const delData = await delRes.json();
@@ -3089,7 +3114,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     on('btn-analytics-export-csv', 'click', () => {
-      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+      const activeProf = getCurrentProfileName();
       window.open(`/api/donations/csv?profile=${encodeURIComponent(activeProf)}`, '_blank');
       showToast('<i data-lucide="download"></i> Downloading donations.csv...');
     });
@@ -3164,7 +3189,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const dateVal = val('input-manual-date', '');
       const timeVal = val('input-manual-time', '');
       const note = val('input-manual-note', '').trim();
-      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+      const activeProf = getCurrentProfileName();
 
       if (amount <= 0) {
         return showToast('<i data-lucide="alert-triangle"></i> Please enter a valid donation amount');
@@ -3416,23 +3441,30 @@ document.addEventListener('DOMContentLoaded', () => {
     attachInputListeners();
     connectDashboardWebSocket();
 
-    const activeTabBtn = document.querySelector('.tab-btn.active') || document.querySelector('.tab-btn[data-tab="earnings"]');
-    if (activeTabBtn) {
-      activeTabBtn.click();
-    }
-
+    let activeProf = 'Default';
     try {
       console.log('[Config] Fetching settings from /api/settings...');
       const res = await fetch('/api/settings');
       const data = await res.json();
       console.log('[Config] Loaded settings payload:', data);
-      await loadProfilesList(data.activeProfile);
+      activeProf = data.activeProfile || 'Default';
+      window.__activeProfile = activeProf;
+      await loadProfilesList(activeProf);
       populateForm(data.settings || data);
-      console.log('[Config] Dashboard boot sequence completed successfully.');
     } catch (e) {
       console.error('[Config] Failed to load settings from server, falling back to defaults:', e);
       populateForm(ConfigSchema.createDefaultConfig());
     }
+
+    // Activate default landing tab directly with the resolved active profile (zero flicker)
+    const activeTabBtn = document.querySelector('.tab-btn.active') || document.querySelector('.tab-btn[data-tab="earnings"]');
+    if (activeTabBtn) {
+      activeTabBtn.click();
+    } else {
+      await refreshEarningsAnalytics();
+    }
+
+    console.log('[Config] Dashboard boot sequence completed with active profile:', activeProf);
   }
 
   initDashboard();

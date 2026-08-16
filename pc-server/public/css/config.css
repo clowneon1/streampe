@@ -1898,15 +1898,63 @@ input[type="time"].form-control::-webkit-calendar-picker-indicator {
 }
 
 .btn-table-action.btn-delete-danger {
-  color: var(--danger) !important;
-  border-color: rgba(255, 68, 68, 0.25) !important;
+  color: var(--danger, #ff4444) !important;
+  border-color: rgba(255, 68, 68, 0.35) !important;
 }
 
 .btn-table-action.btn-delete-danger:hover {
-  background: rgba(255, 68, 68, 0.18) !important;
-  border-color: var(--danger) !important;
+  background: rgba(255, 68, 68, 0.2) !important;
+  border-color: var(--danger, #ff4444) !important;
   color: #ffffff !important;
 }
+
+/* ── Modern Rotating Spinners & Loaders ────────────────────────── */
+.rotation-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(0, 229, 255, 0.15);
+  border-top-color: var(--accent, #00e5ff);
+  border-radius: 50%;
+  animation: spinLoader 0.7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.rotation-spinner.spinner-sm {
+  width: 15px;
+  height: 15px;
+  border-width: 2px;
+}
+
+.rotation-spinner.spinner-lg {
+  width: 36px;
+  height: 36px;
+  border-width: 3.5px;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
+}
+
+.rotation-spinner.spinner-purple {
+  border-top-color: #7928ca;
+  border-color: rgba(121, 40, 202, 0.15);
+}
+
+@keyframes spinLoader {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.analytics-loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
 
 
 
