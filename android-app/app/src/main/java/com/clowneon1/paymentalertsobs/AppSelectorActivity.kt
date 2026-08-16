@@ -66,12 +66,18 @@ class AppSelectorActivity : AppCompatActivity() {
 
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                val q = s.toString().lowercase()
+                val q = s.toString().trim().lowercase()
                 adapter.updateList(
                     if (q.isBlank()) allApps
-                    else allApps.filter {
-                        it.appName.lowercase().contains(q) ||
-                        it.packageName.lowercase().contains(q)
+                    else allApps.filter { app ->
+                        val name = app.appName.lowercase()
+                        val pkg = app.packageName.lowercase()
+                        name.contains(q) ||
+                        pkg.contains(q) ||
+                        (q in listOf("gpay", "google pay", "google", "paisa") && (pkg.contains("paisa") || name.contains("google"))) ||
+                        (q in listOf("phonepe", "pe") && (pkg.contains("phonepe") || name.contains("phonepe"))) ||
+                        (q in listOf("amazon", "amazon pay") && (pkg.contains("amazon") || name.contains("amazon"))) ||
+                        (q in listOf("whatsapp", "wa") && (pkg.contains("whatsapp") || name.contains("whatsapp")))
                     }
                 )
             }
@@ -118,9 +124,11 @@ class AppSelectorActivity : AppCompatActivity() {
 
     private val TARGET_PACKAGES = setOf(
         "com.phonepe.app",
+        "com.google.android.apps.nbu.paisa.user",
         "in.amazon.mShop.android.shopping",
         "com.amazon.mShop.android.shopping",
-        "com.whatsapp"
+        "com.whatsapp",
+        "com.whatsapp.w4b"
     )
 
     private fun getInstalledApps(): List<AppItem> {

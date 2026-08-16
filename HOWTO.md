@@ -49,21 +49,22 @@ Android 13 and newer restricts sensitive permissions for side-loaded apps. When 
 
 ---
 
-## 💸 Part 3: Recommended App — PhonePe
-We highly recommend using **PhonePe** for the best experience.
+## 💸 Part 3: Recommended Apps — Google Pay & PhonePe
+We highly recommend using **Google Pay** or **PhonePe** for the best streaming experience.
 
-### Why PhonePe?
-- **Low Friction**: It only requires **Notification Access**.
-- **Safe**: It doesn't require "Accessibility Services", which can block other payment apps or cause security issues on your phone.
-- **Reliable**: Our parser is highly optimized for PhonePe's notification format.
+### Why Google Pay & PhonePe?
+- **Zero Friction**: Both only require basic **Notification Access** on Android (No Accessibility required!).
+- **Safe & Private**: Neither requires intrusive Accessibility Services that could interfere with banking PIN entries.
+- **💬 Google Pay Supports Custom Donor Messages**: If a donor includes a note/message with their GPay payment (e.g., *"GG WP next game!"*), it will automatically display on your stream overlay.
+- **⚡ PhonePe Supports Fast Amount Alerts**: PhonePe notifications are fast and reliable, though PhonePe notification banners only contain the amount.
 
 ### Setup Workflow:
 1. Open the **Payment Alerts** app on Android.
-2. Grant **Notification Access**.
-3. Tap **Connect to Server** (ensure your PC app is running).
+2. Complete the 3-step setup carousel to grant **Notification Access** (and optional battery keepalive).
+3. Connect to your PC Server (via automatic Wi-Fi discovery or manual IP).
 4. Tap **Select Apps to Monitor**.
-5. Find **PhonePe** in the list and toggle it **ON**.
-6. That's it! Any incoming PhonePe notification will now trigger your OBS overlay.
+5. Toggle **Google Pay** and/or **PhonePe** to **ON**.
+6. That's it! Any incoming payment notification will now trigger your OBS overlay in real-time.
 
 ---
 

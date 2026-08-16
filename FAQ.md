@@ -55,15 +55,16 @@ Common solutions for Android installation, permissions, background execution, an
 
 ### 4. 💳 Which Payment Apps Work Best?
 
-| Payment App | Recommended Status | Required Permissions |
-| :--- | :---: | :--- |
-| **PhonePe** | ⚡ **Highly Recommended** | **Notification Access ONLY** (Zero Accessibility required) |
-| **Amazon Pay** | ⚠️ **Not Recommended** | Requires **Accessibility Service** permissions (can interfere with system functions) |
-| **Google Pay (GPay)** | ⚡ **Supported** | Notification Access |
-| **Paytm / BHIM UPI** | ⚡ **Supported** | Notification Access |
+| Payment App | Recommended Status | Required Permissions | Features & Notes |
+| :--- | :---: | :--- | :--- |
+| **Google Pay (GPay)** | 💬 **Highly Recommended** | **Notification Access ONLY** | **Full Support for Amount + Custom Donor Messages/Notes** (Zero Accessibility required) |
+| **PhonePe** | ⚡ **Highly Recommended** | **Notification Access ONLY** | **Full Support for Amount** (Fast alerts; PhonePe notifications do not include donor notes) |
+| **Amazon Pay** | 🛒 **Supported** | Notification Access | May require Accessibility fallback if your OS vendor masks payment amounts |
+| **Cash / Manual** | 💵 **Supported** | None | Record manual cash donations directly into the stream ledger & goal bar |
+| **WhatsApp** | 🧪 **Testing Only** | Notification Access | Used for test message dispatch (automatically tagged as simulated alerts) |
 
 > [!TIP]
-> **PhonePe is strongly recommended** because it works 100% reliably using basic Notification Access without requiring scary Accessibility Service permissions.
+> **Google Pay and PhonePe are both strongly recommended** because they work 100% reliably using basic Notification Access without requiring Accessibility Service permissions. If your donors want to attach custom messages with their payments, encourage them to use **Google Pay**!
 
 ---
 

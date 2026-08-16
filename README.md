@@ -55,20 +55,21 @@ A free, open-source, ultra-fast, and self-hosted solution to display real-time m
 
 ---
 
-## 📱 Recommended Payment App: PhonePe
+## 📱 Recommended Payment Apps: Google Pay & PhonePe
 
 > [!TIP]
-> **PhonePe is Highly Recommended** ⚡
-> - **PhonePe** works best because it **ONLY requires Notification Listener Access** on Android.
-> - Payment apps like **Amazon Pay** require **Accessibility Service Permissions**, which can interfere with system functions or cause other payment apps to stop functioning.
-> - PhonePe requires zero Accessibility permissions—just basic Notification Access!
+> **Google Pay & PhonePe are Highly Recommended** ⚡
+> - **Google Pay (GPay)** & **PhonePe** work best because they **ONLY require Notification Listener Access** on Android.
+> - **💬 Google Pay supports Donor Messages**: Google Pay notifications include both the donation amount and the donor's custom message/note (e.g. `Rahul paid you ₹500` + `"Keep up the great stream! 🔥"`).
+> - **⚡ PhonePe supports Amount**: PhonePe notifications include the donor name and amount (PhonePe does not include custom donor messages in its notification banner).
+> - **Zero Accessibility Permissions Required**: Both Google Pay and PhonePe work 100% without Accessibility Services. (Payment apps like Amazon Pay may require Accessibility Service Fallbacks if amounts are masked by Android).
 
 ### 🔒 Android Permissions & Security Explained
 
 | Permission | Required For | Security & Privacy Note |
 | :--- | :--- | :--- |
 | **`android.permission.INTERNET`** | **Local Network Communication** | Required by Android OS to open WebSocket TCP connections to your PC (`ws://<YOUR-PC-IP>:2907`). **Zero data is sent to external internet/cloud servers.** |
-| **`BIND_NOTIFICATION_LISTENER_SERVICE`** | **Payment Notification Reader** | Allows the companion app to detect incoming payment notifications (PhonePe, GPay, Paytm, BHIM, etc.). |
+| **`BIND_NOTIFICATION_LISTENER_SERVICE`** | **Payment Notification Reader** | Allows the companion app to detect incoming payment notifications (Google Pay, PhonePe, Amazon Pay). |
 | **`FOREGROUND_SERVICE`** | **Background Stream Connection** | Keeps the local WebSocket connection active in the background while streaming. |
 | **`RECEIVE_BOOT_COMPLETED`** | **Auto Start on Boot** | Automatically restarts the local background service when your Android phone reboots. |
 | **`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`** | **Uninterrupted Alert Service** | Prevents Android OS battery saver from putting the background connection to sleep during long streams. |

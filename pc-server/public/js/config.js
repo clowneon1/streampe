@@ -1888,23 +1888,18 @@ document.addEventListener('DOMContentLoaded', () => {
       if (providerKey === 'gpay') {
         appName = 'Google Pay';
         packageName = 'com.google.android.apps.nbu.paisa.user';
-        title = 'Google Pay';
-        text = `Received ₹${formattedAmount} from ${sender}`;
-      } else if (providerKey === 'paytm') {
-        appName = 'Paytm';
-        packageName = 'net.one97.paytm';
-        title = 'Paytm';
-        text = `Payment of ₹${formattedAmount} received from ${sender}`;
+        title = `${sender} paid you ₹${formattedAmount}`;
+        text = msg || `${sender} paid you ₹${formattedAmount}`;
       } else if (providerKey === 'amazon') {
         appName = 'Amazon Pay';
         packageName = 'in.amazon.mShop.android.shopping';
         title = `₹${formattedAmount} received`;
         text = `Money received from ${sender} on Amazon Pay`;
-      } else if (providerKey === 'bhim') {
-        appName = 'BHIM UPI';
-        packageName = 'in.org.npci.upiapp';
-        title = 'UPI Payment';
-        text = `${sender} sent ₹${formattedAmount} via UPI`;
+      } else if (providerKey === 'cash') {
+        appName = 'Cash';
+        packageName = 'com.clowneon1.paymentalertsobs.cash';
+        title = `Cash Donation from ${sender}`;
+        text = msg || `Received ₹${formattedAmount} in Cash from ${sender}`;
       } else {
         appName = 'PhonePe';
         packageName = 'com.phonepe.app';
@@ -1929,8 +1924,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const SIM_PRESETS = {
       phonepe: { provider: 'phonepe', sender: 'Rahul Kumar', amount: '500', message: 'Awesome stream!' },
       gpay:    { provider: 'gpay',    sender: 'Priya Singh', amount: '1000', message: 'Keep up the great work!' },
-      paytm:   { provider: 'paytm',   sender: 'Amit Verma',  amount: '250',  message: 'Chai paani subscription ☕' },
       amazon:  { provider: 'amazon',  sender: 'Sneha Patel', amount: '1500', message: 'Thanks for streaming!' },
+      cash:    { provider: 'cash',    sender: 'Amit Verma',  amount: '250',  message: 'Chai paani subscription ☕' },
       highval: { provider: 'phonepe', sender: 'Vikramaditya', amount: '5000', message: 'ULTRA DONATION! 👑🔥' }
     };
 
@@ -1959,7 +1954,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     on('btn-sim-random', 'click', () => {
       const sample = sampleAlert();
-      const providers = ['phonepe', 'gpay', 'paytm', 'amazon', 'bhim'];
+      const providers = ['phonepe', 'gpay', 'amazon', 'cash'];
       const p = providers[Math.floor(Math.random() * providers.length)];
       setVal('sim-app-provider', p);
       setVal('sim-sender', sample.sender);
