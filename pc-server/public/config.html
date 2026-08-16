@@ -18,6 +18,37 @@
       font-family: 'Fira Code', 'Consolas', monospace;
       font-size: 13px;
     }
+    input[type="date"],
+    input[type="date"].form-control,
+    input[type="time"],
+    input[type="time"].form-control,
+    .date-filter-input {
+      color-scheme: dark !important;
+      color: #ffffff !important;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="date"].form-control::-webkit-calendar-picker-indicator,
+    .date-filter-input::-webkit-calendar-picker-indicator {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='18' height='18' x='3' y='4' rx='2' ry='2'/%3E%3Cline x1='16' x2='16' y1='2' y2='6'/%3E%3Cline x1='8' x2='8' y1='2' y2='6'/%3E%3Cline x1='3' x2='21' y1='10' y2='10'/%3E%3C/svg%3E") !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-size: 13px 13px !important;
+      cursor: pointer !important;
+      opacity: 1 !important;
+      filter: none !important;
+      -webkit-filter: none !important;
+    }
+    input[type="time"]::-webkit-calendar-picker-indicator,
+    input[type="time"].form-control::-webkit-calendar-picker-indicator {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E") !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-size: 13px 13px !important;
+      cursor: pointer !important;
+      opacity: 1 !important;
+      filter: none !important;
+      -webkit-filter: none !important;
+    }
   </style>
 </head>
 
@@ -58,6 +89,9 @@
         </button>
         <button class="tab-btn" data-tab="cycling">
           <span class="icon"><i data-lucide="refresh-cw"></i></span> Cycling Widget
+        </button>
+        <button class="tab-btn" data-tab="earnings">
+          <span class="icon"><i data-lucide="line-chart"></i></span> Earning Overview
         </button>
         <button class="tab-btn" data-tab="test-panel">
           <span class="icon"><i data-lucide="send"></i></span> Event Dispatcher
@@ -2219,6 +2253,277 @@
     </div>
   </div>
 
+  <!-- Tab: Earning Overview & Analytics -->
+  <div class="tab-content" id="tab-earnings">
+    <div class="panel-header-with-switch" style="margin-bottom: 14px;">
+      <div>
+        <h2 class="panel-title"><i data-lucide="line-chart"></i> Earning Overview &amp; Analytics</h2>
+        <p class="panel-desc">Real-time payment analytics, income distributions, and top donor insights from your single source of truth ledger.</p>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <button class="btn btn-primary" id="btn-open-record-modal" type="button" style="font-size: 12px; padding: 6px 12px;">
+          <i data-lucide="plus-circle"></i> Record Manual Payment
+        </button>
+        <button class="btn btn-outline" id="btn-analytics-export-csv" type="button" style="font-size: 12px; padding: 6px 12px;">
+          <i data-lucide="file-spreadsheet"></i> Export CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter & Month Toolbar -->
+    <div class="analytics-filter-toolbar">
+      <div class="analytics-filter-group">
+        <label for="select-analytics-month" style="font-size: 12px; font-weight: 600; color: var(--text-muted);"><i data-lucide="calendar" style="width: 13px; height: 13px; vertical-align: middle;"></i> Month:</label>
+        <select id="select-analytics-month" class="form-control" style="width: auto; min-width: 140px; padding: 5px 10px; font-size: 12px;">
+          <option value="all">📅 All Time (Full History)</option>
+        </select>
+      </div>
+
+      <div class="analytics-filter-group">
+        <label for="select-analytics-provider" style="font-size: 12px; font-weight: 600; color: var(--text-muted);"><i data-lucide="filter" style="width: 13px; height: 13px; vertical-align: middle;"></i> Method:</label>
+        <select id="select-analytics-provider" class="form-control" style="width: auto; min-width: 130px; padding: 5px 10px; font-size: 12px;">
+          <option value="all">All Payment Methods</option>
+          <option value="phonepe">PhonePe</option>
+          <option value="gpay">Google Pay</option>
+          <option value="paytm">Paytm</option>
+          <option value="amazon">Amazon Pay</option>
+          <option value="bhim">BHIM UPI</option>
+          <option value="manual">Manual Entry</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="analytics-filter-group">
+        <div class="analytics-range-pills">
+          <button type="button" class="analytics-range-btn active" data-range="all">All</button>
+          <button type="button" class="analytics-range-btn" data-range="month">This Month</button>
+          <button type="button" class="analytics-range-btn" data-range="week">This Week</button>
+          <button type="button" class="analytics-range-btn" data-range="today">Today</button>
+        </div>
+      </div>
+
+      <div class="analytics-filter-group" style="flex: 1; min-width: 160px; justify-content: flex-end;">
+        <input type="text" id="input-analytics-search" class="form-control" placeholder="Search donor or note..." style="font-size: 12px; padding: 5px 10px; max-width: 200px;" />
+        <button class="btn btn-secondary" id="btn-refresh-analytics" type="button" style="padding: 5px 10px; font-size: 12px;" title="Refresh Analytics"><i data-lucide="rotate-cw"></i></button>
+      </div>
+    </div>
+
+    <!-- 5 KPI Summary Metric Cards -->
+    <div class="analytics-kpi-grid">
+      <div class="analytics-kpi-card">
+        <div class="analytics-kpi-header">
+          <span class="analytics-kpi-title">Total Revenue</span>
+          <div class="analytics-kpi-icon"><i data-lucide="indian-rupee"></i></div>
+        </div>
+        <div class="analytics-kpi-value" id="kpi-total-revenue">&#8377;0.00</div>
+        <div class="analytics-kpi-sub" id="kpi-total-revenue-sub">Gross income received</div>
+      </div>
+
+      <div class="analytics-kpi-card">
+        <div class="analytics-kpi-header">
+          <span class="analytics-kpi-title">Total Donations</span>
+          <div class="analytics-kpi-icon"><i data-lucide="gift"></i></div>
+        </div>
+        <div class="analytics-kpi-value" id="kpi-total-count">0</div>
+        <div class="analytics-kpi-sub">Total verified transactions</div>
+      </div>
+
+      <div class="analytics-kpi-card">
+        <div class="analytics-kpi-header">
+          <span class="analytics-kpi-title">Unique Supporters</span>
+          <div class="analytics-kpi-icon"><i data-lucide="users"></i></div>
+        </div>
+        <div class="analytics-kpi-value" id="kpi-unique-donors">0</div>
+        <div class="analytics-kpi-sub">Individual donors</div>
+      </div>
+
+      <div class="analytics-kpi-card">
+        <div class="analytics-kpi-header">
+          <span class="analytics-kpi-title">Average Donation</span>
+          <div class="analytics-kpi-icon"><i data-lucide="calculator"></i></div>
+        </div>
+        <div class="analytics-kpi-value" id="kpi-avg-amount">&#8377;0.00</div>
+        <div class="analytics-kpi-sub">Per payment contribution</div>
+      </div>
+
+      <div class="analytics-kpi-card">
+        <div class="analytics-kpi-header">
+          <span class="analytics-kpi-title">Peak Earning Day</span>
+          <div class="analytics-kpi-icon"><i data-lucide="trending-up"></i></div>
+        </div>
+        <div class="analytics-kpi-value" id="kpi-peak-day" style="font-size: 16px;">N/A</div>
+        <div class="analytics-kpi-sub" id="kpi-peak-day-sub">Highest daily revenue</div>
+      </div>
+    </div>
+
+    <!-- Interactive Visual Charts Grid -->
+    <div class="analytics-charts-grid">
+      <!-- Left: Interactive Donut Chart with Center Total -->
+      <div class="analytics-card">
+        <div class="analytics-card-header">
+          <div class="analytics-card-title"><i data-lucide="pie-chart"></i> Payment Methods Breakdown</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <select id="select-donut-view-mode" class="form-control" style="font-size: 11px; padding: 2px 6px; height: 26px; width: auto;" title="Breakdown Timeframe">
+              <option value="all" selected>📅 All Time (Full History)</option>
+              <option value="week">📅 Current Week (7 Days)</option>
+              <option value="month">🗓️ Current Month (Weeks)</option>
+              <option value="year">📊 Current Year (12 Months)</option>
+            </select>
+          </div>
+        </div>
+        <div class="analytics-donut-container">
+          <div class="analytics-donut-wrapper" id="analytics-donut-wrapper">
+            <svg id="analytics-donut-svg" viewBox="0 0 220 220" width="220" height="220" style="overflow: visible;">
+              <!-- Donut arcs injected by JS -->
+            </svg>
+            <div class="analytics-donut-center">
+              <div class="analytics-donut-center-amount" id="donut-center-amount">&#8377;0</div>
+              <div class="analytics-donut-center-label" id="donut-center-label">Total Received</div>
+            </div>
+          </div>
+          <div class="analytics-donut-legend" id="analytics-donut-legend">
+            <!-- Legend items injected by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Income Timeline Grid Graph (Detached View) -->
+      <div class="analytics-card">
+        <div class="analytics-card-header">
+          <div class="analytics-card-title"><i data-lucide="bar-chart-2"></i> Income Timeline</div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <select id="select-trend-view-mode" class="form-control" style="font-size: 11px; padding: 2px 6px; height: 26px; width: auto;" title="Timeline Resolution">
+              <option value="week">📅 Current Week (7 Days)</option>
+              <option value="month" selected>🗓️ Current Month (Weeks)</option>
+              <option value="year">📊 Current Year (12 Months)</option>
+            </select>
+          </div>
+        </div>
+        <div class="analytics-trend-container" id="analytics-trend-container">
+          <svg id="analytics-trend-svg" width="100%" height="220" style="overflow: visible;">
+            <!-- Bars injected by JS -->
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full-Width Filterable Donations & Income Ledger -->
+    <div class="analytics-card" style="margin-bottom: 0;">
+      <div class="analytics-card-header" style="flex-wrap: wrap; gap: 10px;">
+        <div class="analytics-card-title">
+          <i data-lucide="receipt"></i> All Donations &amp; Income Ledger
+          <span class="preview-badge" id="ledger-count-label" style="font-size: 11px; margin-left: 6px;">0 records</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <label style="font-size: 11px; color: var(--text-muted);">Rows per page:</label>
+          <select id="select-ledger-limit" class="form-control" style="width: auto; padding: 3px 8px; font-size: 11px;">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+          </select>
+          <button class="btn btn-outline" id="btn-clear-column-filters" type="button" style="font-size: 11px; padding: 4px 8px;" title="Reset all column filters">
+            <i data-lucide="filter-x"></i> Reset Filters
+          </button>
+          <div style="display: flex; gap: 2px; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2px 4px;" title="Ledger height preset">
+            <button type="button" class="btn-box-toggle" id="btn-ledger-height-sm" title="Compact view (220px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">S</button>
+            <button type="button" class="btn-box-toggle" id="btn-ledger-height-md" title="Default view (420px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px; color: var(--accent);">M</button>
+            <button type="button" class="btn-box-toggle" id="btn-ledger-height-lg" title="Expanded view (720px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">L</button>
+          </div>
+          <button type="button" class="btn-box-toggle" id="btn-ledger-expand" title="Expand / Collapse ledger height" style="padding: 5px;">
+            <i data-lucide="chevrons-up-down" style="width:14px; height:14px;"></i>
+          </button>
+        </div>
+      </div>
+
+
+      <!-- Single-Line Filtered Stats Summary Bar -->
+      <div id="analytics-filtered-summary-bar" style="background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: var(--radius-md); padding: 8px 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px;">
+        <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+          <span><span style="color: var(--text-muted);">Filtered Total:</span> <strong id="summary-stat-total" style="color: var(--accent); font-size: 13px;">&#8377;0.00</strong></span>
+          <span style="color: var(--border);">|</span>
+          <span><span style="color: var(--text-muted);">Transactions:</span> <strong id="summary-stat-count" style="color: var(--text-main);">0</strong></span>
+          <span style="color: var(--border);">|</span>
+          <span><span style="color: var(--text-muted);">Unique Donors:</span> <strong id="summary-stat-donors" style="color: var(--text-main);">0</strong></span>
+          <span style="color: var(--border);">|</span>
+          <span><span style="color: var(--text-muted);">Average:</span> <strong id="summary-stat-avg" style="color: var(--text-main);">&#8377;0.00</strong></span>
+        </div>
+        <div id="summary-stat-badge" style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Showing all records</div>
+      </div>
+
+      <!-- Full Table with Sticky Column Filter Headers -->
+      <div class="analytics-ledger-table-container">
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; min-width: 720px;">
+          <thead style="position: sticky; top: 0; z-index: 10; background: var(--surface-2); box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+            <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--text-muted); font-size: 11px;">
+              <th style="padding: 8px 10px; width: 210px; background: var(--surface-2); position: relative;" class="resizable-col">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; gap: 4px;">
+                  <span style="font-weight: 600;">Date &amp; Time</span>
+                  <select id="select-col-date-sort" class="form-control" style="font-size: 10px; padding: 2px 4px; height: 22px; width: auto;" title="Date Sort Order">
+                    <option value="desc">↓ Newest First</option>
+                    <option value="asc">↑ Oldest First</option>
+                  </select>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 3px;">
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="font-size: 10px; color: var(--text-muted); width: 28px;">From:</span>
+                    <input type="date" id="filter-col-date-from" class="form-control" style="font-size: 10.5px; padding: 1px 3px; height: 22px; flex: 1;" title="Start date" />
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="font-size: 10px; color: var(--text-muted); width: 28px;">To:</span>
+                    <input type="date" id="filter-col-date-to" class="form-control" style="font-size: 10.5px; padding: 1px 3px; height: 22px; flex: 1;" title="End date" />
+                  </div>
+                </div>
+                <div class="col-resize-handle" title="Drag to resize column width"></div>
+              </th>
+              <th style="padding: 8px 10px; min-width: 160px; background: var(--surface-2); position: relative;" class="resizable-col">
+                <div style="margin-bottom: 4px; font-weight: 600;">Donor / Supporter</div>
+                <input type="text" id="filter-col-donor" class="form-control" placeholder="Filter donor..." style="font-size: 11px; padding: 3px 6px; height: 26px;" />
+                <div class="col-resize-handle" title="Drag to resize column width"></div>
+              </th>
+              <th style="padding: 8px 10px; width: 140px; background: var(--surface-2); position: relative;" class="resizable-col">
+                <div style="margin-bottom: 4px; font-weight: 600;">Payment Method</div>
+                <select id="filter-col-provider" class="form-control" style="font-size: 11px; padding: 3px 6px; height: 26px;">
+                  <option value="all">All Methods</option>
+                  <option value="phonepe">PhonePe</option>
+                  <option value="gpay">Google Pay</option>
+                  <option value="paytm">Paytm</option>
+                  <option value="amazon">Amazon Pay</option>
+                  <option value="bhim">BHIM UPI</option>
+                  <option value="manual">Manual</option>
+                  <option value="other">Other</option>
+                </select>
+                <div class="col-resize-handle" title="Drag to resize column width"></div>
+              </th>
+              <th style="padding: 8px 10px; background: var(--surface-2); position: relative;" class="resizable-col">
+                <div style="margin-bottom: 4px; font-weight: 600;">Message / Note</div>
+                <input type="text" id="filter-col-note" class="form-control" placeholder="Search message..." style="font-size: 11px; padding: 3px 6px; height: 26px;" />
+                <div class="col-resize-handle" title="Drag to resize column width"></div>
+              </th>
+              <th style="padding: 8px 10px; text-align: right; width: 130px; background: var(--surface-2); position: relative;" class="resizable-col">
+                <div style="margin-bottom: 4px; font-weight: 600;">Amount</div>
+                <input type="number" id="filter-col-min-amount" class="form-control" placeholder="Min ₹..." style="font-size: 11px; padding: 3px 6px; height: 26px; text-align: right;" />
+                <div class="col-resize-handle" title="Drag to resize column width"></div>
+              </th>
+              <th style="padding: 8px 10px; width: 60px; text-align: center; background: var(--surface-2);">Action</th>
+            </tr>
+          </thead>
+          <tbody id="analytics-ledger-body">
+            <tr><td colspan="6" style="padding: 20px; text-align: center; color: var(--text-muted);">Loading transactions ledger...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Footer: Compact and positioned away from bottom-right overlays -->
+      <div style="display: flex; align-items: center; justify-content: flex-start; gap: 14px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted);">
+        <div style="display: flex; align-items: center; gap: 8px; background: var(--surface-2); padding: 4px 8px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+          <button type="button" class="btn btn-outline" id="btn-ledger-prev" style="padding: 4px 10px; font-size: 11.5px;" disabled>&larr; Previous</button>
+          <span id="ledger-pagination-info" style="font-weight: 600; color: var(--text-main); font-size: 11.5px; padding: 0 6px;">Page 1 of 1</span>
+          <button type="button" class="btn btn-outline" id="btn-ledger-next" style="padding: 4px 10px; font-size: 11.5px;" disabled>Next &rarr;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Tab 9: Server Logs -->
   <div class="tab-content" id="tab-server-logs">
     <div class="panel-header-with-switch">
@@ -2313,7 +2618,7 @@
   </div>
 
   <!-- ══ UNIVERSAL MODAL SYSTEM ════════════════════════════════════ -->
-  <div id="app-modal" class="modal-overlay">
+  <div id="app-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <div class="modal-header">
         <h3 id="modal-title">Dialog</h3>
@@ -2346,6 +2651,66 @@
         <div id="icon-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 8px; max-height: 320px; overflow-y: auto; padding: 4px;">
           <!-- Icons injected by JS -->
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual Offline Payment Record Modal -->
+  <div id="modal-manual-payment" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 480px; width: 92%;">
+      <div class="modal-header">
+        <h3 style="margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="edit-3" id="modal-manual-title-icon" style="color: var(--accent);"></i>
+          <span id="modal-manual-title-text">Record Manual Payment</span>
+        </h3>
+        <button type="button" class="modal-close-btn" id="modal-manual-payment-close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px;">
+        <input type="hidden" id="input-manual-edit-id" value="" />
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;" id="modal-manual-desc">
+          Add or edit a donation record in the persistent CSV ledger and live Stream Goal.
+        </p>
+        <div class="form-row" style="margin-bottom: 12px;">
+          <div class="form-group" style="flex: 1;">
+            <label for="input-manual-donor" style="font-weight: 600;">Donor / Supporter Name</label>
+            <input type="text" id="input-manual-donor" class="form-control" placeholder="e.g. Rahul Sharma" value="Anonymous Donor" />
+          </div>
+          <div class="form-group" style="width: 140px;">
+            <label for="input-manual-amount" style="font-weight: 600;">Amount (&#8377;)</label>
+            <input type="number" id="input-manual-amount" class="form-control" placeholder="e.g. 500" min="1" step="any" value="500" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="select-manual-provider" style="font-weight: 600;">Payment Source / App</label>
+          <select id="select-manual-provider" class="form-control">
+            <option value="Manual Entry">💵 Manual Entry (Cash/Offline)</option>
+            <option value="PhonePe">📱 PhonePe</option>
+            <option value="Google Pay">💳 Google Pay</option>
+            <option value="Paytm">💰 Paytm</option>
+            <option value="Amazon Pay">📦 Amazon Pay</option>
+            <option value="BHIM UPI">🏦 BHIM UPI</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin-bottom: 12px;">
+          <div class="form-group" style="flex: 1;">
+            <label for="input-manual-date" style="font-weight: 600;">Payment Date</label>
+            <input type="date" id="input-manual-date" class="form-control" />
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="input-manual-time" style="font-weight: 600;">Payment Time</label>
+            <input type="time" id="input-manual-time" class="form-control" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom: 8px;">
+          <label for="input-manual-note" style="font-weight: 600;">Optional Message / Note</label>
+          <input type="text" id="input-manual-note" class="form-control" placeholder="e.g. Offline superchat donation" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-manual-payment">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-submit-manual-payment">
+          <i data-lucide="check"></i> <span id="btn-submit-manual-text">Record &amp; Credit Goal</span>
+        </button>
       </div>
     </div>
   </div>
