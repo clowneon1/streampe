@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { exec } = require('child_process');
+const winston = require('winston');
+require('winston-daily-rotate-file');
 
 const app = express();
 const server = http.createServer(app);
@@ -22,7 +24,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'config.html'));
 });
 
-// ── Debug Logger ─────────────────────────────────────────────────────
+// ── Debug Logger (Winston with Daily Rotation & 7-Day Retention) ─────
 let writableBaseDir = __dirname;
 try {
   // In Tauri the TAURI_APP_DATA env var is set by the Rust launcher
@@ -31,9 +33,7 @@ try {
   }
 } catch (e) {}
 
-const LOG_DIR       = path.join(writableBaseDir, 'logs');
-const LOG_FILE      = path.join(LOG_DIR, 'events.log');
-const LOG_MAX_BYTES = 5 * 1024 * 1024;
+const LOG_DIR = path.join(writableBaseDir, 'logs');
 
 try {
   if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
@@ -41,39 +41,113 @@ try {
   console.error('[Server] Failed to create log directory:', e.message);
 }
 
-function rotateLogIfNeeded() {
+const customLevels = {
+  levels: {
+    error: 0,
+    warn: 1,
+    info: 2,
+    event: 3,
+    parse: 4,
+    dedup: 5,
+  },
+  colors: {
+    error: 'red',
+    warn: 'yellow',
+    info: 'cyan',
+    event: 'magenta',
+    parse: 'green',
+    dedup: 'gray',
+  },
+};
+
+winston.addColors(customLevels.colors);
+
+const logFileFormat = winston.format.printf(({ level, message, tag, timestamp, data }) => {
+  const lvl = String(level).toUpperCase();
+  const tagStr = tag ? ` [${tag}]` : '';
+  const dataStr = data !== undefined ? `\n${JSON.stringify(data, null, 2)}` : '';
+  return `[${timestamp}] [${lvl}]${tagStr} ${message}${dataStr}`;
+});
+
+const consoleFormat = winston.format.printf(({ level, message, tag, data }) => {
+  const lvl = String(level).toUpperCase();
+  const tagStr = tag ? ` [${tag}]` : '';
+  const dataStr = data !== undefined ? `\n${JSON.stringify(data, null, 2)}` : '';
+  return `[${lvl}]${tagStr} ${message}${dataStr}`;
+});
+
+const dailyRotateTransport = new winston.transports.DailyRotateFile({
+  filename: path.join(LOG_DIR, 'application_%DATE%.log'),
+  datePattern: 'YYYY-MM-DD',
+  auditFile: path.join(LOG_DIR, '.log-audit.json'),
+  maxFiles: '7d',
+  zippedArchive: false,
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    logFileFormat
+  ),
+});
+
+const winstonLogger = winston.createLogger({
+  levels: customLevels.levels,
+  level: 'dedup',
+  transports: [
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize({ all: true }),
+        consoleFormat
+      ),
+    }),
+    dailyRotateTransport,
+  ],
+});
+
+function getTodayDateStr() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getAvailableLogDates() {
   try {
-    if (fs.existsSync(LOG_FILE) && fs.statSync(LOG_FILE).size > LOG_MAX_BYTES) {
-      fs.renameSync(LOG_FILE, LOG_FILE.replace('.log', `_${Date.now()}.log`));
-    }
-  } catch (_) {}
+    if (!fs.existsSync(LOG_DIR)) return [];
+    const files = fs.readdirSync(LOG_DIR);
+    return files
+      .map(file => {
+        const match = file.match(/^application_(\d{4}-\d{2}-\d{2})\.log$/);
+        if (match) {
+          const filePath = path.join(LOG_DIR, file);
+          let size = 0;
+          try { size = fs.statSync(filePath).size; } catch (_) {}
+          return { date: match[1], filename: file, size };
+        }
+        return null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  } catch (e) {
+    return [];
+  }
 }
 
 function writeLog(level, tag, message, data) {
-  const ts   = new Date().toISOString();
-  const line = data !== undefined
-    ? `[${ts}] [${level}] [${tag}] ${message}\n${JSON.stringify(data, null, 2)}\n`
-    : `[${ts}] [${level}] [${tag}] ${message}\n`;
-  const colours = { INFO: '\x1b[36m', WARN: '\x1b[33m', ERROR: '\x1b[31m', EVENT: '\x1b[35m', DEDUP: '\x1b[90m', PARSE: '\x1b[32m' };
-  const reset   = '\x1b[0m';
-  const col     = colours[level] || '';
-  if (data !== undefined) {
-    console.log(`${col}[${level}]${reset} [${tag}] ${message}`);
-    console.log(JSON.stringify(data, null, 2));
-  } else {
-    console.log(`${col}[${level}]${reset} [${tag}] ${message}`);
-  }
-  rotateLogIfNeeded();
-  try { fs.appendFileSync(LOG_FILE, line, 'utf8'); } catch (e) { console.error('[LOG] write failed:', e.message); }
+  winstonLogger.log({
+    level: level.toLowerCase(),
+    tag,
+    message,
+    data,
+  });
 }
 
 const log = {
-  info  : (tag, msg, data) => writeLog('INFO',  tag, msg, data),
-  warn  : (tag, msg, data) => writeLog('WARN',  tag, msg, data),
-  error : (tag, msg, data) => writeLog('ERROR', tag, msg, data),
-  event : (tag, msg, data) => writeLog('EVENT', tag, msg, data),
-  dedup : (tag, msg, data) => writeLog('DEDUP', tag, msg, data),
-  parse : (tag, msg, data) => writeLog('PARSE', tag, msg, data),
+  info  : (tag, msg, data) => writeLog('info',  tag, msg, data),
+  warn  : (tag, msg, data) => writeLog('warn',  tag, msg, data),
+  error : (tag, msg, data) => writeLog('error', tag, msg, data),
+  event : (tag, msg, data) => writeLog('event', tag, msg, data),
+  dedup : (tag, msg, data) => writeLog('dedup', tag, msg, data),
+  parse : (tag, msg, data) => writeLog('parse', tag, msg, data),
 };
 
 // ── Network & Windows Utilities ─────────────────────────────────────
@@ -172,7 +246,7 @@ function ensureWindowsFirewallRule(callback) {
   });
 }
 
-log.info('Server', `Log file: ${LOG_FILE}`);
+log.info('Server', `Log directory: ${LOG_DIR} (daily rotating with 7-day retention)`);
 
 // ── Payment Parser (JS) ────────────────────────────────────────────
 const STRIP_SUFFIXES = [
@@ -969,21 +1043,29 @@ app.post('/api/config', (req, res) => {
   res.json({ ok: true, config: alertSettings });
 });
 
+app.get('/api/logs/dates', (req, res) => {
+  const dates = getAvailableLogDates();
+  res.json({ ok: true, dates, today: getTodayDateStr() });
+});
+
 app.get('/api/logs', (req, res) => {
-  if (fs.existsSync(LOG_FILE)) {
+  const targetDate = req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date) ? req.query.date : getTodayDateStr();
+  const filePath = path.join(LOG_DIR, `application_${targetDate}.log`);
+
+  if (fs.existsSync(filePath)) {
     const level = (req.query.level || 'ALL').toUpperCase();
-    const content = fs.readFileSync(LOG_FILE, 'utf8');
+    const content = fs.readFileSync(filePath, 'utf8');
     if (level === 'ALL') {
       res.setHeader('Content-Type', 'text/plain');
-      res.setHeader('Content-Disposition', 'attachment; filename="events_all.log"');
+      res.setHeader('Content-Disposition', `attachment; filename="application_${targetDate}_all.log"`);
       return res.send(content);
     }
     const filtered = content.split('\n').filter(line => line.includes(`[${level}]`)).join('\n');
     res.setHeader('Content-Type', 'text/plain');
-    res.setHeader('Content-Disposition', `attachment; filename="events_${level.toLowerCase()}.log"`);
+    res.setHeader('Content-Disposition', `attachment; filename="application_${targetDate}_${level.toLowerCase()}.log"`);
     res.send(filtered || `No log entries found for level: ${level}`);
   } else {
-    res.json({ ok: false, error: 'No log file yet' });
+    res.json({ ok: false, error: `No log file found for date: ${targetDate}` });
   }
 });
 
@@ -1161,11 +1243,17 @@ app.post('/api/system/firewall', (req, res) => {
 
 app.get('/api/logs/live', (req, res) => {
   try {
-    if (!fs.existsSync(LOG_FILE)) return res.json({ ok: true, lines: [] });
-    const content = fs.readFileSync(LOG_FILE, 'utf8');
+    const targetDate = req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date) ? req.query.date : getTodayDateStr();
+    const filePath = path.join(LOG_DIR, `application_${targetDate}.log`);
+    const availableDates = getAvailableLogDates();
+
+    if (!fs.existsSync(filePath)) {
+      return res.json({ ok: true, date: targetDate, availableDates, totalLines: 0, lines: [] });
+    }
+    const content = fs.readFileSync(filePath, 'utf8');
     const allLines = content.split('\n').filter(Boolean);
     const recent = allLines.slice(-300);
-    res.json({ ok: true, totalLines: allLines.length, lines: recent });
+    res.json({ ok: true, date: targetDate, availableDates, totalLines: allLines.length, lines: recent });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -1173,8 +1261,12 @@ app.get('/api/logs/live', (req, res) => {
 
 app.post('/api/logs/clear', (req, res) => {
   try {
-    if (fs.existsSync(LOG_FILE)) fs.writeFileSync(LOG_FILE, '');
-    res.json({ ok: true });
+    const targetDate = (req.query.date || (req.body && req.body.date)) && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || req.body.date)
+      ? (req.query.date || req.body.date)
+      : getTodayDateStr();
+    const filePath = path.join(LOG_DIR, `application_${targetDate}.log`);
+    if (fs.existsSync(filePath)) fs.writeFileSync(filePath, '');
+    res.json({ ok: true, date: targetDate });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }

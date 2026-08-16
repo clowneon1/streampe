@@ -1026,8 +1026,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const resizer = el('panel-resizer');
         const actionBar = document.querySelector('.action-bar');
 
-        if (tab === 'earnings') {
-          refreshEarningsAnalytics();
+        if (tab === 'earnings' || tab === 'server-logs') {
+          if (tab === 'earnings') refreshEarningsAnalytics();
+          if (tab === 'server-logs') fetchLiveLogs();
           if (previewPanel) previewPanel.style.display = 'none';
           if (resizer) resizer.style.display = 'none';
           if (actionBar) actionBar.style.display = 'none';
@@ -2066,11 +2067,79 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  function formatLogLineToHtml(line) {
+    if (!line) return '';
+    const match = line.match(/^\[(.*?)\]\s*\[(INFO|WARN|ERROR|EVENT|PARSE|DEDUP)\](?:\s*\[(.*?)\])?\s*(.*)$/i);
+    if (!match) {
+      // Indented JSON or raw object lines
+      if (/^\s*[{}\[\],]\s*$/.test(line)) {
+        return `<div class="log-line" style="color: #64748b; padding-left: 20px; font-family: inherit;">${TemplateEngine.escapeHtml(line)}</div>`;
+      }
+      if (/^\s*"([^"]+)":\s*(.*)$/.test(line)) {
+        const formatted = line.replace(/^(\s*)"([^"]+)":\s*(.*)$/, (_, indent, k, v) => {
+          return `${indent}<span style="color: #38bdf8;">"${TemplateEngine.escapeHtml(k)}"</span>: <span style="color: #a7f3d0;">${TemplateEngine.escapeHtml(v)}</span>`;
+        });
+        return `<div class="log-line" style="padding-left: 20px; font-family: inherit;">${formatted}</div>`;
+      }
+      return `<div class="log-line" style="color: #94a3b8; font-family: inherit;">${TemplateEngine.escapeHtml(line)}</div>`;
+    }
+
+    const [, rawTs, rawLevel, tag, msg] = match;
+    const level = rawLevel.toUpperCase();
+    let timeDisplay = rawTs;
+    try {
+      const d = new Date(rawTs);
+      if (!isNaN(d.getTime())) {
+        timeDisplay = d.toLocaleTimeString([], { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+      }
+    } catch (_) {}
+
+    const levelStyles = {
+      INFO:  'background: rgba(0, 229, 255, 0.12); color: #00e5ff; border: 1px solid rgba(0, 229, 255, 0.28);',
+      WARN:  'background: rgba(255, 214, 0, 0.12); color: #ffd600; border: 1px solid rgba(255, 214, 0, 0.28);',
+      ERROR: 'background: rgba(255, 82, 82, 0.16); color: #ff5252; border: 1px solid rgba(255, 82, 82, 0.35); font-weight: 700;',
+      EVENT: 'background: rgba(224, 64, 251, 0.15); color: #e040fb; border: 1px solid rgba(224, 64, 251, 0.3);',
+      PARSE: 'background: rgba(0, 230, 118, 0.12); color: #00e676; border: 1px solid rgba(0, 230, 118, 0.28);',
+      DEDUP: 'background: rgba(148, 163, 184, 0.1); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2);',
+    };
+
+    const badgeStyle = levelStyles[level] || 'color: #cbd5e1;';
+    const tagHtml = tag ? `<span style="color: #67e8f9; font-weight: 600; margin-right: 4px;">[${TemplateEngine.escapeHtml(tag)}]</span>` : '';
+
+    return `<div class="log-line log-level-${level.toLowerCase()}" style="margin-bottom: 3px; line-height: 1.6; font-family: inherit;"><span style="color: #475569; font-size: 10px; margin-right: 6px; user-select: none;">[${TemplateEngine.escapeHtml(timeDisplay)}]</span><span style="display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 9.5px; font-weight: 700; margin-right: 6px; letter-spacing: 0.5px; ${badgeStyle}">${level}</span>${tagHtml}<span style="color: #f1f5f9;">${TemplateEngine.escapeHtml(msg)}</span></div>`;
+  }
+
   async function fetchLiveLogs() {
     try {
-      const res = await fetch('/api/logs/live');
+      const dateVal = val('select-log-date', '');
+      const url = '/api/logs/live' + (dateVal ? `?date=${encodeURIComponent(dateVal)}` : '');
+      const res = await fetch(url);
       const data = await res.json();
       if (!data || !Array.isArray(data.lines)) return;
+
+      // Populate available log dates dropdown dynamically
+      if (Array.isArray(data.availableDates)) {
+        const dateSelect = el('select-log-date');
+        if (dateSelect) {
+          const currentSelected = dateSelect.value;
+          const optionsHtml = data.availableDates.map(d => {
+            const isToday = d.date === data.date && (!dateVal || dateVal === d.date);
+            const label = isToday ? `Today (${d.date})` : d.date;
+            const sizeKb = d.size ? ` (${(d.size / 1024).toFixed(1)} KB)` : '';
+            return `<option value="${d.date}">${label}${sizeKb}</option>`;
+          }).join('');
+
+          const finalHtml = optionsHtml || `<option value="">Today (${data.date || 'Active'})</option>`;
+          const datesKey = JSON.stringify(data.availableDates);
+          if (dateSelect.dataset.renderedDates !== datesKey) {
+            dateSelect.dataset.renderedDates = datesKey;
+            dateSelect.innerHTML = finalHtml;
+            if (currentSelected && Array.from(dateSelect.options).some(o => o.value === currentSelected)) {
+              dateSelect.value = currentSelected;
+            }
+          }
+        }
+      }
 
       const filterVal = val('select-log-filter', 'ALL');
       const lines = data.lines.filter(line => {
@@ -2078,9 +2147,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         return line.includes(`[${filterVal}]`);
       });
 
+      const countEl = el('logs-line-count');
+      if (countEl) {
+        countEl.textContent = `${lines.length} lines (${data.totalLines || 0} total)`;
+      }
+
       const term = el('live-logs-terminal');
       if (term) {
-        term.textContent = lines.length > 0 ? lines.slice(-150).join('\n') : 'No matching log entries.';
+        if (lines.length > 0) {
+          const formattedHtml = lines.slice(-250).map(formatLogLineToHtml).join('');
+          term.innerHTML = formattedHtml;
+        } else {
+          term.innerHTML = '<div style="color: #64748b; padding: 12px;">No matching log entries for this date.</div>';
+        }
         term.scrollTop = term.scrollHeight;
       }
     } catch (e) {
@@ -2160,7 +2239,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     on('btn-clear-logs', 'click', async () => {
       try {
-        await fetch('/api/logs/clear', { method: 'POST' });
+        const dateVal = val('select-log-date', '');
+        await fetch('/api/logs/clear' + (dateVal ? `?date=${encodeURIComponent(dateVal)}` : ''), { method: 'POST' });
         const term = el('live-logs-terminal');
         if (term) term.textContent = 'Server logs cleared.';
         showToast('<i data-lucide="trash-2"></i> Logs cleared');
@@ -2170,19 +2250,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     on('btn-download-full-logs', 'click', () => {
-      window.open('/api/logs?level=ALL', '_blank');
+      const dateVal = val('select-log-date', '');
+      window.open('/api/logs?level=ALL' + (dateVal ? `&date=${encodeURIComponent(dateVal)}` : ''), '_blank');
       showToast('<i data-lucide="download"></i> Downloading full log file...');
     });
 
     on('btn-download-filtered-logs', 'click', () => {
+      const dateVal = val('select-log-date', '');
       const filterVal = val('select-log-filter', 'ALL');
-      window.open(`/api/logs?level=${encodeURIComponent(filterVal)}`, '_blank');
+      window.open(`/api/logs?level=${encodeURIComponent(filterVal)}` + (dateVal ? `&date=${encodeURIComponent(dateVal)}` : ''), '_blank');
       showToast('<i data-lucide="download"></i> Downloading ' + filterVal + ' filtered logs...');
     });
 
     fetchLiveLogs();
     setInterval(fetchLiveLogs, 4000);
 
+    on('select-log-date', 'change', () => fetchLiveLogs());
     on('select-log-filter', 'change', () => fetchLiveLogs());
     on('btn-refresh-logs', 'click', () => {
       fetchLiveLogs();

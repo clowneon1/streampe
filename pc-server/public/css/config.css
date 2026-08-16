@@ -1181,7 +1181,19 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 #live-logs-terminal.box-expandable {
-  height: 420px;
+  min-height: 420px;
+  height: 580px;
+  max-height: 1200px;
+}
+
+.log-line {
+  transition: background 0.15s ease;
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+.log-line:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .btn-box-toggle {
