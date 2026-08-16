@@ -1397,25 +1397,46 @@ app.post('/api/test', (req, res) => {
   res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId, simulated: isSimulated });
 });
 
+// ── WebSocket Helpers ───────────────────────────────────────────────────
+const obsClients     = new Set();
+const androidClients = new Set();
+
+function getActiveWsCount(clientSet) {
+  if (!clientSet) return 0;
+  for (const client of clientSet) {
+    if (!client || client.readyState === 2 || client.readyState === 3) {
+      clientSet.delete(client);
+    }
+  }
+  return clientSet.size;
+}
+
 // Fix: use getActiveWsCount() so /health never reports stale/dead sockets
 app.get('/health', (req, res) =>
   res.json({ status: 'ok', androidClients: getActiveWsCount(androidClients), obsClients: getActiveWsCount(obsClients) })
 );
 
-// ── WebSocket ───────────────────────────────────────────────────────────
-const obsClients     = new Set();
-const androidClients = new Set();
-
+// ── WebSocket Handler ───────────────────────────────────────────────────
 wss.on('connection', (ws, req) => {
   const url        = req.url ? req.url.split('?')[0] : '/';
   const clientType = url === '/android' ? 'android' : 'obs';
+  const remoteIp   = req.socket?.remoteAddress || '';
 
   if (clientType === 'android') {
-    // Evict any stale CLOSING/CLOSED sockets before adding the new one
-    // so the count is always accurate from the moment of connection.
-    getActiveWsCount(androidClients);
+    const rawIp = req.socket?.remoteAddress || '';
+    const normIp = rawIp.replace(/^::ffff:/, '');
+
+    // Evict any existing or stale android sockets
+    for (const existing of androidClients) {
+      const existingNormIp = (existing.remoteIp || '').replace(/^::ffff:/, '');
+      if (existing.readyState !== 1 || existingNormIp === normIp || existing !== ws) {
+        androidClients.delete(existing);
+        try { existing.terminate(); } catch (_) {}
+      }
+    }
+    ws.remoteIp = normIp;
     androidClients.add(ws);
-    log.info('WS', `Android connected (${androidClients.size} total)`);
+    log.info('WS', `Android connected [IP: ${normIp || 'unknown'}] (${androidClients.size} active)`);
 
     ws.isAlive = true;
     ws.on('pong', () => { ws.isAlive = true; });
@@ -1470,7 +1491,15 @@ wss.on('connection', (ws, req) => {
       }
     });
 
-    ws.on('close', () => { androidClients.delete(ws); log.info('WS', 'Android disconnected'); });
+    ws.on('error', (err) => {
+      androidClients.delete(ws);
+      log.warn('WS', `Android socket error: ${err.message}`);
+    });
+
+    ws.on('close', () => {
+      androidClients.delete(ws);
+      log.info('WS', `Android disconnected (${getActiveWsCount(androidClients)} active)`);
+    });
 
   } else {
     // Evict any stale CLOSING/CLOSED OBS sockets before adding the new one
@@ -1487,23 +1516,37 @@ wss.on('connection', (ws, req) => {
   }
 });
 
-// Heartbeat for Android clients — terminate unresponsive sockets within 30 s
+// Fast 5s Heartbeat for Android clients — promptly purge dead/dropped connections
 const androidHeartbeat = setInterval(() => {
+  getActiveWsCount(androidClients);
   androidClients.forEach(ws => {
-    if (ws.isAlive === false) { androidClients.delete(ws); return ws.terminate(); }
+    if (ws.isAlive === false || ws.readyState !== 1) {
+      androidClients.delete(ws);
+      try { ws.terminate(); } catch (_) {}
+      return;
+    }
     ws.isAlive = false;
-    ws.ping();
+    try { ws.ping(); } catch (_) {
+      androidClients.delete(ws);
+    }
   });
-}, 30000);
+}, 5000);
 
-// Heartbeat for OBS browser-source clients — same logic as Android
+// Heartbeat for OBS browser-source clients
 const obsHeartbeat = setInterval(() => {
+  getActiveWsCount(obsClients);
   obsClients.forEach(ws => {
-    if (ws.isAlive === false) { obsClients.delete(ws); return ws.terminate(); }
+    if (ws.isAlive === false || ws.readyState !== 1) {
+      obsClients.delete(ws);
+      try { ws.terminate(); } catch (_) {}
+      return;
+    }
     ws.isAlive = false;
-    ws.ping();
+    try { ws.ping(); } catch (_) {
+      obsClients.delete(ws);
+    }
   });
-}, 30000);
+}, 15000);
 
 wss.on('close', () => {
   clearInterval(androidHeartbeat);

@@ -45,6 +45,7 @@ class AppSelectorActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_app_selector)
         prefs = AppPrefs(this)
+        AlertLog.init(this)
 
         tvServer       = findViewById(R.id.tvServerStatus)
         val etSearch   = findViewById<EditText>(R.id.etSearch)

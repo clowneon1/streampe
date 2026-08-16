@@ -618,7 +618,8 @@
       })
       .sort((a, b) => b.total - a.total);
 
-    const recentDonations = validTxs.slice(0, 50).map(tx => {
+    const sortedForRecent = [...validTxs].sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
+    const recentDonations = sortedForRecent.slice(0, 50).map(tx => {
       const curr = tx.currency || 'INR';
       return {
         id: tx.id,

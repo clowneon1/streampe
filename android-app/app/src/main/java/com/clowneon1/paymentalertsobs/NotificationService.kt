@@ -19,6 +19,7 @@ class NotificationService : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         allowedPackages = AppPrefs(applicationContext).selectedPackages
+        AlertLog.init(applicationContext)
         Log.d(TAG, "Listener connected — allowedPackages loaded: ${allowedPackages?.size} entries")
     }
 
