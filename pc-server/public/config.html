@@ -66,7 +66,10 @@
       </div>
 
       <nav class="nav-tabs">
-        <button class="tab-btn active" data-tab="text">
+        <button class="tab-btn active" data-tab="earnings">
+          <span class="icon"><i data-lucide="line-chart"></i></span> Earning Overview
+        </button>
+        <button class="tab-btn" data-tab="text">
           <span class="icon"><i data-lucide="bell"></i></span> Alert Templates
         </button>
         <button class="tab-btn" data-tab="style">
@@ -80,9 +83,6 @@
         </button>
         <button class="tab-btn" data-tab="cycling">
           <span class="icon"><i data-lucide="refresh-cw"></i></span> Cycling Widget
-        </button>
-        <button class="tab-btn" data-tab="earnings">
-          <span class="icon"><i data-lucide="line-chart"></i></span> Earning Overview
         </button>
         <button class="tab-btn" data-tab="test-panel">
           <span class="icon"><i data-lucide="send"></i></span> Event Dispatcher
@@ -156,7 +156,7 @@
 
     <!-- Main View Pane -->
     <main class="main-view">
-      <section class="form-panel">
+      <section class="form-panel" style="flex: 1 1 auto; max-width: 100%;">
 
         <!-- Top Status & Network Header -->
         <div
@@ -187,7 +187,7 @@
         </div>
 
         <!-- Template manager: shared by the alert-facing tabs -->
-        <div class="template-manager" id="template-manager">
+        <div class="template-manager" id="template-manager" style="display: none;">
           <div class="label-with-switch">
             <label for="select-template"><i data-lucide="file-text" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Editing Alert Template</label>
             <label class="checkbox-row">
@@ -211,8 +211,8 @@
           <p class="panel-desc" id="template-summary" style="margin-top: 8px;"></p>
         </div>
 
-        <!-- Tab 1: Template content, matching and code -->
-        <div class="tab-content active" id="tab-text">
+        <!-- Tab: Alert Templates -->
+        <div class="tab-content" id="tab-text">
           <div class="panel-header-with-switch">
             <div>
               <h2 class="panel-title">Alert Template Setup</h2>
@@ -1853,7 +1853,7 @@
   </div>
 
   <!-- Tab: Earning Overview & Analytics -->
-  <div class="tab-content" id="tab-earnings">
+  <div class="tab-content active" id="tab-earnings">
     <div class="panel-header-with-switch" style="margin-bottom: 14px;">
       <div>
         <h2 class="panel-title"><i data-lucide="line-chart"></i> Earning Overview &amp; Analytics</h2>
@@ -2181,7 +2181,7 @@
   </div>
 
   <!-- Form Action Buttons Bar (Always visible at bottom of form panel) -->
-  <div class="action-bar">
+  <div class="action-bar" style="display: none;">
     <button class="btn btn-primary" id="btn-save"><i data-lucide="save"></i> Save Settings</button>
     <button class="btn btn-secondary" id="btn-test"><i data-lucide="zap"></i> Test Alert</button>
     <button class="btn btn-danger" id="btn-reset"><i data-lucide="rotate-ccw"></i> Reset to Defaults</button>
@@ -2189,10 +2189,10 @@
   </section>
 
   <!-- Draggable Resizer Gutter Bar -->
-  <div class="resizer-gutter" id="panel-resizer" title="Drag left or right to adjust panel sizes"></div>
+  <div class="resizer-gutter" id="panel-resizer" title="Drag left or right to adjust panel sizes" style="display: none;"></div>
 
   <!-- Live Preview Side Panel -->
-  <section class="preview-panel">
+  <section class="preview-panel" style="display: none;">
     <div class="preview-header">
       <div class="preview-title">
         <span>OBS Overlay Live Preview</span>

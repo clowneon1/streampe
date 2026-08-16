@@ -3421,6 +3421,11 @@ document.addEventListener('DOMContentLoaded', () => {
     attachInputListeners();
     connectDashboardWebSocket();
 
+    const activeTabBtn = document.querySelector('.tab-btn.active') || document.querySelector('.tab-btn[data-tab="earnings"]');
+    if (activeTabBtn) {
+      activeTabBtn.click();
+    }
+
     try {
       console.log('[Config] Fetching settings from /api/settings...');
       const res = await fetch('/api/settings');

@@ -15,6 +15,7 @@
 
 ### Version 2.0.0 (`feature/version-2`)
 
+- [x] **16. Sidebar Navigation Restructure (Earning Overview as Default Home Landing Tab)** — Placed Earning Overview at the top of the sidebar navigation as the default landing view upon dashboard boot, followed by overlay customization widgets and diagnostic tools.
 - [x] **15. Default Collapsed State for Secondary Setting Panels** — Collapsed all settings sections (`<details class="collapsible-advanced">`) by default except the first section in each configuration tab (Alert Templates, Alert Style & Animations, Payment Goal, List Widgets, and Cycling Widget), giving streamers a sleek, focused, and uncluttered dashboard experience.
 - [x] **13. Remove Alert Widget Base Tab & Redundant Controls** — Removed the obsolete "Alert Widget Base" sidebar tab, duplicate canvas dimensions, and duplicate baseline typography controls. Alert templates are now the sole source of truth for alert appearance and canvas setup.
 - [x] **14. Merge Animations into Alert Style (Alert Style & Animations)** — Consolidated the "Animations" tab into "Alert Style & Colors" as a collapsible `Motion & Entry Animations` section, renaming the unified sidebar tab to **"Alert Style & Animations"** (`data-tab="style"`). Streamlined the alert configuration workflow into 2 cohesive tabs: **Alert Templates** (Rules, Text, Media/Sound) and **Alert Style & Animations** (Cards, Colors, Animations, Canvas & Custom Code).
