@@ -154,6 +154,35 @@
 .lb-amount { font-weight: 700; color: var(--recent-accent-color); font-family: monospace; }`,
       customJS: `console.log('[Recent Sync]');`
     },
+    list: {
+      customHTML: `<div class="lb-card">
+  <div class="lb-header">
+    <div class="lb-title">{{title}}</div>
+  </div>
+  <div class="lb-list">
+    <!-- Rows are injected by the renderer -->
+  </div>
+</div>`,
+      customCSS: `.lb-card {
+  width: 100%; background: rgba(10, 14, 23, calc(var(--list-bg-opacity, 88) / 100));
+  border: var(--list-border-width, 1px) solid var(--list-border-color, rgba(255, 255, 255, 0.12)); border-radius: var(--list-border-radius, 16px);
+  padding: var(--list-padding, 18px); box-shadow: 0 12px 36px rgba(0, 0, 0, calc(var(--list-bg-opacity, 88) / 100 * 0.5));
+  backdrop-filter: blur(calc(var(--list-bg-opacity, 88) / 100 * 12px));
+  -webkit-backdrop-filter: blur(calc(var(--list-bg-opacity, 88) / 100 * 12px));
+}
+.lb-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.lb-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--list-row-bg-color, rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px;
+  padding: 8px 14px; margin-bottom: 8px;
+}
+.lb-row.rank-1 { background: rgba(255, 215, 0, 0.12); border-color: #ffd70066; }
+.lb-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; background: rgba(255,255,255,0.1); }
+.rank-1 .lb-badge { background: #ffd700; color: #000; box-shadow: 0 0 10px #ffd700; }
+.lb-amount { font-weight: 700; color: var(--list-accent-color); font-family: monospace; }`,
+      customJS: `console.log('[List Sync]');`
+    },
     cycling: {
       customHTML: `<div class="cycling-card effect-in-{{transitionIn}}">
   <div class="cycling-icon">{{mediaHtml}}</div>
@@ -177,6 +206,120 @@
     }
   };
 
+  const LIST_CONFIG_PRESETS = {
+    'top-supporters': {
+      presetKey: 'top-supporters',
+      name: 'Top Supporters',
+      type: 'leaderboard',
+      title: 'Top Supporters',
+      maxEntries: 5,
+      showAmounts: true,
+      isDefault: true,
+      isBuiltin: true,
+      filter: { provider: 'all', minAmount: 0, timeRange: 'all' },
+      accentColor: '#00e5ff',
+      borderColor: 'rgba(255, 255, 255, 0.12)'
+    },
+    'recent-donations': {
+      presetKey: 'recent-donations',
+      name: 'Recent Donations',
+      type: 'recent',
+      title: 'Recent Donations',
+      maxEntries: 5,
+      showAmounts: true,
+      isDefault: true,
+      isBuiltin: true,
+      filter: { provider: 'all', minAmount: 0, timeRange: 'all' },
+      accentColor: '#00e5ff',
+      borderColor: 'rgba(255, 255, 255, 0.12)'
+    },
+    'vip-donors': {
+      presetKey: 'vip-donors',
+      name: 'VIP Donors (₹500+)',
+      type: 'leaderboard',
+      title: 'VIP Supporters (₹500+)',
+      maxEntries: 5,
+      showAmounts: true,
+      filter: { provider: 'all', minAmount: 500, timeRange: 'all' },
+      accentColor: '#ffd700',
+      borderColor: 'rgba(255, 215, 0, 0.3)'
+    },
+    'phonepe-supporters': {
+      presetKey: 'phonepe-supporters',
+      name: 'PhonePe Supporters',
+      type: 'leaderboard',
+      title: 'PhonePe Top Donors',
+      maxEntries: 5,
+      showAmounts: true,
+      filter: { provider: 'phonepe', minAmount: 0, timeRange: 'all' },
+      accentColor: '#6739b7',
+      borderColor: 'rgba(103, 57, 183, 0.3)'
+    },
+    'gpay-supporters': {
+      presetKey: 'gpay-supporters',
+      name: 'Google Pay Supporters',
+      type: 'leaderboard',
+      title: 'Google Pay Top Donors',
+      maxEntries: 5,
+      showAmounts: true,
+      filter: { provider: 'gpay', minAmount: 0, timeRange: 'all' },
+      accentColor: '#00e5ff',
+      borderColor: 'rgba(0, 229, 255, 0.3)'
+    },
+    'amazon-pay-supporters': {
+      presetKey: 'amazon-pay-supporters',
+      name: 'Amazon Pay Supporters',
+      type: 'leaderboard',
+      title: 'Amazon Pay Donors',
+      maxEntries: 5,
+      showAmounts: true,
+      filter: { provider: 'amazon', minAmount: 0, timeRange: 'all' },
+      accentColor: '#ff9900',
+      borderColor: 'rgba(255, 153, 0, 0.3)'
+    },
+    'blank-custom': {
+      presetKey: 'blank-custom',
+      name: 'Custom List',
+      type: 'leaderboard',
+      title: 'Custom List',
+      maxEntries: 5,
+      showAmounts: true,
+      filter: { provider: 'all', minAmount: 0, timeRange: 'all' },
+      accentColor: '#00e5ff',
+      borderColor: 'rgba(255, 255, 255, 0.12)'
+    }
+  };
+
+  const DEFAULT_LIST_BASE = {
+    name: 'Top Supporters',
+    enabled: true,
+    isDefault: false,
+    type: 'leaderboard',
+    title: 'Top Supporters',
+    maxEntries: 5,
+    showAmounts: true,
+    filter: {
+      provider: 'all',
+      minAmount: 0,
+      timeRange: 'all'
+    },
+    canvas: { preset: '1080p', width: 1920, height: 1080 },
+    text: {
+      titleTemplate: 'Top Supporters',
+      subtitleTemplate: '',
+      fontFamily: 'Inter', fontSize: 15, fontSizeUnit: 'px', fontWeight: 700, fontStyle: 'normal',
+      color: '#ffffff', textAlign: 'left', textTransform: 'none', letterSpacing: 0, letterSpacingUnit: 'px', lineHeight: 1.3
+    },
+    style: {
+      backgroundColor: '#0a0e17', backgroundOpacity: 88,
+      accentColor: '#00e5ff', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.12)', padding: 18,
+      rowBgColor: '#1a1e2b'
+    },
+    animation: { type: 'fade-in', duration: 400, displayDuration: 5000 },
+    layout: { positionPreset: 'center', positionX: 50, positionY: 50, marginX: 0, marginY: 0, width: 450 },
+    code: { enableCustomCode: false, customHTML: '', customCSS: '', customJS: '' }
+  };
+
   const WIDGET_DEFAULTS = {
     alert: {
       enabled: true,
@@ -197,6 +340,7 @@
     },
     goal: {
       enabled: true,
+      allowOverflow: false,
       title: 'Payment Goal',
       startAmount: 0,
       currentAmount: 0,
@@ -433,6 +577,17 @@
     return out;
   }
 
+  function slugifyName(name) {
+    if (!name || typeof name !== 'string') return 'list';
+    const slug = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return slug || 'list';
+  }
+
   const ConfigSchema = {
     CONFIG_VERSION,
     WIDGET_KINDS,
@@ -442,6 +597,84 @@
     POSITION_PRESETS,
     generateId,
     clone,
+
+    LIST_CONFIG_PRESETS,
+    DEFAULT_LIST_BASE,
+    slugifyName,
+
+    /** Create a URL-safe slug from a list name */
+    slugify(name) {
+      return slugifyName(name);
+    },
+
+    /** Build a complete list config, using a preset key or base defaults. */
+    createListConfig(presetKey, overrides) {
+      let preset = typeof presetKey === 'string' ? (LIST_CONFIG_PRESETS[presetKey] || LIST_CONFIG_PRESETS['blank-custom']) : null;
+      let opts = typeof presetKey === 'object' ? presetKey : (overrides || {});
+      if (preset) {
+        opts = Object.assign({}, preset, opts);
+      }
+      const name = str(opts.name, DEFAULT_LIST_BASE.name).trim() || DEFAULT_LIST_BASE.name;
+      let slug = opts.id ? slugifyName(opts.id) : slugifyName(name);
+
+      if (presetKey === 'top-supporters' || slug === 'top-supporters' || name.toLowerCase() === 'top supporters') {
+        slug = 'top-supporters';
+        opts.isBuiltin = true;
+        opts.isDefault = true;
+      } else if (presetKey === 'recent-donations' || slug === 'recent-donations' || name.toLowerCase() === 'recent donations') {
+        slug = 'recent-donations';
+        opts.isBuiltin = true;
+        opts.isDefault = true;
+      }
+
+      const base = clone(DEFAULT_LIST_BASE);
+      if (opts.type) base.type = opts.type;
+      if (opts.title) base.title = opts.title;
+      if (opts.title) base.text.titleTemplate = opts.title;
+      if (opts.accentColor) base.style.accentColor = opts.accentColor;
+      if (opts.borderColor) base.style.borderColor = opts.borderColor;
+      if (opts.filter) base.filter = Object.assign({}, base.filter, opts.filter);
+      if (opts.maxEntries !== undefined) base.maxEntries = opts.maxEntries;
+      if (opts.showAmounts !== undefined) base.showAmounts = opts.showAmounts;
+
+      return this.normalizeListConfig(Object.assign(base, opts, { id: slug, name }));
+    },
+
+    normalizeListConfig(raw) {
+      const src = raw && typeof raw === 'object' ? raw : {};
+      const base = DEFAULT_LIST_BASE;
+      const name = str(src.name, base.name).trim() || base.name;
+      let id = slugifyName(src.id || name);
+      const isRecent = (id === 'recent-donations' || str(src.type, base.type) === 'recent' || name.toLowerCase() === 'recent donations');
+      id = isRecent ? 'recent-donations' : 'top-supporters';
+      const type = isRecent ? 'recent' : 'leaderboard';
+      const codeKind = isRecent ? 'recent' : 'leaderboard';
+
+      const rawFilter = src.filter && typeof src.filter === 'object' ? src.filter : {};
+
+      return {
+        id,
+        name: isRecent ? 'Recent Donations' : 'Top Supporters',
+        enabled: bool(src.enabled, base.enabled),
+        isDefault: true,
+        isBuiltin: true,
+        type,
+        title: str(src.title, isRecent ? 'Recent Donations' : 'Top Supporters'),
+        maxEntries: int(src.maxEntries, base.maxEntries, 1, 100),
+        showAmounts: bool(src.showAmounts, base.showAmounts),
+        filter: {
+          provider: str(rawFilter.provider, 'all'),
+          minAmount: num(rawFilter.minAmount, 0, 0),
+          timeRange: str(rawFilter.timeRange, 'all')
+        },
+        canvas: CanvasPresets.resolve(src.canvas || base.canvas),
+        text: WidgetStyle.normalizeText(src.text, base.text),
+        style: normalizeStyle(src.style, base.style),
+        animation: normalizeAnimation(src.animation, base.animation),
+        layout: normalizeLayout(src.layout, base.layout),
+        code: normalizeCode(src.code, codeKind)
+      };
+    },
 
     /** Build a complete alert template, using the alert widget defaults as base. */
     createTemplate(overrides) {
@@ -494,6 +727,7 @@
       });
 
       if (kind === 'goal') {
+        widget.allowOverflow = bool(src.allowOverflow, defaults.allowOverflow || false);
         widget.title = str(src.title, defaults.title);
         widget.startAmount = num(src.startAmount, defaults.startAmount);
         widget.currentAmount = num(src.currentAmount, defaults.currentAmount);
@@ -539,11 +773,16 @@
 
     createDefaultConfig() {
       const template = this.createTemplate({ id: 'default', name: 'Default Alert', isDefault: true });
+      const topSupporters = this.createListConfig('top-supporters', { id: 'top-supporters', name: 'Top Supporters', isDefault: true, isBuiltin: true });
+      const recentDonations = this.createListConfig('recent-donations', { id: 'recent-donations', name: 'Recent Donations', isDefault: true, isBuiltin: true });
+
       return {
         version: CONFIG_VERSION,
         activeWidget: 'alert',
         activeTemplateId: template.id,
         alertTemplates: [template],
+        activeListConfigId: topSupporters.id,
+        listConfigs: [topSupporters, recentDonations],
         widgets: {
           alert: this.normalizeWidget('alert', WIDGET_DEFAULTS.alert),
           goal: this.normalizeWidget('goal', WIDGET_DEFAULTS.goal),
@@ -581,6 +820,40 @@
         ? src.activeTemplateId
         : (templates.find(t => t.isDefault) || templates[0]).id;
 
+      // ── List Configs Normalization (Only Top Supporters and Recent Donations) ──
+      const rawListConfigs = Array.isArray(src.listConfigs) ? src.listConfigs : [];
+      let topSupporters = rawListConfigs.find(l => l && (l.id === 'top-supporters' || l.type === 'leaderboard'));
+      let recentDonations = rawListConfigs.find(l => l && (l.id === 'recent-donations' || l.type === 'recent'));
+
+      topSupporters = this.normalizeListConfig(Object.assign({
+        id: 'top-supporters',
+        name: 'Top Supporters',
+        type: 'leaderboard',
+        isDefault: true,
+        isBuiltin: true,
+        style: (src.widgets && src.widgets.leaderboard && src.widgets.leaderboard.style) || undefined,
+        text: (src.widgets && src.widgets.leaderboard && src.widgets.leaderboard.text) || undefined,
+        code: (src.widgets && src.widgets.leaderboard && src.widgets.leaderboard.code) || undefined,
+        layout: (src.widgets && src.widgets.leaderboard && src.widgets.leaderboard.layout) || undefined,
+        canvas: (src.widgets && src.widgets.leaderboard && src.widgets.leaderboard.canvas) || undefined
+      }, topSupporters || {}, { id: 'top-supporters', name: 'Top Supporters', type: 'leaderboard', isBuiltin: true, isDefault: true }));
+
+      recentDonations = this.normalizeListConfig(Object.assign({
+        id: 'recent-donations',
+        name: 'Recent Donations',
+        type: 'recent',
+        isDefault: true,
+        isBuiltin: true,
+        style: (src.widgets && src.widgets.recent && src.widgets.recent.style) || undefined,
+        text: (src.widgets && src.widgets.recent && src.widgets.recent.text) || undefined,
+        code: (src.widgets && src.widgets.recent && src.widgets.recent.code) || undefined,
+        layout: (src.widgets && src.widgets.recent && src.widgets.recent.layout) || undefined,
+        canvas: (src.widgets && src.widgets.recent && src.widgets.recent.canvas) || undefined
+      }, recentDonations || {}, { id: 'recent-donations', name: 'Recent Donations', type: 'recent', isBuiltin: true, isDefault: true }));
+
+      const listConfigs = [topSupporters, recentDonations];
+      const activeListConfigId = (src.activeListConfigId === 'recent-donations') ? 'recent-donations' : 'top-supporters';
+
       const allowedAmounts = ((src.filter && Array.isArray(src.filter.allowedAmounts)) ? src.filter.allowedAmounts : [])
         .map(a => num(a, NaN))
         .filter(a => Number.isFinite(a));
@@ -594,6 +867,8 @@
         activeWidget: WIDGET_KINDS.indexOf(src.activeWidget) !== -1 ? src.activeWidget : 'alert',
         activeTemplateId,
         alertTemplates: templates,
+        activeListConfigId,
+        listConfigs,
         widgets: {
           alert: this.normalizeWidget('alert', src.widgets && src.widgets.alert),
           goal: this.normalizeWidget('goal', src.widgets && src.widgets.goal),

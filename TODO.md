@@ -5,24 +5,33 @@
 ## 🚀 Upcoming Features & Tasks
 
 - [ ] **1. Non-Payment Notification Filter** — Add strict filtering to ignore promotional messages, security/OTP alerts, reward cashbacks, and bank balance updates from supported payment apps (PhonePe, GPay, Paytm, etc.).
-- [x] **2. Isolated Simulation Mode Toggle** — Add a toggle to enable "Simulation Mode" so test alerts can trigger on-screen animations without affecting live data (subgoals, leaderboards, recent donations, and persistent stats).
-- [x] **3. Analytics & Income Dashboard (Earning Overview)** — Comprehensive income reporting tab with interactive Center-Total Donut chart, branded payment method breakdowns, daily revenue timelines, Top Supporters Hall of Fame, paginated transaction ledger, and monthly CSV multi-part partitioning.
 - [ ] **4. Google Pay (GPay) Parser Support** — Add dedicated regex pattern matching and notification listener parser support for Google Pay transactions.
 - [ ] **6. Server Auto-Discovery (mDNS/Bonjour)** — Implement mDNS/Bonjour-based server discovery so the Android app can automatically find the PC server on the local network without manual IP entry. Also allow users to manually add a server by IP/port, with saved servers persisted in local storage for quick reconnection.
-- [x] **7. Fix Cycling Widget Advanced Settings (Template Engine)** — The advanced settings panel for the cycling widget is not applying correctly (custom HTML/CSS via the template engine is broken). Investigate and fix the `{{variable}}` substitution for `label`, `text`, `transitionEffect`, and `mediaHtml` context variables in the cycling widget's custom code path.
-- [x] **8. Evaluate Robust Template Engine Replacement** — Migrated to **Handlebars.js** v4.7.8. Self-hosted browser bundle (`handlebars.min.js`). Zero call-site changes — same `TemplateEngine.render()` / `TemplateEngine.escapeHtml()` API. Unlocks `{{#if}}`, `{{#each}}`, `{{#unless}}`, custom helpers (`formatAmount`, `formatDate`, `eq`, `gt`, `lt`), and triple-stash `{{{rawHtml}}}` — all with XSS escaping by default.
-- [x] **9. Refactor Logger — Day-Based Log Rotation with 7-Day Retention** — Migrated server logger to **Winston** with **`winston-daily-rotate-file`**. Daily rolling log files named `application_YYYY-MM-DD.log` with automated 7-day retention (`maxFiles: '7d'`). Updated `/api/logs/live`, `/api/logs`, and `/api/logs/clear` with date query parameters, added `/api/logs/dates` endpoint, and added a Log Date selector to the dashboard Logs tab.
-- [ ] **10. Unified List Widget System (Leaderboard + Recent → List Configs)** — Leaderboard and Recent Donations are fundamentally the same widget: a sorted/filtered list of transactions with a title. Instead of two hardcoded widget types, introduce a single **List Widget** with a config system modelled on Alert Templates — users can create multiple named list configs (e.g. "Top Supporters", "Recent Donations", "Top by PhonePe", "Last 10 Transactions"), each with its own: sort key (total amount vs. recency), filter (provider, min amount, date range), max entries, display style, and custom HTML/CSS. Each list config gets its own OBS browser source URL (e.g. `/overlay/list?id=<configId>`). Retire the separate `/overlay/leaderboard` and `/overlay/recent` routes once migrated.
-- [ ] **11. Goal Widget — Allow Percentage Overflow Beyond 100%** — Add a toggle checkbox in the Goal widget advanced settings: **"Allow overflow (exceed 100%)"**. When enabled, the progress bar can visually fill beyond 100% (e.g. 130%), the `{{percent}}` template variable reflects the real uncapped value, and the bar fill width is allowed to overflow its container. When disabled (default), percentage is clamped to 100% as it is today. Useful for streamers who want to celebrate exceeding their goal target live on stream.
-- [x] **5. Single Source of Truth CSV & Separated Import/Export Architecture (CSV for Data + JSON for Config)**:
-  - 📊 **Tabular Data (`donations.csv`)**: Single source of truth for Stream Goal, Top Supporters Leaderboard, and Recent Donations with live CSV Export/Import for Excel and Google Sheets.
-  - ⚙️ **System & Theme Config (Profiles, Templates, Overlay Settings)**: Separated JSON for lossless configuration backups and profile sharing.
+- [ ] **12. Defaults & Payment App Cleanup (Support PhonePe, Amazon Pay, GPay & Cash Only)** — Streamline supported payment apps across the entire application for v2. Officially support only **PhonePe**, **Amazon Pay**, **Google Pay (GPay)**, and **Cash / Manual Entry** (for offline donations/ledger). Remove legacy/unused apps and tags like Paytm, BHIM UPI, and other third-party UPI apps from default alert templates, simulation dropdowns, tag pickers, preset badges, and analytics filters.
 
 ---
 
 ## ✅ Completed
 
-### Version 2.0.0 (`feature/electron-tauri-migration`)
+### Version 2.0.0 (`feature/version-2`)
+
+- [x] **16. Sidebar Navigation Restructure (Earning Overview as Default Home Landing Tab)** — Placed Earning Overview at the top of the sidebar navigation as the default landing view upon dashboard boot, followed by overlay customization widgets and diagnostic tools.
+- [x] **15. Default Collapsed State for Secondary Setting Panels** — Collapsed all settings sections (`<details class="collapsible-advanced">`) by default except the first section in each configuration tab (Alert Templates, Alert Style & Animations, Payment Goal, List Widgets, and Cycling Widget), giving streamers a sleek, focused, and uncluttered dashboard experience.
+- [x] **13. Remove Alert Widget Base Tab & Redundant Controls** — Removed the obsolete "Alert Widget Base" sidebar tab, duplicate canvas dimensions, and duplicate baseline typography controls. Alert templates are now the sole source of truth for alert appearance and canvas setup.
+- [x] **14. Merge Animations into Alert Style (Alert Style & Animations)** — Consolidated the "Animations" tab into "Alert Style & Colors" as a collapsible `Motion & Entry Animations` section, renaming the unified sidebar tab to **"Alert Style & Animations"** (`data-tab="style"`). Streamlined the alert configuration workflow into 2 cohesive tabs: **Alert Templates** (Rules, Text, Media/Sound) and **Alert Style & Animations** (Cards, Colors, Animations, Canvas & Custom Code).
+
+- [x] **10. Unified List Widget System (Leaderboard + Recent → List Configs)** — Leaderboard and Recent Donations have been unified into a clean **List Widget** system. Streamers can customize the two default lists (**"Top Supporters"** at `/overlay/list?id=top-supporters` and **"Recent Donations"** at `/overlay/list?id=recent-donations`) with provider/minAmount filters, card styling, typography, canvas dimensions, and custom HTML/CSS/JS with Handlebars support. Legacy overlay routes (`/overlay/leaderboard`, `/overlay/recent`) are preserved with automatic backward compatibility.
+
+- [x] **11. Goal Widget — Allow Percentage Overflow Beyond 100%** — Added a checkbox setting in the Goal setup: **"Allow Percentage Overflow (Exceed 100%)"**. When checked, the progress bar and `{{percent}}` template variable can visually exceed 100% (e.g. 140%) when donations surpass the goal target, allowing streamers to celebrate exceeding goals live on stream. When unchecked (default), progress is clamped to 100%.
+
+- [x] **2. Isolated Simulation Mode Toggle** — Added an isolated "Simulation Mode" toggle in the dashboard so test alerts can trigger on-screen animations without corrupting live data (subgoals, leaderboards, recent donations, and persistent CSV stats).
+- [x] **3. Analytics & Income Dashboard (Earning Overview)** — Comprehensive income reporting tab with interactive Center-Total Donut chart, branded payment method breakdowns, daily revenue timelines, Top Supporters Hall of Fame, paginated transaction ledger with vertical resizer, and monthly CSV multi-part partitioning.
+- [x] **5. Single Source of Truth CSV & Separated Import/Export Architecture (CSV for Data + JSON for Config)**:
+  - 📊 **Tabular Data (`donations.csv`)**: Single source of truth for Stream Goal, Top Supporters Leaderboard, and Recent Donations with live CSV Export/Import for Excel and Google Sheets.
+  - ⚙️ **System & Theme Config (Profiles, Templates, Overlay Settings)**: Separated JSON for lossless configuration backups and profile sharing.
+- [x] **7. Fix Cycling Widget Advanced Settings (Template Engine)** — Resolved the `{{variable}}` substitution bug for `label`, `text`, `transitionEffect`, and `mediaHtml` in custom code templates.
+- [x] **8. Handlebars.js Template Engine Migration** — Migrated from hand-rolled regex engine to **Handlebars.js** v4.7.8 with self-hosted offline browser bundle (`handlebars.min.js`). Unlocked `{{#if}}`, `{{#each}}`, `{{#unless}}`, custom helpers (`formatAmount`, `formatDate`, `eq`, `gt`, `lt`), and triple-stash `{{{rawHtml}}}` with default XSS escaping.
+- [x] **9. Refactor Logger — Day-Based Log Rotation with 7-Day Retention** — Migrated server logger to **Winston** with **`winston-daily-rotate-file`**. Daily rolling log files named `application_YYYY-MM-DD.log` with automated 7-day retention (`maxFiles: '7d'`). Added multi-day log selection, color-coded level badges (`INFO`, `WARN`, `ERROR`, `EVENT`, `PARSE`, `DEDUP`), and full-width layout for the Logs tab.
 - [x] **Electron → Tauri Migration**: Fully migrated from Electron to Tauri v2 native desktop shell.
 - [x] **Bun Sidecar Architecture**: Bundled `server.js` with Bun into a fast, standalone, self-contained sidecar binary.
 - [x] **System Tray & Window Management**: Single system tray with dynamic context menu, close-to-tray toggle, start-minimized support, and clean process lifecycle termination.
@@ -32,4 +41,4 @@
 
 ---
 
-*Last updated: 2026-08-15*
+*Last updated: 2026-08-16*

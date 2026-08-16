@@ -693,14 +693,17 @@ app.get('/preview',             (req, res) => res.sendFile(path.join(__dirname, 
 app.get('/overlay/alerts',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/overlay/alert',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/overlay/goal',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
-app.get('/overlay/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
-app.get('/overlay/recent',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'recent.html')));
+app.get('/overlay/list',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'list.html')));
+app.get('/overlay/lists',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'list.html')));
+app.get('/overlay/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'list.html')));
+app.get('/overlay/recent',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'list.html')));
 app.get('/overlay/cycling-widget', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cycling-widget.html')));
 app.get('/overlay',             (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/alerts',              (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/alert',               (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
 app.get('/goal',                (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
-app.get('/leaderboard',         (req, res) => res.sendFile(path.join(__dirname, 'public', 'leaderboard.html')));
+app.get('/leaderboard',         (req, res) => res.sendFile(path.join(__dirname, 'public', 'list.html')));
+app.get('/list',                (req, res) => res.sendFile(path.join(__dirname, 'public', 'list.html')));
 
 // ── CSV Donations & Analytics Endpoints ──────────────────────────────
 app.get('/api/donations/months', (req, res) => {

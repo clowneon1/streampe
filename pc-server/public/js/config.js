@@ -12,7 +12,7 @@
  *   `<prefix>-font-family`, `<prefix>-font-size`, … , `<prefix>-canvas-preset`, …
  * with prefixes `tpl` (template), `alert`, `goal`, `lb`.
  */
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   'use strict';
 
   const el = (id) => document.getElementById(id);
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const node = el(id);
     if (node) node.addEventListener(evt, fn);
   };
-  const TEXT_PREFIXES = { template: 'tpl', alert: 'alert', goal: 'goal', leaderboard: 'lb', recent: 'recent', cycling: 'cycling' };
+  const TEXT_PREFIXES = { template: 'tpl', goal: 'goal', leaderboard: 'lb', recent: 'recent', list: 'list', cycling: 'cycling' };
 
   let config = ConfigSchema.createDefaultConfig();
   let suppressSync = false;
@@ -42,6 +42,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       { id: 'input-recent-custom-html', mode: 'htmlmixed' },
       { id: 'input-recent-custom-css', mode: 'css' },
       { id: 'input-recent-custom-js', mode: 'javascript' },
+      { id: 'input-list-custom-html', mode: 'htmlmixed' },
+      { id: 'input-list-custom-css', mode: 'css' },
+      { id: 'input-list-custom-js', mode: 'javascript' },
       { id: 'input-cycling-custom-html', mode: 'htmlmixed' },
       { id: 'input-cycling-custom-css', mode: 'css' },
       { id: 'input-cycling-custom-js', mode: 'javascript' }
@@ -233,7 +236,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     const node = el(id);
-    if (node && value !== undefined && value !== null) node.value = value;
+    if (!node || value === undefined || value === null) return;
+    if (node.type === 'color') {
+      let colorVal = String(value).trim();
+      if (/^#[0-9a-f]{8}$/i.test(colorVal)) {
+        colorVal = colorVal.slice(0, 7);
+      } else if (/^#[0-9a-f]{3}$/i.test(colorVal)) {
+        colorVal = '#' + colorVal[1] + colorVal[1] + colorVal[2] + colorVal[2] + colorVal[3] + colorVal[3];
+      } else if (!/^#[0-9a-f]{6}$/i.test(colorVal)) {
+        colorVal = '#ffffff';
+      }
+      node.value = colorVal;
+      return;
+    }
+    node.value = value;
   }
   function setChecked(id, value) {
     const node = el(id);
@@ -394,6 +410,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     }).join(' or ');
   }
 
+  // ── List Config Manager ───────────────────────────────────────
+  function currentListConfig() {
+    if (!Array.isArray(config.listConfigs) || !config.listConfigs.length) {
+      const def = ConfigSchema.createListConfig('top-supporters', { id: 'top-supporters', name: 'Top Supporters', isDefault: true });
+      config.listConfigs = [def];
+      config.activeListConfigId = def.id;
+    }
+    const found = config.listConfigs.find(l => l.id === config.activeListConfigId);
+    return found || config.listConfigs[0];
+  }
+
+  function renderListConfigDropdown() {
+    const select = el('select-active-list');
+    if (!select) return;
+    const lists = Array.isArray(config.listConfigs) ? config.listConfigs : [];
+    select.innerHTML = lists.map(l => {
+      const typeLabel = l.type === 'recent' ? 'Recent Feed' : 'Leaderboard';
+      const flags = [typeLabel, l.enabled ? '' : 'disabled'].filter(Boolean).join(', ');
+      return `<option value="${TemplateEngine.escapeHtml(l.id)}"${l.id === config.activeListConfigId ? ' selected' : ''}>${TemplateEngine.escapeHtml(l.name)} (${flags})</option>`;
+    }).join('');
+
+    const active = currentListConfig();
+    const badge = el('badge-list-url');
+    if (badge && active) {
+      badge.textContent = `/overlay/list?id=${active.id}`;
+    }
+  }
+
   // ── Form → config ────────────────────────────────────────────
   function readFormValues() {
     const template = currentTemplate();
@@ -447,13 +491,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
     }
 
-    const alertWidget = config.widgets.alert;
-    alertWidget.enabled = checked('chk-enable-alert', alertWidget.enabled);
-    alertWidget.text = readTextStyle(TEXT_PREFIXES.alert, alertWidget.text);
-    alertWidget.canvas = readCanvas(TEXT_PREFIXES.alert, alertWidget.canvas);
-
     const goal = config.widgets.goal;
     goal.enabled = checked('chk-enable-goal', goal.enabled);
+    goal.allowOverflow = checked('chk-goal-allow-overflow', !!goal.allowOverflow);
     goal.title = val('input-goal-title', goal.title);
     goal.targetAmount = numVal('input-goal-target', goal.targetAmount);
     goal.currentAmount = numVal('input-goal-current', goal.currentAmount);
@@ -484,55 +524,58 @@ document.addEventListener('DOMContentLoaded', async () => {
       customJS: val('input-goal-custom-js', '')
     };
 
-    const lb = config.widgets.leaderboard;
-    lb.enabled = checked('chk-enable-lb', lb.enabled);
-    lb.title = val('input-lb-title', lb.title);
-    const lbMaxPreset = val('select-lb-max', '5');
-    lb.maxEntries = lbMaxPreset === 'custom' ? numVal('input-lb-max-custom', 5) : parseInt(lbMaxPreset, 10);
-    lb.showAmounts = checked('chk-lb-show-amounts', lb.showAmounts);
-    lb.text = Object.assign(readTextStyle(TEXT_PREFIXES.leaderboard, lb.text), {
-      titleTemplate: val('input-lb-title', lb.text.titleTemplate)
-    });
-    lb.canvas = readCanvas(TEXT_PREFIXES.leaderboard, lb.canvas);
-    lb.style = Object.assign({}, lb.style, {
-      backgroundColor: val('input-lb-bg-color-hex') || val('input-lb-bg-color', lb.style.backgroundColor || '#0a0e17'),
-      accentColor: val('input-lb-accent-color-hex') || val('input-lb-accent-color', lb.style.accentColor),
-      rowBgColor: val('input-lb-row-bg-color-hex') || val('input-lb-row-bg-color', lb.style.rowBgColor),
-      backgroundOpacity: numVal('input-lb-bg-opacity', lb.style.backgroundOpacity),
-      borderWidth: numVal('input-lb-border-width', lb.style.borderWidth ?? 1),
-      borderColor: val('input-lb-border-color-hex') || val('input-lb-border-color', lb.style.borderColor || '#ffffff22')
-    });
-    lb.code = {
-      enableCustomCode: checked('chk-enable-lb-custom-code', false),
-      customHTML: val('input-lb-custom-html', ''),
-      customCSS: val('input-lb-custom-css', ''),
-      customJS: val('input-lb-custom-js', '')
-    };
+    const activeList = currentListConfig();
+    if (activeList) {
+      activeList.enabled = checked('chk-enable-list', activeList.enabled);
+      activeList.type = activeList.id === 'recent-donations' ? 'recent' : 'leaderboard';
+      activeList.name = activeList.type === 'recent' ? 'Recent Donations' : 'Top Supporters';
+      activeList.title = val('input-list-title', activeList.title);
+      const listMaxPreset = val('select-list-max', '5');
+      activeList.maxEntries = listMaxPreset === 'custom' ? numVal('input-list-max-custom', 5) : parseInt(listMaxPreset, 10);
+      activeList.showAmounts = checked('chk-list-show-amounts', activeList.showAmounts);
+      activeList.filter = {
+        provider: val('select-list-provider', 'all'),
+        minAmount: numVal('input-list-min-amount', 0),
+        timeRange: 'all'
+      };
+      activeList.text = Object.assign(readTextStyle(TEXT_PREFIXES.list, activeList.text), {
+        titleTemplate: val('input-list-title', activeList.text.titleTemplate)
+      });
+      activeList.canvas = readCanvas(TEXT_PREFIXES.list, activeList.canvas);
+      activeList.style = Object.assign({}, activeList.style, {
+        backgroundColor: val('input-list-bg-color-hex') || val('input-list-bg-color', activeList.style.backgroundColor || '#0a0e17'),
+        accentColor: val('input-list-accent-color-hex') || val('input-list-accent-color', activeList.style.accentColor),
+        rowBgColor: val('input-list-row-bg-color-hex') || val('input-list-row-bg-color', activeList.style.rowBgColor),
+        backgroundOpacity: numVal('input-list-bg-opacity', activeList.style.backgroundOpacity),
+        borderWidth: numVal('input-list-border-width', activeList.style.borderWidth ?? 1),
+        borderColor: val('input-list-border-color-hex') || val('input-list-border-color', activeList.style.borderColor || '#ffffff22'),
+        borderRadius: numVal('input-list-border-radius', activeList.style.borderRadius ?? 16),
+        padding: numVal('input-list-padding', activeList.style.padding ?? 18)
+      });
+      activeList.layout = Object.assign({}, activeList.layout, {
+        width: numVal('input-list-layout-width', activeList.layout?.width || 450)
+      });
+      activeList.code = {
+        enableCustomCode: checked('chk-enable-list-custom-code', false),
+        customHTML: val('input-list-custom-html', ''),
+        customCSS: val('input-list-custom-css', ''),
+        customJS: val('input-list-custom-js', '')
+      };
 
-    const recent = config.widgets.recent;
-    recent.enabled = checked('chk-enable-recent', recent.enabled);
-    recent.title = val('input-recent-title', recent.title);
-    const recentMaxPreset = val('select-recent-max', '5');
-    recent.maxEntries = recentMaxPreset === 'custom' ? numVal('input-recent-max-custom', 5) : parseInt(recentMaxPreset, 10);
-    recent.showAmounts = checked('chk-recent-show-amounts', recent.showAmounts);
-    recent.text = Object.assign(readTextStyle(TEXT_PREFIXES.recent, recent.text), {
-      titleTemplate: val('input-recent-title', recent.text.titleTemplate)
-    });
-    recent.canvas = readCanvas(TEXT_PREFIXES.recent, recent.canvas);
-    recent.style = Object.assign({}, recent.style, {
-      backgroundColor: val('input-recent-bg-color-hex') || val('input-recent-bg-color', recent.style.backgroundColor || '#0a0e17'),
-      accentColor: val('input-recent-accent-color-hex') || val('input-recent-accent-color', recent.style.accentColor),
-      rowBgColor: val('input-recent-row-bg-color-hex') || val('input-recent-row-bg-color', recent.style.rowBgColor),
-      backgroundOpacity: numVal('input-recent-bg-opacity', recent.style.backgroundOpacity),
-      borderWidth: numVal('input-recent-border-width', recent.style.borderWidth ?? 1),
-      borderColor: val('input-recent-border-color-hex') || val('input-recent-border-color', recent.style.borderColor || '#ffffff22')
-    });
-    recent.code = {
-      enableCustomCode: checked('chk-enable-recent-custom-code', false),
-      customHTML: val('input-recent-custom-html', ''),
-      customCSS: val('input-recent-custom-css', ''),
-      customJS: val('input-recent-custom-js', '')
-    };
+      if (activeList.type === 'leaderboard') {
+        config.widgets.leaderboard.title = activeList.title;
+        config.widgets.leaderboard.maxEntries = activeList.maxEntries;
+        config.widgets.leaderboard.showAmounts = activeList.showAmounts;
+        config.widgets.leaderboard.style = Object.assign({}, activeList.style);
+        config.widgets.leaderboard.text = Object.assign({}, activeList.text);
+      } else {
+        config.widgets.recent.title = activeList.title;
+        config.widgets.recent.maxEntries = activeList.maxEntries;
+        config.widgets.recent.showAmounts = activeList.showAmounts;
+        config.widgets.recent.style = Object.assign({}, activeList.style);
+        config.widgets.recent.text = Object.assign({}, activeList.text);
+      }
+    }
 
     const cycling = config.widgets.cycling || {};
     cycling.enabled = checked('chk-enable-cycling', !!cycling.enabled);
@@ -630,13 +673,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       setVal('input-custom-js', template.code.customJS);
     }
 
-    const alertWidget = config.widgets.alert;
-    setChecked('chk-enable-alert', alertWidget.enabled);
-    writeTextStyle(TEXT_PREFIXES.alert, alertWidget.text);
-    writeCanvas(TEXT_PREFIXES.alert, alertWidget.canvas);
-
     const goal = config.widgets.goal;
     setChecked('chk-enable-goal', goal.enabled);
+    setChecked('chk-goal-allow-overflow', !!goal.allowOverflow);
     setVal('input-goal-title', goal.text.titleTemplate || goal.title);
     setVal('input-goal-target', goal.targetAmount);
     setVal('input-goal-current', goal.currentAmount);
@@ -667,65 +706,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     setVal('input-goal-custom-css', goal.code.customCSS);
     setVal('input-goal-custom-js', goal.code.customJS);
 
-    const lb = config.widgets.leaderboard;
-    setChecked('chk-enable-lb', lb.enabled);
-    setVal('input-lb-title', lb.text.titleTemplate || lb.title);
-    const lbPresets = ['3', '5', '10', '20'];
-    if (lbPresets.indexOf(String(lb.maxEntries)) !== -1) {
-      setVal('select-lb-max', String(lb.maxEntries));
-      el('input-lb-max-custom').style.display = 'none';
-    } else {
-      setVal('select-lb-max', 'custom');
-      setVal('input-lb-max-custom', lb.maxEntries);
-      el('input-lb-max-custom').style.display = 'block';
-    }
-    setChecked('chk-lb-show-amounts', lb.showAmounts);
-    setVal('input-lb-bg-color', lb.style.backgroundColor || '#0a0e17');
-    setVal('input-lb-bg-color-hex', lb.style.backgroundColor || '#0a0e17');
-    setVal('input-lb-accent-color', lb.style.accentColor);
-    setVal('input-lb-accent-color-hex', lb.style.accentColor);
-    setVal('input-lb-row-bg-color', lb.style.rowBgColor);
-    setVal('input-lb-row-bg-color-hex', lb.style.rowBgColor);
-    setVal('input-lb-bg-opacity', lb.style.backgroundOpacity);
-    setVal('input-lb-border-width', lb.style.borderWidth ?? 1);
-    setVal('input-lb-border-color', lb.style.borderColor || '#ffffff22');
-    setVal('input-lb-border-color-hex', lb.style.borderColor || '#ffffff22');
-    writeTextStyle(TEXT_PREFIXES.leaderboard, lb.text);
-    writeCanvas(TEXT_PREFIXES.leaderboard, lb.canvas);
-    setChecked('chk-enable-lb-custom-code', lb.code.enableCustomCode);
-    setVal('input-lb-custom-html', lb.code.customHTML);
-    setVal('input-lb-custom-css', lb.code.customCSS);
-    setVal('input-lb-custom-js', lb.code.customJS);
+    renderListConfigDropdown();
+    const activeList = currentListConfig();
+    if (activeList) {
+      setChecked('chk-enable-list', activeList.enabled);
+      setVal('input-list-name', activeList.name);
+      setVal('select-list-type', activeList.type);
+      setVal('input-list-title', activeList.text.titleTemplate || activeList.title);
+      const listPresets = ['3', '5', '10', '20'];
+      if (listPresets.indexOf(String(activeList.maxEntries)) !== -1) {
+        setVal('select-list-max', String(activeList.maxEntries));
+        el('input-list-max-custom').style.display = 'none';
+      } else {
+        setVal('select-list-max', 'custom');
+        setVal('input-list-max-custom', activeList.maxEntries);
+        el('input-list-max-custom').style.display = 'block';
+      }
+      setChecked('chk-list-show-amounts', activeList.showAmounts);
+      setVal('select-list-provider', activeList.filter?.provider || 'all');
+      setVal('input-list-min-amount', activeList.filter?.minAmount || 0);
 
-    const recent = config.widgets.recent;
-    setChecked('chk-enable-recent', recent.enabled);
-    setVal('input-recent-title', recent.text.titleTemplate || recent.title);
-    const recentPresets = ['3', '5', '10', '20'];
-    if (recentPresets.indexOf(String(recent.maxEntries)) !== -1) {
-      setVal('select-recent-max', String(recent.maxEntries));
-      el('input-recent-max-custom').style.display = 'none';
-    } else {
-      setVal('select-recent-max', 'custom');
-      setVal('input-recent-max-custom', recent.maxEntries);
-      el('input-recent-max-custom').style.display = 'block';
+      setVal('input-list-bg-color', activeList.style.backgroundColor || '#0a0e17');
+      setVal('input-list-bg-color-hex', activeList.style.backgroundColor || '#0a0e17');
+      setVal('input-list-accent-color', activeList.style.accentColor || '#00e5ff');
+      setVal('input-list-accent-color-hex', activeList.style.accentColor || '#00e5ff');
+      setVal('input-list-row-bg-color', activeList.style.rowBgColor || '#1a1e2b');
+      setVal('input-list-row-bg-color-hex', activeList.style.rowBgColor || '#1a1e2b');
+      setVal('input-list-bg-opacity', activeList.style.backgroundOpacity ?? 88);
+      setVal('input-list-border-width', activeList.style.borderWidth ?? 1);
+      setVal('input-list-border-color', activeList.style.borderColor || '#ffffff22');
+      setVal('input-list-border-color-hex', activeList.style.borderColor || '#ffffff22');
+      setVal('input-list-border-radius', activeList.style.borderRadius ?? 16);
+      setVal('input-list-padding', activeList.style.padding ?? 18);
+
+      writeTextStyle(TEXT_PREFIXES.list, activeList.text);
+      writeCanvas(TEXT_PREFIXES.list, activeList.canvas);
+      setVal('input-list-layout-width', activeList.layout?.width || 450);
+
+      setChecked('chk-enable-list-custom-code', activeList.code?.enableCustomCode);
+      setVal('input-list-custom-html', activeList.code?.customHTML || '');
+      setVal('input-list-custom-css', activeList.code?.customCSS || '');
+      setVal('input-list-custom-js', activeList.code?.customJS || '');
     }
-    setChecked('chk-recent-show-amounts', recent.showAmounts);
-    setVal('input-recent-bg-color', recent.style.backgroundColor || '#0a0e17');
-    setVal('input-recent-bg-color-hex', recent.style.backgroundColor || '#0a0e17');
-    setVal('input-recent-accent-color', recent.style.accentColor);
-    setVal('input-recent-accent-color-hex', recent.style.accentColor);
-    setVal('input-recent-row-bg-color', recent.style.rowBgColor);
-    setVal('input-recent-row-bg-color-hex', recent.style.rowBgColor);
-    setVal('input-recent-bg-opacity', recent.style.backgroundOpacity);
-    setVal('input-recent-border-width', recent.style.borderWidth ?? 1);
-    setVal('input-recent-border-color', recent.style.borderColor || '#ffffff22');
-    setVal('input-recent-border-color-hex', recent.style.borderColor || '#ffffff22');
-    writeTextStyle(TEXT_PREFIXES.recent, recent.text);
-    writeCanvas(TEXT_PREFIXES.recent, recent.canvas);
-    setChecked('chk-enable-recent-custom-code', recent.code.enableCustomCode);
-    setVal('input-recent-custom-html', recent.code.customHTML);
-    setVal('input-recent-custom-css', recent.code.customCSS);
-    setVal('input-recent-custom-js', recent.code.customJS);
 
     const cycling = config.widgets.cycling;
     if (cycling) {
@@ -1002,6 +1024,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     goal: '/overlay/goal',
     leaderboard: '/overlay/leaderboard',
     recent: '/overlay/recent',
+    lists: '/overlay/list',
     cycling: '/overlay/cycling-widget'
   };
 
@@ -1051,12 +1074,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const manager = el('template-manager');
         if (manager) {
-          const alertTabs = ['text', 'media', 'style', 'animation'];
+          const alertTabs = ['text', 'style'];
           manager.style.display = alertTabs.indexOf(tab) === -1 ? 'none' : '';
         }
 
         if (!iframe) return;
-        const previewUrl = TAB_PREVIEW_URLS[tab] || '/overlay/alert';
+        let previewUrl = TAB_PREVIEW_URLS[tab] || '/overlay/alert';
+        if (tab === 'lists') {
+          previewUrl = `/overlay/list?id=${currentListConfig().id}`;
+        }
         if (iframe.src !== location.origin + previewUrl) iframe.src = previewUrl;
       });
     });
@@ -1123,6 +1149,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       ['input-recent-accent-color', 'input-recent-accent-color-hex'],
       ['input-recent-row-bg-color', 'input-recent-row-bg-color-hex'],
       ['input-recent-border-color', 'input-recent-border-color-hex'],
+      ['input-list-bg-color', 'input-list-bg-color-hex'],
+      ['input-list-accent-color', 'input-list-accent-color-hex'],
+      ['input-list-row-bg-color', 'input-list-row-bg-color-hex'],
+      ['input-list-border-color', 'input-list-border-color-hex'],
       ...Object.keys(TEXT_PREFIXES).map(k => [`${TEXT_PREFIXES[k]}-text-color`, `${TEXT_PREFIXES[k]}-text-color-hex`])
     ];
 
@@ -1285,6 +1315,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     }));
 
     el('chk-template-enabled').addEventListener('change', () => syncLivePreview());
+  }
+
+  function setupListConfigManager() {
+    const select = el('select-active-list');
+    if (select) {
+      select.addEventListener('change', () => {
+        readFormValues();
+        config.activeListConfigId = select.value;
+        populateForm(config);
+        if (iframe && iframe.contentWindow) {
+          const tab = document.querySelector('.tab-btn.active')?.dataset?.tab;
+          if (tab === 'lists') {
+            iframe.src = `/overlay/list?id=${currentListConfig().id}`;
+          }
+        }
+      });
+    }
+
+    on('select-list-max', 'change', (e) => {
+      const isCustom = e.target.value === 'custom';
+      el('input-list-max-custom').style.display = isCustom ? 'block' : 'none';
+      syncLivePreview();
+    });
+
+    on('chk-enable-list', 'change', () => syncLivePreview());
   }
 
   function setupFileBrowsers() {
@@ -1778,14 +1833,20 @@ document.addEventListener('DOMContentLoaded', async () => {
      ['btn-reset-goal-code', 'goal', ['input-goal-custom-html', 'input-goal-custom-css', 'input-goal-custom-js']],
      ['btn-reset-lb-code', 'leaderboard', ['input-lb-custom-html', 'input-lb-custom-css', 'input-lb-custom-js']],
      ['btn-reset-recent-code', 'recent', ['input-recent-custom-html', 'input-recent-custom-css', 'input-recent-custom-js']],
+     ['btn-reset-list-code', 'list', ['input-list-custom-html', 'input-list-custom-css', 'input-list-custom-js']],
      ['btn-reset-cycling-code', 'cycling', ['input-cycling-custom-html', 'input-cycling-custom-css', 'input-cycling-custom-js']]
     ].forEach(([btnId, kind, ids]) => {
       on(btnId, 'click', () => {
-        const defaults = ConfigSchema.DEFAULT_CODE[kind];
+        let defaults = ConfigSchema.DEFAULT_CODE[kind];
+        if (kind === 'list') {
+          const activeList = currentListConfig();
+          defaults = (activeList && activeList.type === 'recent')
+            ? ConfigSchema.DEFAULT_CODE.recent
+            : ConfigSchema.DEFAULT_CODE.leaderboard;
+        }
         setVal(ids[0], defaults.customHTML);
         setVal(ids[1], defaults.customCSS);
         setVal(ids[2], defaults.customJS);
-        updateSnippetButtonStates();
         syncLivePreview();
         showToast('<i data-lucide="rotate-ccw"></i> Code reset to defaults');
       });
@@ -2204,6 +2265,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     on('btn-copy-alert-url-tab', 'click', (e) => copyOverlayUrl('/overlay/alerts', 'Alert Overlay', e.currentTarget));
     on('btn-copy-goal-url', 'click', (e) => copyOverlayUrl('/overlay/goal', 'Goal Overlay', e.currentTarget));
+    on('btn-copy-list-url', 'click', (e) => {
+      const active = currentListConfig();
+      copyOverlayUrl(`/overlay/list?id=${active.id || 'top-supporters'}`, `List (${active.name || 'Active'}) Overlay`, e.currentTarget);
+    });
     on('btn-copy-lb-url', 'click', (e) => copyOverlayUrl('/overlay/leaderboard', 'Leaderboard Overlay', e.currentTarget));
     on('btn-copy-recent-url', 'click', (e) => copyOverlayUrl('/overlay/recent', 'Recent Overlay', e.currentTarget));
     on('btn-copy-cycling-url', 'click', (e) => copyOverlayUrl('/overlay/cycling-widget', 'Cycling Overlay', e.currentTarget));
@@ -3317,48 +3382,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  function setupBoxExpanders() {
-    console.log('[Config] Initializing box expanders');
+  function attachInputListeners() {
+    const formPanel = document.querySelector('.form-panel');
+    if (!formPanel) return;
+
+    formPanel.addEventListener('input', (e) => {
+      if (e.target.closest('.CodeMirror') || e.target.type === 'file') return;
+      syncLivePreview();
+    });
+
+    formPanel.addEventListener('change', (e) => {
+      if (e.target.closest('.CodeMirror') || e.target.type === 'file') return;
+      syncLivePreview();
+    });
   }
 
   // ── Boot ─────────────────────────────────────────────────────
-  console.log('[Config] Starting dashboard boot sequence...');
-  initCodeEditors();
-  setupTabs();
-  setupCodeEditorTabs();
-  setupVariablePills();
-  setupCssPills();
-  setupColorPickers();
-  setupCanvasPresets();
-  setupAmountFilterEditor();
-  setupTemplateManager();
-  setupCyclingWidgetEditor();
-  setupIconPicker();
-  setupFileBrowsers();
-  setupSnippets();
-  setupCodeAutoSeeding();
-  setupActionButtons();
-  setupSimulator();
-  setupNetworkAndSystem();
-  setupEarningsAnalytics();
-  setupPanelResizer();
-  setupBoxExpanders();
-  attachInputListeners();
-  connectDashboardWebSocket();
+  async function initDashboard() {
+    console.log('[Config] Starting dashboard boot sequence...');
+    initCodeEditors();
+    setupTabs();
+    setupCodeEditorTabs();
+    setupVariablePills();
+    setupColorPickers();
+    setupCanvasPresets();
+    setupAmountFilterEditor();
+    setupTemplateManager();
+    setupListConfigManager();
+    setupCyclingWidgetEditor();
+    setupIconPicker();
+    setupFileBrowsers();
+    setupCodeAutoSeeding();
+    setupActionButtons();
+    setupSimulator();
+    setupNetworkAndSystem();
+    setupEarningsAnalytics();
+    setupPanelResizer();
+    attachInputListeners();
+    connectDashboardWebSocket();
 
-  try {
-    console.log('[Config] Fetching settings from /api/settings...');
-    const res = await fetch('/api/settings');
-    const data = await res.json();
-    console.log('[Config] Loaded settings payload:', data);
-    await loadProfilesList(data.activeProfile);
-    populateForm(data.settings || data);
-    console.log('[Config] Dashboard boot sequence completed successfully.');
-  } catch (e) {
-    console.error('[Config] Failed to load settings from server, falling back to defaults:', e);
-    populateForm(ConfigSchema.createDefaultConfig());
+    const activeTabBtn = document.querySelector('.tab-btn.active') || document.querySelector('.tab-btn[data-tab="earnings"]');
+    if (activeTabBtn) {
+      activeTabBtn.click();
+    }
+
+    try {
+      console.log('[Config] Fetching settings from /api/settings...');
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      console.log('[Config] Loaded settings payload:', data);
+      await loadProfilesList(data.activeProfile);
+      populateForm(data.settings || data);
+      console.log('[Config] Dashboard boot sequence completed successfully.');
+    } catch (e) {
+      console.error('[Config] Failed to load settings from server, falling back to defaults:', e);
+      populateForm(ConfigSchema.createDefaultConfig());
+    }
   }
-  updateSnippetButtonStates();
+
+  initDashboard();
 
   window.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'OVERLAY_READY') syncLivePreview();

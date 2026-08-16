@@ -52,16 +52,20 @@
 
     // ── Server API ──────────────────────────────────────────────
     async saveServer(settings) {
+      if (typeof window !== 'undefined' && window.location && window.location.protocol === 'file:') {
+        this.saveLocal(settings);
+        return settings;
+      }
       try {
         const res = await fetch('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(settings)
         });
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-        const data = await res.json();
-        if (data.ok && data.settings) {
-          const merged = this.mergeWithDefaults(data.settings);
+        if (res.ok) {
+          const data = await res.json();
+          const merged = this.mergeWithDefaults(data && data.settings ? data.settings : data);
+          if (data && data.activeProfile) merged._activeProfile = data.activeProfile;
           this.saveLocal(merged);
           return merged;
         }
@@ -74,6 +78,9 @@
     },
 
     async loadServer() {
+      if (typeof window !== 'undefined' && window.location && window.location.protocol === 'file:') {
+        return this.loadLocal() || this.getDefaultSettings();
+      }
       try {
         const res = await fetch('/api/settings');
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
@@ -86,6 +93,10 @@
         console.warn('[Storage] Server load failed, falling back to localStorage/defaults:', e.message);
         return this.loadLocal() || this.getDefaultSettings();
       }
+    },
+
+    loadSettings() {
+      return this.loadServer();
     },
 
     exportToFile(settings, filename = 'alert-theme.json') {

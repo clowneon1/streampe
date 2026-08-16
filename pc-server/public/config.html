@@ -66,32 +66,23 @@
       </div>
 
       <nav class="nav-tabs">
-        <button class="tab-btn active" data-tab="text">
+        <button class="tab-btn active" data-tab="earnings">
+          <span class="icon"><i data-lucide="line-chart"></i></span> Earning Overview
+        </button>
+        <button class="tab-btn" data-tab="text">
           <span class="icon"><i data-lucide="bell"></i></span> Alert Templates
         </button>
         <button class="tab-btn" data-tab="style">
-          <span class="icon"><i data-lucide="palette"></i></span> Alert Style &amp; Colors
-        </button>
-        <button class="tab-btn" data-tab="animation">
-          <span class="icon"><i data-lucide="sparkles"></i></span> Animations
-        </button>
-        <button class="tab-btn" data-tab="alert-widget">
-          <span class="icon"><i data-lucide="layout-template"></i></span> Alert Widget Base
+          <span class="icon"><i data-lucide="palette"></i></span> Alert Style &amp; Animations
         </button>
         <button class="tab-btn" data-tab="goal">
           <span class="icon"><i data-lucide="target"></i></span> Payment Goal
         </button>
-        <button class="tab-btn" data-tab="leaderboard">
-          <span class="icon"><i data-lucide="trophy"></i></span> Top Leaderboard
-        </button>
-        <button class="tab-btn" data-tab="recent">
-          <span class="icon"><i data-lucide="history"></i></span> Recent Donations
+        <button class="tab-btn" data-tab="lists">
+          <span class="icon"><i data-lucide="list-ordered"></i></span> List Widgets
         </button>
         <button class="tab-btn" data-tab="cycling">
           <span class="icon"><i data-lucide="refresh-cw"></i></span> Cycling Widget
-        </button>
-        <button class="tab-btn" data-tab="earnings">
-          <span class="icon"><i data-lucide="line-chart"></i></span> Earning Overview
         </button>
         <button class="tab-btn" data-tab="test-panel">
           <span class="icon"><i data-lucide="send"></i></span> Event Dispatcher
@@ -131,10 +122,10 @@
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
           <button class="btn btn-outline" type="button" id="btn-sidebar-export-donations" style="font-size: 11px; padding: 5px 8px; display: flex; align-items: center; justify-content: center; gap: 4px;" title="Export all donations history and supporter balances as CSV spreadsheet">
-            <i data-lucide="download" style="width: 12px; height: 12px;"></i> Export
+            <i data-lucide="upload" style="width: 12px; height: 12px;"></i> Export
           </button>
           <button class="btn btn-outline" type="button" id="btn-sidebar-import-donations" style="font-size: 11px; padding: 5px 8px; display: flex; align-items: center; justify-content: center; gap: 4px;" title="Import CSV spreadsheet to update Goal, Leaderboard & Recent donations">
-            <i data-lucide="upload" style="width: 12px; height: 12px;"></i> Import
+            <i data-lucide="download" style="width: 12px; height: 12px;"></i> Import
           </button>
           <input type="file" id="file-import-donations-csv" accept=".csv,.json" style="display: none;" />
         </div>
@@ -165,7 +156,7 @@
 
     <!-- Main View Pane -->
     <main class="main-view">
-      <section class="form-panel">
+      <section class="form-panel" style="flex: 1 1 auto; max-width: 100%;">
 
         <!-- Top Status & Network Header -->
         <div
@@ -196,7 +187,7 @@
         </div>
 
         <!-- Template manager: shared by the alert-facing tabs -->
-        <div class="template-manager" id="template-manager">
+        <div class="template-manager" id="template-manager" style="display: none;">
           <div class="label-with-switch">
             <label for="select-template"><i data-lucide="file-text" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Editing Alert Template</label>
             <label class="checkbox-row">
@@ -220,8 +211,8 @@
           <p class="panel-desc" id="template-summary" style="margin-top: 8px;"></p>
         </div>
 
-        <!-- Tab 1: Template content, matching and code -->
-        <div class="tab-content active" id="tab-text">
+        <!-- Tab: Alert Templates -->
+        <div class="tab-content" id="tab-text">
           <div class="panel-header-with-switch">
             <div>
               <h2 class="panel-title">Alert Template Setup</h2>
@@ -265,7 +256,7 @@
           </details>
 
           <!-- Collapsible Section: Media & Sound -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="clapperboard" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Media &amp; Sound Settings</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -322,7 +313,7 @@
           </details>
 
           <!-- Collapsible Section: Amount Filters & Matching -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="target" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Amount Matching &amp; Trigger Filters</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -368,12 +359,11 @@
           </details>
         </div>
 
-        <!-- Tab 3: Style (per template) -->
+        <!-- Tab 2: Style & Animations (per template) -->
         <div class="tab-content" id="tab-style">
           <div class="panel-header">
-            <h2 class="panel-title">Style, Colors &amp; Custom Code</h2>
-            <p class="panel-desc">Typography, colors, canvas dimensions, card borders and advanced code overrides for
-              the template.</p>
+            <h2 class="panel-title">Alert Style &amp; Animations</h2>
+            <p class="panel-desc">Typography, colors, motion animations, canvas dimensions, card borders, and advanced code overrides for the selected template.</p>
           </div>
 
           <!-- Collapsible Section: Typography -->
@@ -487,7 +477,7 @@
           </details>
 
           <!-- Collapsible Section: Colors & Borders -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Colors, Borders &amp; Backgrounds</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -540,8 +530,40 @@
             </div>
           </details>
 
+          <!-- Collapsible Section: Motion & Entry Animations -->
+          <details class="collapsible-advanced" style="margin-top: 16px;">
+            <summary class="collapsible-summary">
+              <span><i data-lucide="sparkles" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Motion &amp; Entry Animations</span>
+              <span><i data-lucide="chevron-down"></i></span>
+            </summary>
+            <div class="collapsible-content">
+              <div class="form-group">
+                <label for="select-anim-type">Animation Type</label>
+                <select id="select-anim-type" class="form-control">
+                  <option value="slide-up">Slide Up</option>
+                  <option value="slide-down">Slide Down</option>
+                  <option value="fade-in">Fade In</option>
+                  <option value="zoom-in">Zoom In</option>
+                  <option value="bounce">Bounce</option>
+                </select>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="input-anim-duration">Animation Speed (ms)</label>
+                  <input type="number" id="input-anim-duration" class="form-control" min="0" max="10000" step="10" value="600" />
+                </div>
+
+                <div class="form-group">
+                  <label for="input-display-duration">Alert Display Duration (ms)</label>
+                  <input type="number" id="input-display-duration" class="form-control" min="100" max="60000" step="100" value="5000" />
+                </div>
+              </div>
+            </div>
+          </details>
+
           <!-- Collapsible Section: Canvas & Layout -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="maximize" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Canvas &amp; Layout Dimensions</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -588,7 +610,7 @@
           </details>
 
           <!-- Advanced Custom Code Overrides -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="code" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Custom Code Overrides (HTML/CSS/JS)</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -667,186 +689,7 @@
           </details>
         </div>
 
-        <!-- Tab 4: Animation (per template) -->
-        <div class="tab-content" id="tab-animation">
-          <div class="panel-header">
-            <h2 class="panel-title">Animations</h2>
-            <p class="panel-desc">Motion effects and display timing for the selected alert template.</p>
-          </div>
-
-          <div class="form-group">
-            <label for="select-anim-type">Animation Type</label>
-            <select id="select-anim-type" class="form-control">
-              <option value="slide-up">Slide Up</option>
-              <option value="slide-down">Slide Down</option>
-              <option value="fade-in">Fade In</option>
-              <option value="zoom-in">Zoom In</option>
-              <option value="bounce">Bounce</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="input-anim-duration">Animation Speed (ms)</label>
-            <input type="number" id="input-anim-duration" class="form-control" min="0" max="10000" step="10"
-              value="600" />
-          </div>
-
-          <div class="form-group">
-            <label for="input-display-duration">Alert Display Duration (ms)</label>
-            <input type="number" id="input-display-duration" class="form-control" min="100" max="60000" step="100"
-              value="5000" />
-          </div>
-        </div>
-
-        <!-- Tab 5: Alert widget base -->
-        <div class="tab-content" id="tab-alert-widget">
-          <div class="panel-header-with-switch">
-            <div>
-              <h2 class="panel-title">Alert Widget Base</h2>
-              <p class="panel-desc">Defaults for the alert widget itself. New templates start from these values, and
-                they fill in anything a template leaves unset.</p>
-            </div>
-            <label class="switch-container">
-              <input type="checkbox" id="chk-enable-alert" checked />
-              <span class="switch-slider"></span>
-              <span class="switch-label">Enable Alert Widget</span>
-            </label>
-          </div>
-
-          <div class="panel-header">
-            <h2 class="panel-title">Alert Widget Typography</h2>
-            <p class="panel-desc">Text style used as the starting point for new alert templates.</p>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="alert-font-family">Font Family</label>
-              <select id="alert-font-family" class="form-control">
-                <option value="Inter" selected>Inter</option>
-                <option value="Outfit">Outfit</option>
-                <option value="Poppins">Poppins</option>
-                <option value="Roboto">Roboto</option>
-                <option value="Montserrat">Montserrat</option>
-                <option value="Segoe UI">Segoe UI</option>
-                <option value="Arial">Arial</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="alert-font-size">Font Size</label>
-              <div class="input-unit-group">
-                <input type="number" id="alert-font-size" class="form-control" step="0.1" value="24" />
-                <select id="alert-font-size-unit" class="form-control unit-select">
-                  <option value="px">px</option>
-                  <option value="%">%</option>
-                  <option value="em">em</option>
-                  <option value="rem">rem</option>
-                  <option value="vw">vw</option>
-                  <option value="vh">vh</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="alert-font-weight">Font Weight</label>
-              <select id="alert-font-weight" class="form-control">
-                <option value="100">100</option>
-                <option value="200">200</option>
-                <option value="300">300</option>
-                <option value="400">400</option>
-                <option value="500">500</option>
-                <option value="600">600</option>
-                <option value="700" selected>700</option>
-                <option value="800">800</option>
-                <option value="900">900</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="alert-font-style">Font Style</label>
-              <select id="alert-font-style" class="form-control">
-                <option value="normal">Normal</option>
-                <option value="italic">Italic</option>
-                <option value="oblique">Oblique</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="alert-text-align">Text Alignment</label>
-              <select id="alert-text-align" class="form-control">
-                <option value="left">Left</option>
-                <option value="center" selected>Center</option>
-                <option value="right">Right</option>
-                <option value="justify">Justify</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="alert-text-transform">Capitalization</label>
-              <select id="alert-text-transform" class="form-control">
-                <option value="none">Normal Text</option>
-                <option value="uppercase">UPPERCASE</option>
-                <option value="lowercase">lowercase</option>
-                <option value="capitalize">Capitalize Words</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="alert-letter-spacing">Letter Spacing</label>
-              <div class="input-unit-group">
-                <input type="number" id="alert-letter-spacing" class="form-control" step="0.1" value="0" />
-                <select id="alert-letter-spacing-unit" class="form-control unit-select">
-                  <option value="px">px</option>
-                  <option value="em">em</option>
-                  <option value="rem">rem</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="alert-line-height">Line Height</label>
-              <input type="number" id="alert-line-height" class="form-control" min="0.1" max="10" step="0.05" value="1.3" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Text Color</label>
-            <div class="color-picker-row">
-              <input type="color" id="alert-text-color" class="color-picker" value="#ffffff" />
-              <input type="text" id="alert-text-color-hex" class="form-control" value="#ffffff" />
-            </div>
-          </div>
-
-          <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;" />
-
-          <div class="panel-header">
-            <h2 class="panel-title">Alert Widget Canvas</h2>
-            <p class="panel-desc">This canvas size applies to this widget only — it never changes the other widgets.</p>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="alert-canvas-preset">Canvas Preset</label>
-              <select id="alert-canvas-preset" class="form-control" data-canvas-preset="alert">
-                <option value="1080p">1080p — 1920 × 1080</option>
-                <option value="720p">720p — 1280 × 720</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="alert-canvas-width">Canvas Width (px)</label>
-              <input type="number" id="alert-canvas-width" class="form-control" min="100" max="7680" value="1920" />
-            </div>
-            <div class="form-group">
-              <label for="alert-canvas-height">Canvas Height (px)</label>
-              <input type="number" id="alert-canvas-height" class="form-control" min="100" max="4320" value="1080" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Tab 6: Goal -->
+        <!-- Tab 3: Goal -->
         <div class="tab-content" id="tab-goal">
           <div class="panel-header-with-switch">
             <div>
@@ -912,11 +755,21 @@
                   <input type="date" id="input-goal-end-date" class="form-control" />
                 </div>
               </div>
+
+              <div class="form-group" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-top: 6px;">
+                <label class="checkbox-row" style="cursor: pointer; display: flex; align-items: flex-start; gap: 10px; margin-top: 0;">
+                  <input type="checkbox" id="chk-goal-allow-overflow" style="margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;" />
+                  <div>
+                    <span style="font-weight: 600; font-size: 13px; color: var(--text-main); display: block;">Allow Percentage Overflow (Exceed 100%)</span>
+                    <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px;">When checked, the progress bar and {{percent}} can exceed 100% (e.g. 140%) when donations surpass the goal target.</span>
+                  </div>
+                </label>
+              </div>
             </div>
           </details>
 
           <!-- Collapsible Section: Goal Colors & Bar -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Colors, Progress Bar &amp; Track</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -1010,7 +863,7 @@
           </details>
 
           <!-- Collapsible Section: Goal Typography -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Typography &amp; Text Style</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -1120,7 +973,7 @@
           </details>
 
           <!-- Collapsible Section: Goal Canvas & Actions -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="maximize" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Canvas &amp; Controls</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -1212,125 +1065,188 @@
           </details>
         </div>
 
-        <!-- Tab 7: Leaderboard -->
-        <div class="tab-content" id="tab-leaderboard">
+        <!-- Tab: List Widgets (Unified Leaderboards & Recents) -->
+        <div class="tab-content" id="tab-lists">
           <div class="panel-header-with-switch">
             <div>
-              <h2 class="panel-title">UPI Top Supporters Leaderboard</h2>
-              <p class="panel-desc">Rank supporters by total payment contributions</p>
+              <h2 class="panel-title">List Widgets</h2>
+              <p class="panel-desc">Customize Top Supporters (Leaderboard) and Recent Donations list overlays for OBS.</p>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <button class="btn btn-secondary btn-copy-icon" type="button" id="btn-copy-lb-url"
-                title="Copy Leaderboard Overlay URL"><i data-lucide="copy"></i></button>
+              <button class="btn btn-secondary btn-copy-icon" type="button" id="btn-copy-list-url"
+                title="Copy Active List Overlay URL"><i data-lucide="copy"></i></button>
               <label class="switch-container">
-                <input type="checkbox" id="chk-enable-lb" checked />
+                <input type="checkbox" id="chk-enable-list" checked />
                 <span class="switch-slider"></span>
-                <span class="switch-label">Enable Leaderboard</span>
+                <span class="switch-label">Enable List</span>
               </label>
             </div>
           </div>
 
-          <!-- Collapsible Section: Leaderboard Settings -->
+          <!-- List Config Switcher Card -->
+          <div class="list-manager-card" style="background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+              <label for="select-active-list" style="font-weight: 700; font-size: 13px; color: var(--text-main); margin-bottom: 0; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="layers" style="width: 14px; height: 14px; color: var(--accent);"></i> Select Default List Widget
+              </label>
+              <span id="badge-list-url" style="font-size: 11px; font-family: monospace; background: rgba(0,229,255,0.1); color: var(--accent); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(0,229,255,0.2);">
+                /overlay/list?id=top-supporters
+              </span>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <select id="select-active-list" class="form-control" style="flex: 1; min-width: 200px; font-weight: 600;"></select>
+            </div>
+          </div>
+
+          <!-- Collapsible Section: List Rules & Filtering -->
           <details class="collapsible-advanced" open>
             <summary class="collapsible-summary">
-              <span><i data-lucide="trophy" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Leaderboard Title, Limits &amp; Colors</span>
+              <span><i data-lucide="filter" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> List Type, Filters &amp; Sorting</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
-              <div class="form-group">
-                <label for="input-lb-title">Leaderboard Title Template</label>
-                <input type="text" id="input-lb-title" class="form-control" placeholder="Top Supporters" />
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="select-list-type">List Type</label>
+                  <select id="select-list-type" class="form-control" disabled style="opacity: 0.8; cursor: not-allowed;">
+                    <option value="leaderboard">Leaderboard (Top Donors - Sum of Contributions)</option>
+                    <option value="recent">Recent Donations (Chronological Activity Feed)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="input-list-title">Overlay Title Template</label>
+                  <input type="text" id="input-list-title" class="form-control" placeholder="Top Supporters" />
+                </div>
               </div>
 
               <div class="variable-pills-container" style="margin-bottom: 16px;">
-                <span class="pills-label">Click variable tag to insert into Leaderboard template:</span>
+                <span class="pills-label">Click variable tag to insert into Title template:</span>
                 <div class="variable-pills">
-                  <span class="var-pill" data-var="title" data-target-input="input-lb-title">{{title}}</span>
+                  <span class="var-pill" data-var="title" data-target-input="input-list-title">{{title}}</span>
+                  <span class="var-pill" data-var="count" data-target-input="input-list-title">{{count}}</span>
+                  <span class="var-pill" data-var="max" data-target-input="input-list-title">{{max}}</span>
                 </div>
               </div>
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="select-lb-max">Max Supporters Displayed</label>
+                  <label for="select-list-provider">Payment App Filter</label>
+                  <select id="select-list-provider" class="form-control">
+                    <option value="all">All Payment Methods</option>
+                    <option value="phonepe">PhonePe Only</option>
+                    <option value="gpay">Google Pay (GPay) Only</option>
+                    <option value="amazon">Amazon Pay Only</option>
+                    <option value="cash">Cash / Manual Only</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="input-list-min-amount">Minimum Donation (&#8377;)</label>
+                  <input type="number" id="input-list-min-amount" class="form-control" min="0" value="0" placeholder="0 (No minimum)" />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="select-list-max">Max Entries Displayed</label>
                   <div class="input-with-button">
-                    <select id="select-lb-max" class="form-control" style="flex: 1.5;">
-                      <option value="3">Top 3 Supporters</option>
-                      <option value="5" selected>Top 5 Supporters</option>
-                      <option value="10">Top 10 Supporters</option>
-                      <option value="20">Top 20 Supporters</option>
+                    <select id="select-list-max" class="form-control" style="flex: 1.5;">
+                      <option value="3">Top 3 Entries</option>
+                      <option value="5" selected>Top 5 Entries</option>
+                      <option value="10">Top 10 Entries</option>
+                      <option value="20">Top 20 Entries</option>
                       <option value="custom">Custom Amount...</option>
                     </select>
-                    <input type="number" id="input-lb-max-custom" class="form-control" min="1" max="100" placeholder="Count" style="display: none; flex: 1;" />
+                    <input type="number" id="input-list-max-custom" class="form-control" min="1" max="100" placeholder="Count" style="display: none; flex: 1;" />
                   </div>
                 </div>
 
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="input-lb-bg-color">Card Background Color</label>
-                  <div class="input-with-button">
-                    <input type="color" id="input-lb-bg-color" class="color-picker-input" value="#0a0e17" />
-                    <input type="text" id="input-lb-bg-color-hex" class="form-control" value="#0a0e17" />
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label for="input-lb-accent-color">Leaderboard Accent Color</label>
-                  <div class="input-with-button">
-                    <input type="color" id="input-lb-accent-color" class="color-picker-input" value="#00e5ff" />
-                    <input type="text" id="input-lb-accent-color-hex" class="form-control" value="#00e5ff" />
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="input-lb-row-bg-color">Row Background Color</label>
-                <div class="input-with-button">
-                  <input type="color" id="input-lb-row-bg-color" class="color-picker-input" value="#1a1e2b" />
-                  <input type="text" id="input-lb-row-bg-color-hex" class="form-control" value="#1a1e2b" />
-                </div>
-              </div>
-
-              <div class="form-group" style="margin-bottom: 8px;">
-                <label>Display Options</label>
-                <div style="padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
-                  <label class="checkbox-row">
-                    <input type="checkbox" id="chk-lb-show-amounts" checked />
-                    <span>Show Contribution Amounts (₹)</span>
+                <div class="form-group" style="margin-top: 24px;">
+                  <label class="checkbox-row" style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="chk-list-show-amounts" checked style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;" />
+                    <span style="font-weight: 600; font-size: 13px; color: var(--text-main);">Show Contribution Amounts (&#8377;)</span>
                   </label>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="input-lb-bg-opacity">Background Opacity (%)</label>
-                  <input type="number" id="input-lb-bg-opacity" class="form-control" min="0" max="100" value="88" />
-                </div>
-                <div class="form-group">
-                  <label for="input-lb-border-width">Border Width (px)</label>
-                  <input type="number" id="input-lb-border-width" class="form-control" min="0" max="20" value="1" />
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="input-lb-border-color">Border Color</label>
-                <div class="input-with-button">
-                  <input type="color" id="input-lb-border-color" class="color-picker-input" value="#ffffff" />
-                  <input type="text" id="input-lb-border-color-hex" class="form-control" value="#ffffff22" />
                 </div>
               </div>
             </div>
           </details>
 
-          <!-- Collapsible Section: Leaderboard Typography -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <!-- Collapsible Section: Colors & Card Styling -->
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Leaderboard Typography &amp; Text Style</span>
+              <span><i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Colors &amp; Card Style</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
               <div class="form-row">
                 <div class="form-group">
-                  <label for="lb-font-family">Font Family</label>
-                  <select id="lb-font-family" class="form-control">
+                  <label for="input-list-bg-color">Card Background Color</label>
+                  <div class="input-with-button">
+                    <input type="color" id="input-list-bg-color" class="color-picker-input" value="#0a0e17" />
+                    <input type="text" id="input-list-bg-color-hex" class="form-control" value="#0a0e17" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="input-list-accent-color">Accent Color</label>
+                  <div class="input-with-button">
+                    <input type="color" id="input-list-accent-color" class="color-picker-input" value="#00e5ff" />
+                    <input type="text" id="input-list-accent-color-hex" class="form-control" value="#00e5ff" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="input-list-row-bg-color">Row Background Color</label>
+                  <div class="input-with-button">
+                    <input type="color" id="input-list-row-bg-color" class="color-picker-input" value="#1a1e2b" />
+                    <input type="text" id="input-list-row-bg-color-hex" class="form-control" value="#1a1e2b" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="input-list-border-color">Border Color</label>
+                  <div class="input-with-button">
+                    <input type="color" id="input-list-border-color" class="color-picker-input" value="#ffffff" />
+                    <input type="text" id="input-list-border-color-hex" class="form-control" value="#ffffff22" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="input-list-bg-opacity">Background Opacity (%)</label>
+                  <input type="number" id="input-list-bg-opacity" class="form-control" min="0" max="100" value="88" />
+                </div>
+                <div class="form-group">
+                  <label for="input-list-border-width">Border Width (px)</label>
+                  <input type="number" id="input-list-border-width" class="form-control" min="0" max="20" value="1" />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="input-list-border-radius">Border Roundness (px)</label>
+                  <input type="number" id="input-list-border-radius" class="form-control" min="0" max="50" value="16" />
+                </div>
+                <div class="form-group">
+                  <label for="input-list-padding">Internal Padding (px)</label>
+                  <input type="number" id="input-list-padding" class="form-control" min="0" max="100" value="18" />
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <!-- Collapsible Section: Typography -->
+          <details class="collapsible-advanced" style="margin-top: 16px;">
+            <summary class="collapsible-summary">
+              <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Typography &amp; Text Style</span>
+              <span><i data-lucide="chevron-down"></i></span>
+            </summary>
+            <div class="collapsible-content">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="list-font-family">Font Family</label>
+                  <select id="list-font-family" class="form-control">
                     <option value="Inter" selected>Inter</option>
                     <option value="Outfit">Outfit</option>
                     <option value="Poppins">Poppins</option>
@@ -1341,10 +1257,10 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label for="lb-font-size">Font Size</label>
+                  <label for="list-font-size">Font Size</label>
                   <div class="input-unit-group">
-                    <input type="number" id="lb-font-size" class="form-control" step="0.1" value="15" />
-                    <select id="lb-font-size-unit" class="form-control unit-select">
+                    <input type="number" id="list-font-size" class="form-control" step="0.1" value="15" />
+                    <select id="list-font-size-unit" class="form-control unit-select">
                       <option value="px">px</option>
                       <option value="%">%</option>
                       <option value="em">em</option>
@@ -1358,8 +1274,8 @@
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="lb-font-weight">Font Weight</label>
-                  <select id="lb-font-weight" class="form-control">
+                  <label for="list-font-weight">Font Weight</label>
+                  <select id="list-font-weight" class="form-control">
                     <option value="100">100</option>
                     <option value="200">200</option>
                     <option value="300">300</option>
@@ -1372,8 +1288,8 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label for="lb-font-style">Font Style</label>
-                  <select id="lb-font-style" class="form-control">
+                  <label for="list-font-style">Font Style</label>
+                  <select id="list-font-style" class="form-control">
                     <option value="normal">Normal</option>
                     <option value="italic">Italic</option>
                     <option value="oblique">Oblique</option>
@@ -1383,8 +1299,8 @@
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="lb-text-align">Text Alignment</label>
-                  <select id="lb-text-align" class="form-control">
+                  <label for="list-text-align">Text Alignment</label>
+                  <select id="list-text-align" class="form-control">
                     <option value="left" selected>Left</option>
                     <option value="center">Center</option>
                     <option value="right">Right</option>
@@ -1392,8 +1308,8 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label for="lb-text-transform">Capitalization</label>
-                  <select id="lb-text-transform" class="form-control">
+                  <label for="list-text-transform">Capitalization</label>
+                  <select id="list-text-transform" class="form-control">
                     <option value="none">Normal Text</option>
                     <option value="uppercase">UPPERCASE</option>
                     <option value="lowercase">lowercase</option>
@@ -1404,10 +1320,10 @@
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="lb-letter-spacing">Letter Spacing</label>
+                  <label for="list-letter-spacing">Letter Spacing</label>
                   <div class="input-unit-group">
-                    <input type="number" id="lb-letter-spacing" class="form-control" step="0.1" value="0" />
-                    <select id="lb-letter-spacing-unit" class="form-control unit-select">
+                    <input type="number" id="list-letter-spacing" class="form-control" step="0.1" value="0" />
+                    <select id="list-letter-spacing-unit" class="form-control unit-select">
                       <option value="px">px</option>
                       <option value="em">em</option>
                       <option value="rem">rem</option>
@@ -1415,429 +1331,112 @@
                   </div>
                 </div>
                 <div class="form-group">
-                  <label for="lb-line-height">Line Height</label>
-                  <input type="number" id="lb-line-height" class="form-control" min="0.1" max="10" step="0.05" value="1.3" />
+                  <label for="list-line-height">Line Height</label>
+                  <input type="number" id="list-line-height" class="form-control" min="0.1" max="10" step="0.05" value="1.3" />
                 </div>
               </div>
 
               <div class="form-group">
                 <label>Text Color</label>
                 <div class="color-picker-row">
-                  <input type="color" id="lb-text-color" class="color-picker" value="#ffffff" />
-                  <input type="text" id="lb-text-color-hex" class="form-control" value="#ffffff" />
+                  <input type="color" id="list-text-color" class="color-picker" value="#ffffff" />
+                  <input type="text" id="list-text-color-hex" class="form-control" value="#ffffff" />
                 </div>
               </div>
             </div>
           </details>
 
-          <!-- Collapsible Section: Leaderboard Canvas & Actions -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <!-- Collapsible Section: Canvas & Layout -->
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="maximize" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Leaderboard Canvas &amp; Controls</span>
+              <span><i data-lucide="maximize" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Canvas &amp; Position Controls</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
               <div class="form-row">
                 <div class="form-group">
-                  <label for="lb-canvas-preset">Canvas Preset</label>
-                  <select id="lb-canvas-preset" class="form-control" data-canvas-preset="lb">
+                  <label for="list-canvas-preset">Canvas Preset</label>
+                  <select id="list-canvas-preset" class="form-control" data-canvas-preset="list">
                     <option value="1080p">1080p — 1920 × 1080</option>
                     <option value="720p">720p — 1280 × 720</option>
                     <option value="custom">Custom</option>
                   </select>
                 </div>
                 <div class="form-group">
-                  <label for="lb-canvas-width">Canvas Width (px)</label>
-                  <input type="number" id="lb-canvas-width" class="form-control" min="100" max="7680" value="1920" />
+                  <label for="list-canvas-width">Canvas Width (px)</label>
+                  <input type="number" id="list-canvas-width" class="form-control" min="100" max="7680" value="1920" />
                 </div>
                 <div class="form-group">
-                  <label for="lb-canvas-height">Canvas Height (px)</label>
-                  <input type="number" id="lb-canvas-height" class="form-control" min="100" max="4320" value="1080" />
+                  <label for="list-canvas-height">Canvas Height (px)</label>
+                  <input type="number" id="list-canvas-height" class="form-control" min="100" max="4320" value="1080" />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="input-list-layout-width">Card Width (px)</label>
+                  <input type="number" id="input-list-layout-width" class="form-control" min="100" max="2000" value="450" />
                 </div>
               </div>
             </div>
           </details>
 
-        <details class="collapsible-advanced">
-          <summary class="collapsible-summary">
-            <span><i data-lucide="settings" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Code &amp; Layout Settings</span>
-            <span><i data-lucide="chevron-down"></i></span>
-          </summary>
-          <div class="collapsible-content">
-            <div class="warning-callout" style="margin-top: 0;">
-              <span class="warning-icon"><i data-lucide="alert-triangle"></i></span>
-              <div>
-                <strong>Security Warning:</strong> Custom HTML, CSS, and JavaScript functions are executed at your own
-                risk. Verify code before running to ensure it performs safely.
-              </div>
-            </div>
-
-            <div class="panel-header-with-switch" style="margin-bottom: 12px;">
-              <span style="font-weight: 600; font-size: 13px;">Enable Custom Leaderboard Code</span>
-              <label class="switch-container">
-                <input type="checkbox" id="chk-enable-lb-custom-code" />
-                <span class="switch-slider"></span>
-              </label>
-            </div>
-
-            <div class="code-editor-container">
-              <div class="code-tabs-header">
-                <div class="code-tabs">
-                  <button class="code-tab-btn active" type="button" data-code-tab="html">HTML</button>
-                  <button class="code-tab-btn" type="button" data-code-tab="css">CSS</button>
-                  <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
-                </div>
-                <div style="display: flex; gap: 6px;">
-                  <button class="btn btn-outline btn-format-code" type="button" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
-                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-lb-code"
-                    style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
-                </div>
-              </div>
-
-              <div class="code-tab-panel" data-code-panel="html" id="code-panel-lb-html">
-                <div class="form-group" style="margin-bottom: 8px;">
-                  <textarea id="input-lb-custom-html" class="form-control code-editor-input"></textarea>
-                </div>
-              </div>
-
-              <div class="code-tab-panel" data-code-panel="css" id="code-panel-lb-css" style="display: none;">
-                <div class="css-reference-box">
-                  <div class="css-ref-header"><i data-lucide="info" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Leaderboard CSS Classes Reference (Click tag to insert/copy):
-                  </div>
-                  <div class="css-ref-tags">
-                    <span class="css-pill" data-copy=".lb-card">{ .lb-card }</span>
-                    <span class="css-pill" data-copy=".lb-header">{ .lb-header }</span>
-                    <span class="css-pill" data-copy=".lb-title">{ .lb-title }</span>
-                    <span class="css-pill" data-copy=".lb-list">{ .lb-list }</span>
-                    <span class="css-pill" data-copy=".lb-row">{ .lb-row }</span>
-                    <span class="css-pill" data-copy=".lb-user-info">{ .lb-user-info }</span>
-                    <span class="css-pill" data-copy=".lb-badge">{ .lb-badge }</span>
-                    <span class="css-pill" data-copy=".lb-name">{ .lb-name }</span>
-                    <span class="css-pill" data-copy=".lb-amount">{ .lb-amount }</span>
-                    <span class="css-pill" data-copy=".rank-1">{ .rank-1 }</span>
-                    <span class="css-pill" data-copy=".rank-2">{ .rank-2 }</span>
-                    <span class="css-pill" data-copy=".rank-3">{ .rank-3 }</span>
-                  </div>
-                </div>
-                <div class="form-group" style="margin-bottom: 8px;">
-                  <textarea id="input-lb-custom-css" class="form-control code-editor-input"></textarea>
-                </div>
-              </div>
-
-              <div class="code-tab-panel" data-code-panel="js" id="code-panel-lb-js" style="display: none;">
-                <div class="form-group" style="margin-bottom: 8px;">
-                  <textarea id="input-lb-custom-js" class="form-control code-editor-input"></textarea>
-                </div>
-              </div>
-            </div>
-          </div>
-        </details>
-      </div>
-
-        <!-- Tab 8: Recent Donations -->
-        <div class="tab-content" id="tab-recent">
-          <div class="panel-header-with-switch">
-            <div>
-              <h2 class="panel-title">Recent Donations List</h2>
-              <p class="panel-desc">Display a rolling history of the most recent payments</p>
-            </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <button class="btn btn-secondary btn-copy-icon" type="button" id="btn-copy-recent-url"
-                title="Copy Recent Overlay URL"><i data-lucide="copy"></i></button>
-              <label class="switch-container">
-                <input type="checkbox" id="chk-enable-recent" checked />
-                <span class="switch-slider"></span>
-                <span class="switch-label">Enable Recent Widget</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Collapsible Section: Recent Settings -->
-          <details class="collapsible-advanced" open>
+          <!-- Collapsible Section: Custom Code -->
+          <details class="collapsible-advanced">
             <summary class="collapsible-summary">
-              <span><i data-lucide="history" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> List Title, Limits &amp; Colors</span>
+              <span><i data-lucide="settings" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Custom Code</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
-              <div class="form-group">
-                <label for="input-recent-title">Recent List Title Template</label>
-                <input type="text" id="input-recent-title" class="form-control" placeholder="Recent Donations" />
-              </div>
-
-              <div class="variable-pills-container" style="margin-bottom: 16px;">
-                <span class="pills-label">Click variable tag to insert into Recent template:</span>
-                <div class="variable-pills">
-                  <span class="var-pill" data-var="title" data-target-input="input-recent-title">{{title}}</span>
-                  <span class="var-pill" data-var="count" data-target-input="input-recent-title">{{count}}</span>
+              <div class="warning-callout" style="margin-top: 0;">
+                <span class="warning-icon"><i data-lucide="alert-triangle"></i></span>
+                <div>
+                  <strong>Security Warning:</strong> Custom HTML, CSS, and JavaScript functions are executed at your own
+                  risk. Verify code before running to ensure it performs safely.
                 </div>
               </div>
 
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="select-recent-max">Max Items Displayed</label>
-                  <div class="input-with-button">
-                    <select id="select-recent-max" class="form-control" style="flex: 1.5;">
-                      <option value="3">Last 3 Items</option>
-                      <option value="5" selected>Last 5 Items</option>
-                      <option value="10">Last 10 Items</option>
-                      <option value="20">Last 20 Items</option>
-                      <option value="custom">Custom Amount...</option>
-                    </select>
-                    <input type="number" id="input-recent-max-custom" class="form-control" min="1" max="100" placeholder="Count" style="display: none; flex: 1;" />
+              <div class="panel-header-with-switch" style="margin-bottom: 12px;">
+                <span style="font-weight: 600; font-size: 13px;">Enable Custom Code for Active List</span>
+                <label class="switch-container">
+                  <input type="checkbox" id="chk-enable-list-custom-code" />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+
+              <div class="code-editor-container">
+                <div class="code-tabs-header">
+                  <div class="code-tabs">
+                    <button class="code-tab-btn active" type="button" data-code-tab="html">HTML</button>
+                    <button class="code-tab-btn" type="button" data-code-tab="css">CSS</button>
+                    <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
+                  </div>
+                  <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-outline btn-format-code" type="button" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
+                    <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-list-code"
+                      style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
                   </div>
                 </div>
 
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="input-recent-bg-color">Card Background Color</label>
-                  <div class="input-with-button">
-                    <input type="color" id="input-recent-bg-color" class="color-picker-input" value="#0a0e17" />
-                    <input type="text" id="input-recent-bg-color-hex" class="form-control" value="#0a0e17" />
+                <div class="code-tab-panel" data-code-panel="html" id="code-panel-list-html">
+                  <div class="form-group" style="margin-bottom: 8px;">
+                    <textarea id="input-list-custom-html" class="form-control code-editor-input"></textarea>
                   </div>
                 </div>
-                <div class="form-group">
-                  <label for="input-recent-accent-color">Recent Accent Color</label>
-                  <div class="input-with-button">
-                    <input type="color" id="input-recent-accent-color" class="color-picker-input" value="#00e5ff" />
-                    <input type="text" id="input-recent-accent-color-hex" class="form-control" value="#00e5ff" />
+                <div class="code-tab-panel" data-code-panel="css" id="code-panel-list-css" style="display: none;">
+                  <div class="form-group" style="margin-bottom: 8px;">
+                    <textarea id="input-list-custom-css" class="form-control code-editor-input"></textarea>
                   </div>
                 </div>
-              </div>
-
-              <div class="form-group">
-                <label for="input-recent-row-bg-color">Row Background Color</label>
-                <div class="input-with-button">
-                  <input type="color" id="input-recent-row-bg-color" class="color-picker-input" value="#1a1e2b" />
-                  <input type="text" id="input-recent-row-bg-color-hex" class="form-control" value="#1a1e2b" />
-                </div>
-              </div>
-
-              <div class="form-group" style="margin-bottom: 8px;">
-                <label>Display Options</label>
-                <div style="padding-top: 8px; display: flex; flex-direction: column; gap: 6px;">
-                  <label class="checkbox-row">
-                    <input type="checkbox" id="chk-recent-show-amounts" checked />
-                    <span>Show Payment Amounts (₹)</span>
-                  </label>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="input-recent-bg-opacity">Background Opacity (%)</label>
-                  <input type="number" id="input-recent-bg-opacity" class="form-control" min="0" max="100" value="88" />
-                </div>
-                <div class="form-group">
-                  <label for="input-recent-border-width">Border Width (px)</label>
-                  <input type="number" id="input-recent-border-width" class="form-control" min="0" max="20" value="1" />
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="input-recent-border-color">Border Color</label>
-                <div class="input-with-button">
-                  <input type="color" id="input-recent-border-color" class="color-picker-input" value="#ffffff" />
-                  <input type="text" id="input-recent-border-color-hex" class="form-control" value="#ffffff22" />
+                <div class="code-tab-panel" data-code-panel="js" id="code-panel-list-js" style="display: none;">
+                  <div class="form-group" style="margin-bottom: 8px;">
+                    <textarea id="input-list-custom-js" class="form-control code-editor-input"></textarea>
+                  </div>
                 </div>
               </div>
             </div>
           </details>
-
-          <!-- Collapsible Section: Recent Typography -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
-            <summary class="collapsible-summary">
-              <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Recent Typography &amp; Text Style</span>
-              <span><i data-lucide="chevron-down"></i></span>
-            </summary>
-            <div class="collapsible-content">
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="recent-font-family">Font Family</label>
-                  <select id="recent-font-family" class="form-control">
-                    <option value="Inter" selected>Inter</option>
-                    <option value="Outfit">Outfit</option>
-                    <option value="Poppins">Poppins</option>
-                    <option value="Roboto">Roboto</option>
-                    <option value="Montserrat">Montserrat</option>
-                    <option value="Segoe UI">Segoe UI</option>
-                    <option value="Arial">Arial</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="recent-font-size">Font Size</label>
-                  <div class="input-unit-group">
-                    <input type="number" id="recent-font-size" class="form-control" step="0.1" value="15" />
-                    <select id="recent-font-size-unit" class="form-control unit-select">
-                      <option value="px">px</option>
-                      <option value="%">%</option>
-                      <option value="em">em</option>
-                      <option value="rem">rem</option>
-                      <option value="vw">vw</option>
-                      <option value="vh">vh</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="recent-font-weight">Font Weight</label>
-                  <select id="recent-font-weight" class="form-control">
-                    <option value="100">100</option>
-                    <option value="200">200</option>
-                    <option value="300">300</option>
-                    <option value="400">400</option>
-                    <option value="500">500</option>
-                    <option value="600">600</option>
-                    <option value="700" selected>700</option>
-                    <option value="800">800</option>
-                    <option value="900">900</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="recent-font-style">Font Style</label>
-                  <select id="recent-font-style" class="form-control">
-                    <option value="normal">Normal</option>
-                    <option value="italic">Italic</option>
-                    <option value="oblique">Oblique</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="recent-text-align">Text Alignment</label>
-                  <select id="recent-text-align" class="form-control">
-                    <option value="left" selected>Left</option>
-                    <option value="center">Center</option>
-                    <option value="right">Right</option>
-                    <option value="justify">Justify</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="recent-text-transform">Capitalization</label>
-                  <select id="recent-text-transform" class="form-control">
-                    <option value="none">Normal Text</option>
-                    <option value="uppercase">UPPERCASE</option>
-                    <option value="lowercase">lowercase</option>
-                    <option value="capitalize">Capitalize Words</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="recent-letter-spacing">Letter Spacing</label>
-                  <div class="input-unit-group">
-                    <input type="number" id="recent-letter-spacing" class="form-control" step="0.1" value="0" />
-                    <select id="recent-letter-spacing-unit" class="form-control unit-select">
-                      <option value="px">px</option>
-                      <option value="em">em</option>
-                      <option value="rem">rem</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label for="recent-line-height">Line Height</label>
-                  <input type="number" id="recent-line-height" class="form-control" min="0.1" max="10" step="0.05" value="1.3" />
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label>Text Color</label>
-                <div class="color-picker-row">
-                  <input type="color" id="recent-text-color" class="color-picker" value="#ffffff" />
-                  <input type="text" id="recent-text-color-hex" class="form-control" value="#ffffff" />
-                </div>
-              </div>
-            </div>
-          </details>
-
-          <!-- Collapsible Section: Recent Canvas & Actions -->
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
-            <summary class="collapsible-summary">
-              <span><i data-lucide="maximize" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Recent List Canvas &amp; Controls</span>
-              <span><i data-lucide="chevron-down"></i></span>
-            </summary>
-            <div class="collapsible-content">
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="recent-canvas-preset">Canvas Preset</label>
-                  <select id="recent-canvas-preset" class="form-control" data-canvas-preset="recent">
-                    <option value="1080p">1080p — 1920 × 1080</option>
-                    <option value="720p">720p — 1280 × 720</option>
-                    <option value="custom">Custom</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="recent-canvas-width">Canvas Width (px)</label>
-                  <input type="number" id="recent-canvas-width" class="form-control" min="100" max="7680" value="1920" />
-                </div>
-                <div class="form-group">
-                  <label for="recent-canvas-height">Canvas Height (px)</label>
-                  <input type="number" id="recent-canvas-height" class="form-control" min="100" max="4320" value="1080" />
-                </div>
-              </div>
-            </div>
-          </details>
-
-        <details class="collapsible-advanced">
-          <summary class="collapsible-summary">
-            <span><i data-lucide="settings" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Code &amp; Layout Settings</span>
-            <span><i data-lucide="chevron-down"></i></span>
-          </summary>
-          <div class="collapsible-content">
-            <div class="warning-callout" style="margin-top: 0;">
-              <span class="warning-icon"><i data-lucide="alert-triangle"></i></span>
-              <div>
-                <strong>Security Warning:</strong> Custom HTML, CSS, and JavaScript functions are executed at your own
-                risk. Verify code before running to ensure it performs safely.
-              </div>
-            </div>
-
-            <div class="panel-header-with-switch" style="margin-bottom: 12px;">
-              <span style="font-weight: 600; font-size: 13px;">Enable Custom Recent Code</span>
-              <label class="switch-container">
-                <input type="checkbox" id="chk-enable-recent-custom-code" />
-                <span class="switch-slider"></span>
-              </label>
-            </div>
-
-            <div class="code-editor-container">
-              <div class="code-tabs-header">
-                <div class="code-tabs">
-                  <button class="code-tab-btn active" type="button" data-code-tab="html">HTML</button>
-                  <button class="code-tab-btn" type="button" data-code-tab="css">CSS</button>
-                  <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
-                </div>
-                <div style="display: flex; gap: 6px;">
-                  <button class="btn btn-outline btn-format-code" type="button" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
-                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-recent-code"
-                    style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
-                </div>
-              </div>
-
-              <div class="code-tab-panel" data-code-panel="html" id="code-panel-recent-html">
-                <div class="form-group" style="margin-bottom: 8px;">
-                  <textarea id="input-recent-custom-html" class="form-control code-editor-input"></textarea>
-                </div>
-              </div>
-
-              <div class="code-tab-panel" data-code-panel="css" id="code-panel-recent-css" style="display: none;">
-                <div class="form-group" style="margin-bottom: 8px;">
-                  <textarea id="input-recent-custom-css" class="form-control code-editor-input"></textarea>
-                </div>
-              </div>
-
-              <div class="code-tab-panel" data-code-panel="js" id="code-panel-recent-js" style="display: none;">
-                <div class="form-group" style="margin-bottom: 8px;">
-                  <textarea id="input-recent-custom-js" class="form-control code-editor-input"></textarea>
-                </div>
-              </div>
-            </div>
-          </div>
-        </details>
-  </div>
+        </div>
 
         <!-- Tab 9: Cycling Widget -->
         <div class="tab-content" id="tab-cycling">
@@ -1919,7 +1518,7 @@
             </div>
           </details>
 
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Style, Borders &amp; Media</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -1988,7 +1587,7 @@
             </div>
           </details>
 
-          <details class="collapsible-advanced" open style="margin-top: 16px;">
+          <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Typography</span>
               <span><i data-lucide="chevron-down"></i></span>
@@ -2254,7 +1853,7 @@
   </div>
 
   <!-- Tab: Earning Overview & Analytics -->
-  <div class="tab-content" id="tab-earnings">
+  <div class="tab-content active" id="tab-earnings">
     <div class="panel-header-with-switch" style="margin-bottom: 14px;">
       <div>
         <h2 class="panel-title"><i data-lucide="line-chart"></i> Earning Overview &amp; Analytics</h2>
@@ -2582,7 +2181,7 @@
   </div>
 
   <!-- Form Action Buttons Bar (Always visible at bottom of form panel) -->
-  <div class="action-bar">
+  <div class="action-bar" style="display: none;">
     <button class="btn btn-primary" id="btn-save"><i data-lucide="save"></i> Save Settings</button>
     <button class="btn btn-secondary" id="btn-test"><i data-lucide="zap"></i> Test Alert</button>
     <button class="btn btn-danger" id="btn-reset"><i data-lucide="rotate-ccw"></i> Reset to Defaults</button>
@@ -2590,10 +2189,10 @@
   </section>
 
   <!-- Draggable Resizer Gutter Bar -->
-  <div class="resizer-gutter" id="panel-resizer" title="Drag left or right to adjust panel sizes"></div>
+  <div class="resizer-gutter" id="panel-resizer" title="Drag left or right to adjust panel sizes" style="display: none;"></div>
 
   <!-- Live Preview Side Panel -->
-  <section class="preview-panel">
+  <section class="preview-panel" style="display: none;">
     <div class="preview-header">
       <div class="preview-title">
         <span>OBS Overlay Live Preview</span>
@@ -2729,6 +2328,40 @@
         <button type="button" class="btn btn-primary" id="btn-submit-manual-payment">
           <i data-lucide="check"></i> <span id="btn-submit-manual-text">Record &amp; Credit Goal</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: New List Config with Preset Picker -->
+  <div class="modal-backdrop" id="modal-new-list" style="display: none;">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 6px;">
+          <i data-lucide="plus-circle" style="width: 18px; height: 18px; color: var(--accent);"></i> Create New List Widget
+        </h3>
+      </div>
+      <div class="modal-body" style="padding: 16px;">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="input-new-list-name" style="font-weight: 600;">List Name (Unique)</label>
+          <input type="text" id="input-new-list-name" class="form-control" placeholder="e.g. VIP Donors" />
+          <div id="error-new-list-name" style="color: #ff5252; font-size: 11px; margin-top: 4px; display: none;"></div>
+        </div>
+        <div class="form-group">
+          <label for="select-new-list-preset" style="font-weight: 600;">Starting Preset Template</label>
+          <select id="select-new-list-preset" class="form-control">
+            <option value="top-supporters">🏆 Top Supporters Leaderboard (All-Time Aggregated)</option>
+            <option value="recent-donations">🕒 Recent Donations History (Chronological Feed)</option>
+            <option value="vip-donors">⭐ VIP / Big Donors (₹500+ Threshold)</option>
+            <option value="phonepe-supporters">📱 PhonePe Only Supporters</option>
+            <option value="gpay-supporters">⚡ Google Pay (GPay) Only</option>
+            <option value="amazon-pay-supporters">📦 Amazon Pay Only</option>
+            <option value="blank-custom">🛠️ Blank / Custom List</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px;">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-new-list">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-confirm-new-list"><i data-lucide="check"></i> Create List</button>
       </div>
     </div>
   </div>
