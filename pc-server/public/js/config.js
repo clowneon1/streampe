@@ -2894,6 +2894,47 @@ document.addEventListener('DOMContentLoaded', async () => {
       fetchAndRenderLedger(activeProf);
     });
 
+    // ── Ledger height controls ────────────────────────────────────────
+    (function () {
+      const LEDGER_HEIGHTS = { sm: 220, md: 420, lg: 720 };
+      const LEDGER_HEIGHT_KEY = 'ledger_height_pref';
+      const container = document.querySelector('.analytics-ledger-table-container');
+      if (!container) return;
+
+      function setLedgerHeight(px) {
+        container.style.height = px + 'px';
+        try { localStorage.setItem(LEDGER_HEIGHT_KEY, String(px)); } catch (_) {}
+        const btnSm = el('btn-ledger-height-sm');
+        const btnMd = el('btn-ledger-height-md');
+        const btnLg = el('btn-ledger-height-lg');
+        const accent = 'var(--accent)';
+        const muted  = 'var(--text-muted)';
+        if (btnSm) btnSm.style.color = px === LEDGER_HEIGHTS.sm ? accent : muted;
+        if (btnMd) btnMd.style.color = px === LEDGER_HEIGHTS.md ? accent : muted;
+        if (btnLg) btnLg.style.color = px === LEDGER_HEIGHTS.lg ? accent : muted;
+      }
+
+      // Restore persisted preference
+      try {
+        const saved = parseInt(localStorage.getItem(LEDGER_HEIGHT_KEY), 10);
+        if (saved && saved >= 220) setLedgerHeight(saved);
+        else setLedgerHeight(LEDGER_HEIGHTS.md);
+      } catch (_) { setLedgerHeight(LEDGER_HEIGHTS.md); }
+
+      on('btn-ledger-height-sm', 'click', () => setLedgerHeight(LEDGER_HEIGHTS.sm));
+      on('btn-ledger-height-md', 'click', () => setLedgerHeight(LEDGER_HEIGHTS.md));
+      on('btn-ledger-height-lg', 'click', () => setLedgerHeight(LEDGER_HEIGHTS.lg));
+
+      // Expand/collapse toggle — cycles sm → md → lg → sm
+      on('btn-ledger-expand', 'click', () => {
+        const current = parseInt(container.style.height, 10) || LEDGER_HEIGHTS.md;
+        const next = current <= LEDGER_HEIGHTS.sm ? LEDGER_HEIGHTS.md
+                   : current <= LEDGER_HEIGHTS.md  ? LEDGER_HEIGHTS.lg
+                   : LEDGER_HEIGHTS.sm;
+        setLedgerHeight(next);
+      });
+    })();
+
     on('select-trend-view-mode', 'change', (e) => {
       analyticsState.timelineMode = e.target.value;
       fetchAndRenderAnalytics();

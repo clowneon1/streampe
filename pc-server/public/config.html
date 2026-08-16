@@ -2424,8 +2424,17 @@
           <button class="btn btn-outline" id="btn-clear-column-filters" type="button" style="font-size: 11px; padding: 4px 8px;" title="Reset all column filters">
             <i data-lucide="filter-x"></i> Reset Filters
           </button>
+          <div style="display: flex; gap: 2px; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2px 4px;" title="Ledger height preset">
+            <button type="button" class="btn-box-toggle" id="btn-ledger-height-sm" title="Compact view (220px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">S</button>
+            <button type="button" class="btn-box-toggle" id="btn-ledger-height-md" title="Default view (420px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px; color: var(--accent);">M</button>
+            <button type="button" class="btn-box-toggle" id="btn-ledger-height-lg" title="Expanded view (720px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">L</button>
+          </div>
+          <button type="button" class="btn-box-toggle" id="btn-ledger-expand" title="Expand / Collapse ledger height" style="padding: 5px;">
+            <i data-lucide="chevrons-up-down" style="width:14px; height:14px;"></i>
+          </button>
         </div>
       </div>
+
 
       <!-- Single-Line Filtered Stats Summary Bar -->
       <div id="analytics-filtered-summary-bar" style="background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: var(--radius-md); padding: 8px 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px;">

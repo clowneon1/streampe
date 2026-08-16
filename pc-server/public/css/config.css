@@ -1680,10 +1680,20 @@ input[type="color"]::-webkit-color-swatch {
 .analytics-ledger-table-container {
   overflow-x: auto;
   overflow-y: auto;
-  max-height: 460px;
+  height: 420px;
+  min-height: 220px;
+  max-height: 900px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   position: relative;
+  resize: vertical;
+}
+
+.analytics-ledger-table-container::-webkit-resizer {
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMCwgMjI5LCAyNTUsIDEpIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48bGluZSB4MT0iMjEiIHkxPSIxNSIgeDI9IjE1IiB5Mj0iMjEiPjwvbGluZT48bGluZSB4MT0iMjEiIHkxPSI5IiB4Mj0iOSIgeTI9IjIxIj48L2xpbmU+PC9zdmc+');
+  background-repeat: no-repeat;
+  background-position: bottom right;
+  background-size: 14px 14px;
 }
 
 .analytics-ledger-table-container thead th {
