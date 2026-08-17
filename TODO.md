@@ -5,10 +5,6 @@
 ## 🚀 Upcoming Features & Tasks
 
 - [ ] **19. Security & Access Control (PIN / Password / 2FA Authentication)** — Add optional password/PIN protection for the PC Dashboard (`/config`) and the Android companion connection (`ws://.../android` & `/api/*`). Prevents unauthorized devices on shared Wi-Fi networks (roommates, shared studios, public Wi-Fi) from accessing financial analytics, triggering bogus alerts, or connecting without entering the streamer's configured PIN/password.
-- [ ] **20. Money / Amount Text Highlight & Styling Settings** — Add dedicated styling and highlight options for payment amounts (`{{amount}}`) in Alert Templates, Leaderboards, and Cycling Widgets:
-  - **Highlight Color Picker**: Custom text color for the amount (e.g. Glowing Gold `#ffd700`, Neon Emerald `#10b981`, Vibrant Cyan `#00e5ff`).
-  - **Highlight Text Shadow / Glow**: Configurable glow radius, glow color, and intensity for the amount to make high-value donations stand out on stream.
-  - **Pill / Badge Background**: Optional glassmorphic pill/badge background wrap around the currency amount (`<span class="amount-badge">₹500</span>`).
 
 ---
 

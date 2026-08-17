@@ -26,7 +26,21 @@ app.get('/', (req, res) => {
 });
 
 // ── Debug Logger (Winston with Daily Rotation & 7-Day Retention) ─────
-let writableBaseDir = __dirname;
+const isCompiled = !process.execPath.endsWith('node') && 
+                   !process.execPath.endsWith('node.exe') && 
+                   !process.execPath.endsWith('bun') && 
+                   !process.execPath.endsWith('bun.exe');
+
+let writableBaseDir = isCompiled ? path.dirname(process.execPath) : __dirname;
+
+// If compiled and running from a system/read-only location (e.g. Program Files), fall back to AppData Roaming
+if (isCompiled && (writableBaseDir.toLowerCase().includes('program files') || writableBaseDir.toLowerCase().includes('system32'))) {
+  try {
+    const appData = process.env.APPDATA || (process.platform === 'darwin' ? path.join(process.env.HOME || '', 'Library', 'Application Support') : path.join(process.env.HOME || '', '.local', 'share'));
+    writableBaseDir = path.join(appData, 'com.clowneon1.paymentalerts');
+  } catch (e) {}
+}
+
 try {
   // In Tauri the TAURI_APP_DATA env var is set by the Rust launcher
   if (process.env.TAURI_APP_DATA) {
@@ -1085,6 +1099,7 @@ app.post('/api/profiles/save', (req, res) => {
   if (newSettings) alertSettings = ConfigMigration.migrate(newSettings);
   profilesStore.profiles[name] = alertSettings;
   profilesStore.activeProfile  = name;
+  syncDerivedMetricsToSettings(name, false);
   saveSettings(alertSettings); saveProfilesStore(profilesStore); broadcastSettings(alertSettings);
   res.json({ ok: true, activeProfile: name, settings: alertSettings, profiles: Object.keys(profilesStore.profiles) });
 });

@@ -1000,6 +1000,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.ok && data.settings) {
         populateForm(data.settings);
         if (data.profiles) await loadProfilesList(data.activeProfile);
+        await fetchAndRenderAnalytics();
       }
       return data;
     } catch (err) {
@@ -1623,6 +1624,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (data.ok) {
         populateForm(data.settings);
+        await fetchAndRenderAnalytics();
         showToast('<i data-lucide="user"></i> Switched to "' + data.activeProfile + '"');
       }
     });
@@ -1636,6 +1638,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!name) return;
       await saveToServer(name);
       await loadProfilesList(name);
+      await fetchAndRenderAnalytics();
       showToast('<i data-lucide="user"></i> Created profile "' + name + '"');
     });
 
@@ -1658,6 +1661,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
       await loadProfilesList(name);
+      await fetchAndRenderAnalytics();
       showToast('<i data-lucide="pencil"></i> Renamed to "' + name + '"');
     });
 
@@ -1679,6 +1683,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!data.ok) return showToast('<i data-lucide="alert-triangle"></i> ' + (data.error || 'Delete failed'));
       await loadProfilesList(data.activeProfile);
       populateForm(await StorageHelper.loadServer());
+      await fetchAndRenderAnalytics();
       showToast('<i data-lucide="trash-2"></i> Profile deleted');
     });
 
@@ -1714,6 +1719,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.ok) {
           await loadProfilesList(data.activeProfile);
           populateForm(data.settings);
+          await fetchAndRenderAnalytics();
           showToast('<i data-lucide="download"></i> Imported profile "' + data.activeProfile + '"');
         } else {
           showToast('<i data-lucide="alert-triangle"></i> Import failed: ' + (data.error || 'Unknown error'));
