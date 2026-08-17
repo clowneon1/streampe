@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamPe 💸 | Free Real-Time OBS Payment Alerts & Overlays</title>
+  <meta name="description" content="StreamPe is a free, ultra-fast, open-source, and self-hosted solution to display real-time payment alerts, donation goal bars, top supporters, and cycling widgets on OBS Studio." />
+  <meta property="og:title" content="StreamPe - Free Real-Time OBS Payment Alerts & Overlays" />
+  <meta property="og:description" content="Display Google Pay & PhonePe mobile payment notifications live on your stream overlays with zero latency (< 25 MB RAM)." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="http://streampe.codepenguin.in" />
+  <link rel="icon" type="image/png" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div class="announcement-bar">
+    <span id="announcement-text">🎉 StreamPe Released!</span>
+    <a href="https://github.com/clowneon1/streampe/releases/latest" target="_blank">View Release Notes ➔</a>
+  </div>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <img src="assets/logo.png" alt="StreamPe Logo" class="brand-logo-img" />
+        <span>StreamPe</span>
+      </div>
+
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#carousel">Screenshots</a></li>
+        <li><a href="#overlays">OBS Overlays</a></li>
+        <li><a href="#setup">Setup Guide</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="badge" id="badge-version">🚀 StreamPe Release Out Now</div>
+    <h1 class="hero-title">
+      Real-Time Mobile Payment Alerts for <span class="gradient-text">OBS Studio</span>
+    </h1>
+    <p class="hero-subtitle">
+      A free, open-source, ultra-fast, and self-hosted application to display live Google Pay, PhonePe, and Amazon Pay notifications, donation goal bars, top supporters, and cycling widgets on your stream.
+    </p>
+
+    <div class="hero-ctas">
+      <a href="https://github.com/clowneon1/streampe/releases/latest" target="_blank" class="btn btn-primary" id="btn-download-portable">
+        <span>📦 Download Portable ZIP</span>
+      </a>
+      <a href="https://github.com/clowneon1/streampe/releases/latest" target="_blank" class="btn btn-secondary">
+        <span>📱 Download Android Companion APK</span>
+      </a>
+    </div>
+
+    <!-- Repository Link below Download buttons -->
+    <div class="repo-sublink">
+      <a href="https://github.com/clowneon1/streampe" target="_blank">
+        ⭐ Star on GitHub &bull; 📁 Browse Source Code Repository ➔
+      </a>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-value">&lt; 25 MB</span>
+        <span class="stat-label">RAM Footprint</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">100%</span>
+        <span class="stat-label">Local Wi-Fi Only</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">0</span>
+        <span class="stat-label">Cloud Dependencies</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">MIT</span>
+        <span class="stat-label">Free & Open Source</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Screenshot Carousel -->
+  <section class="carousel-section" id="carousel">
+    <div class="section-header">
+      <h2 class="section-title">Application Screenshots & Previews</h2>
+      <p class="section-desc">Explore the desktop control panel, live alert customizer, goal widget, and companion app.</p>
+    </div>
+
+    <div class="carousel-container">
+      <div class="carousel-viewport">
+
+        <!-- Slide 1 -->
+        <div class="carousel-slide active">
+          <img src="assets/Screenshot 2026-08-17 195718.png" alt="Earning Overview & Analytics Dashboard" />
+          <div class="carousel-caption">
+            <span class="caption-title">📊 Earning Overview & Analytics Dashboard</span>
+            <span class="caption-desc">Interactive earnings dashboard with daily timeline revenue graphs, branded payment breakdowns, and top supporters.</span>
+          </div>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="carousel-slide">
+          <img src="assets/Screenshot 2026-08-17 195736.png" alt="Live Alert Customizer & OBS Preview Grid" />
+          <div class="carousel-caption">
+            <span class="caption-title">🎛️ Live Alert Customizer & Grid Preview</span>
+            <span class="caption-desc">Real-time customizer with transparent OBS grid preview, Handlebars.js template support, colors, and entry animations.</span>
+          </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="carousel-slide">
+          <img src="assets/Screenshot 2026-08-17 195822.png" alt="Payment Goal Bar Widget" />
+          <div class="carousel-caption">
+            <span class="caption-title">🎯 Stream Goal Bar Widget</span>
+            <span class="caption-desc">Configurable donation target track, gradient fill colors, and progress percentage overflow beyond 100%.</span>
+          </div>
+        </div>
+
+        <!-- Slide 4 -->
+        <div class="carousel-slide">
+          <img src="assets/Screenshot 2026-08-17 195831.png" alt="Unified List Widget System" />
+          <div class="carousel-caption">
+            <span class="caption-title">🏆 Unified List Widget System</span>
+            <span class="caption-desc">Modular list system for displaying Top Supporters Leaderboard and Recent Donations feed.</span>
+          </div>
+        </div>
+
+        <!-- Slide 5 -->
+        <div class="carousel-slide">
+          <img src="assets/Screenshot 2026-08-17 195837.png" alt="Auto Cycling Widget" />
+          <div class="carousel-caption">
+            <span class="caption-title">🔄 Auto-Cycling Info Widget</span>
+            <span class="caption-desc">Rotational widget cycling through top supporters, recent donations, and custom promo banners with custom transition effects.</span>
+          </div>
+        </div>
+
+        <!-- Slide 6 -->
+        <div class="carousel-slide">
+          <img src="assets/Screenshot 2026-08-17 195846.png" alt="Ultra-Lightweight Tauri v2 Desktop App" />
+          <div class="carousel-caption">
+            <span class="caption-title">⚡ Native Tauri v2 Desktop Shell</span>
+            <span class="caption-desc">Compact desktop wrapper with system tray integration, start-on-boot support, and one-click URL copy.</span>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <button class="carousel-btn prev" aria-label="Previous Slide">❮</button>
+        <button class="carousel-btn next" aria-label="Next Slide">❯</button>
+      </div>
+
+      <!-- Navigation Dots -->
+      <div class="carousel-dots">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section class="features-section" id="features">
+    <div class="section-header">
+      <h2 class="section-title">Why Streamers Choose StreamPe</h2>
+      <p class="section-desc">Designed for reliability, privacy, and seamless live stream integration.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3 class="feature-title">Instant Payment Alerts</h3>
+        <p class="feature-desc">Real-time alert cards popup on your stream within milliseconds of a payment hitting your phone. Zero delay when fans support your stream.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3 class="feature-title">Revenue Analytics Dashboard</h3>
+        <p class="feature-desc">Interactive earnings dashboard with daily income charts, top supporter rankings, and payment breakdowns to track your stream growth.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3 class="feature-title">Live Donation Goal Trackers</h3>
+        <p class="feature-desc">Set funding goals for stream gear, events, or milestones with animated progress bars that automatically update live as donations arrive.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3 class="feature-title">Google Pay Donor Messages</h3>
+        <p class="feature-desc">Automatically display donor names, donation amounts, and custom donor message notes directly on your live overlay screen.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <h3 class="feature-title">Auto-Cycling Overlay Widgets</h3>
+        <p class="feature-desc">Keep your stream layout clean by automatically cycling between top supporters, recent donations, and custom promo banners.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3 class="feature-title">100% Private & Self-Hosted</h3>
+        <p class="feature-desc">Operates entirely within your own local Wi-Fi network. Your financial notifications stay 100% private on your own PC and phone.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- OBS Overlay Endpoints -->
+  <section class="overlays-section" id="overlays">
+    <div class="section-header">
+      <h2 class="section-title">OBS Browser Source Endpoints</h2>
+      <p class="section-desc">Add these endpoints as Browser Sources in OBS Studio or Streamlabs.</p>
+    </div>
+
+    <div class="overlay-table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Overlay Type</th>
+            <th>Browser Source URL</th>
+            <th>Recommended Canvas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>📡 <strong>Live Payment Alert</strong></td>
+            <td><code>http://&lt;YOUR-PC-IP&gt;:2907/overlay/alerts</code></td>
+            <td>800 x 600</td>
+          </tr>
+          <tr>
+            <td>🎯 <strong>Donation Goal Bar</strong></td>
+            <td><code>http://&lt;YOUR-PC-IP&gt;:2907/overlay/goal</code></td>
+            <td>800 x 120</td>
+          </tr>
+          <tr>
+            <td>🏆 <strong>Top Supporters Leaderboard</strong></td>
+            <td><code>http://&lt;YOUR-PC-IP&gt;:2907/overlay/list?id=top-supporters</code></td>
+            <td>400 x 600</td>
+          </tr>
+          <tr>
+            <td>📜 <strong>Recent Donations List</strong></td>
+            <td><code>http://&lt;YOUR-PC-IP&gt;:2907/overlay/list?id=recent-donations</code></td>
+            <td>400 x 600</td>
+          </tr>
+          <tr>
+            <td>🔄 <strong>Auto-Cycling Widget</strong></td>
+            <td><code>http://&lt;YOUR-PC-IP&gt;:2907/overlay/cycling-widget</code></td>
+            <td>400 x 140</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Redesigned Quick Setup Section -->
+  <section class="features-section" id="setup">
+    <div class="section-header">
+      <h2 class="section-title">🚀 Streamer Quick Setup Guide</h2>
+      <p class="section-desc">Get your payment alerts live on OBS Studio in 4 simple steps.</p>
+    </div>
+
+    <div class="setup-grid">
+      <div class="setup-card">
+        <div class="setup-number">01</div>
+        <div class="setup-content">
+          <h3 class="setup-title">Download Portable App</h3>
+          <p class="setup-text">Download the portable ZIP archive from <a href="https://github.com/clowneon1/streampe/releases/latest" target="_blank">GitHub Releases</a> and extract it anywhere on your PC.</p>
+        </div>
+      </div>
+
+      <div class="setup-card">
+        <div class="setup-number">02</div>
+        <div class="setup-content">
+          <h3 class="setup-title">Launch StreamPe.exe</h3>
+          <p class="setup-text">Run <code>StreamPe.exe</code>. Allow Windows Firewall access on Private networks so local devices can communicate.</p>
+        </div>
+      </div>
+
+      <div class="setup-card">
+        <div class="setup-number">03</div>
+        <div class="setup-content">
+          <h3 class="setup-title">Connect Companion App</h3>
+          <p class="setup-text">Install the Android companion APK on your phone. Grant Notification Access so it can forward Google Pay & PhonePe alerts.</p>
+        </div>
+      </div>
+
+      <div class="setup-card">
+        <div class="setup-number">04</div>
+        <div class="setup-content">
+          <h3 class="setup-title">Add Browser Source in OBS</h3>
+          <p class="setup-text">In OBS Studio, add a Browser Source pointing to <code>http://&lt;YOUR-PC-IP&gt;:2907/overlay/alerts</code> (Canvas: 800x600).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>Developed with ❤️ by <a href="https://github.com/clowneon1" target="_blank">clowneon1</a> | Distributed under the <a href="https://github.com/clowneon1/streampe/blob/main/LICENSE" target="_blank">MIT License</a></p>
+    <p style="margin-top: 8px;">⭐ <a href="https://github.com/clowneon1/streampe" target="_blank">Give StreamPe a star on GitHub</a></p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

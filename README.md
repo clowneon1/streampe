@@ -107,8 +107,8 @@ In OBS Studio, click **+ (Add Source)** ➔ **Browser**:
 | :--- | :--- | :--- |
 | 📡 **Payment Alert Widget** | `http://<YOUR-PC-IP>:2907/overlay/alerts` | `800 x 600` |
 | 🎯 **Payment Goal Bar** | `http://<YOUR-PC-IP>:2907/overlay/goal` | `800 x 120` |
-| 🏆 **Top Leaderboard** | `http://<YOUR-PC-IP>:2907/overlay/leaderboard` | `400 x 600` |
-| 📜 **Recent Donations List** | `http://<YOUR-PC-IP>:2907/overlay/recent` | `400 x 600` |
+| 🏆 **Top Leaderboard** | `http://<YOUR-PC-IP>:2907/overlay/list?id=top-supporters` | `400 x 600` |
+| 📜 **Recent Donations List** | `http://<YOUR-PC-IP>:2907/overlay/list?id=recent-donations` | `400 x 600` |
 | 🔄 **Cycling Widget** | `http://<YOUR-PC-IP>:2907/overlay/cycling-widget` | `400 x 140` |
 
 ---
