@@ -1785,10 +1785,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Centralized Donations Data CSV Helpers ────────────────
-    on('btn-sidebar-export-donations', 'click', () => {
-      const activeProf = getCurrentProfileName();
-      window.open(`/api/donations/csv?profile=${encodeURIComponent(activeProf)}`, '_blank');
-      showToast('<i data-lucide="file-spreadsheet"></i> Exporting donations.csv for Excel/Sheets...');
+    on('btn-sidebar-export-donations', 'click', (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const modal = el('modal-export-csv');
+      if (modal) {
+        el('select-export-scope').value = 'all';
+        el('export-range-fields').style.display = 'none';
+        el('input-export-start').value = '';
+        el('input-export-end').value = '';
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
+      }
     });
 
     on('btn-sidebar-import-donations', 'click', () => {
@@ -2366,6 +2376,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startDate: '',
     endDate: '',
     sortOrder: 'desc',
+    sortField: 'date',
     page: 1,
     limit: 50
   };
@@ -2389,12 +2400,35 @@ document.addEventListener('DOMContentLoaded', () => {
           if (monthSelect) {
             const currentVal = analyticsState.month;
             let optionsHtml = '<option value="all">📅 All Time (Full History)</option>';
+
+            const activeOpts = [];
+            const archiveOpts = [];
+
+            const now = new Date();
+            const twelveMonthsAgo = new Date();
+            twelveMonthsAgo.setMonth(now.getMonth() - 11);
+            twelveMonthsAgo.setDate(1); // Boundary starts at the 1st of that month
+
             mData.months.forEach(m => {
-              const [yr, mo] = m.split('-');
-              const dateObj = new Date(parseInt(yr, 10), parseInt(mo, 10) - 1, 1);
-              const label = dateObj.toLocaleString('default', { month: 'long', year: 'numeric' });
-              optionsHtml += `<option value="${m}"${m === currentVal ? ' selected' : ''}>${label}</option>`;
+              const [yr, mo] = m.split('-').map(Number);
+              const optDate = new Date(yr, mo - 1, 1);
+              const label = optDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+              const optionHtml = `<option value="${m}"${m === currentVal ? ' selected' : ''}>${label}</option>`;
+
+              if (optDate >= twelveMonthsAgo) {
+                activeOpts.push(optionHtml);
+              } else {
+                archiveOpts.push(optionHtml);
+              }
             });
+
+            if (activeOpts.length > 0) {
+              optionsHtml += `<optgroup label="📅 Active Months (Last 12 Months)">${activeOpts.join('')}</optgroup>`;
+            }
+            if (archiveOpts.length > 0) {
+              optionsHtml += `<optgroup label="🗄️ Historical Archives (Older)">${archiveOpts.join('')}</optgroup>`;
+            }
+
             monthSelect.innerHTML = optionsHtml;
           }
         }
@@ -2697,6 +2731,7 @@ document.addEventListener('DOMContentLoaded', () => {
         startDate: analyticsState.startDate,
         endDate: analyticsState.endDate,
         sort: analyticsState.sortOrder || 'desc',
+        sortBy: analyticsState.sortField || 'date',
         page: analyticsState.page,
         limit: analyticsState.limit
       });
@@ -2880,7 +2915,23 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTableColumnResizing();
 
     on('select-col-date-sort', 'change', (e) => {
+      analyticsState.sortField = 'date';
       analyticsState.sortOrder = e.target.value;
+      if (el('select-col-amount-sort')) el('select-col-amount-sort').value = 'none';
+      analyticsState.page = 1;
+      const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
+      fetchAndRenderLedger(activeProf);
+    });
+
+    on('select-col-amount-sort', 'change', (e) => {
+      const val = e.target.value;
+      if (val === 'none') {
+        analyticsState.sortField = 'date';
+        analyticsState.sortOrder = el('select-col-date-sort') ? el('select-col-date-sort').value : 'desc';
+      } else {
+        analyticsState.sortField = 'amount';
+        analyticsState.sortOrder = val;
+      }
       analyticsState.page = 1;
       const activeProf = (el('select-profile') ? el('select-profile').value : 'Default') || 'Default';
       fetchAndRenderLedger(activeProf);
@@ -2972,6 +3023,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (el('filter-col-min-amount')) el('filter-col-min-amount').value = '';
       if (el('filter-col-provider')) el('filter-col-provider').value = 'all';
       if (el('select-col-date-sort')) el('select-col-date-sort').value = 'desc';
+      if (el('select-col-amount-sort')) el('select-col-amount-sort').value = 'none';
       if (el('select-analytics-provider')) el('select-analytics-provider').value = 'all';
       if (el('input-analytics-search')) el('input-analytics-search').value = '';
 
@@ -2984,9 +3036,31 @@ document.addEventListener('DOMContentLoaded', () => {
       analyticsState.endDate = '';
       analyticsState.provider = 'all';
       analyticsState.sortOrder = 'desc';
+      analyticsState.sortField = 'date';
       analyticsState.page = 1;
       fetchAndRenderAnalytics();
       showToast('<i data-lucide="filter-x"></i> Filters reset');
+    });
+
+    on('btn-download-filtered-csv', 'click', () => {
+      const activeProf = getCurrentProfileName();
+      const effectiveSearch = [analyticsState.search, analyticsState.searchDonor, analyticsState.searchNote].filter(Boolean).join(' ');
+
+      const params = new URLSearchParams({
+        profile: activeProf,
+        month: analyticsState.month || 'all',
+        provider: analyticsState.provider || 'all',
+        search: effectiveSearch,
+        minAmount: analyticsState.minAmount || '',
+        maxAmount: analyticsState.maxAmount || '',
+        date: analyticsState.specificDate || '',
+        startDate: analyticsState.startDate || '',
+        endDate: analyticsState.endDate || ''
+      });
+
+      const url = `/api/donations/csv?${params.toString()}`;
+      window.open(url, '_blank');
+      showToast('<i data-lucide="download"></i> Exporting filtered list as CSV...');
     });
 
     document.querySelectorAll('.analytics-range-btn').forEach(btn => {
@@ -3119,10 +3193,75 @@ document.addEventListener('DOMContentLoaded', () => {
       fetchAndRenderAnalytics();
     });
 
-    on('btn-analytics-export-csv', 'click', () => {
+    // Time-Based Export CSV Modal Controls
+    on('btn-analytics-export-csv', 'click', (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const modal = el('modal-export-csv');
+      if (modal) {
+        el('select-export-scope').value = 'all';
+        el('export-range-fields').style.display = 'none';
+        el('input-export-start').value = '';
+        el('input-export-end').value = '';
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
+      }
+    });
+
+    on('select-export-scope', 'change', (e) => {
+      const scope = e.target.value;
+      el('export-range-fields').style.display = scope === 'range' ? 'block' : 'none';
+    });
+
+    const closeExportModal = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const modal = el('modal-export-csv');
+      if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+      }
+    };
+
+    on('modal-export-csv-close', 'click', closeExportModal);
+    on('btn-cancel-export-csv', 'click', closeExportModal);
+    on('modal-export-csv', 'click', (e) => {
+      if (e.target.id === 'modal-export-csv') closeExportModal(e);
+    });
+
+    on('btn-submit-export-csv', 'click', () => {
       const activeProf = getCurrentProfileName();
-      window.open(`/api/donations/csv?profile=${encodeURIComponent(activeProf)}`, '_blank');
-      showToast('<i data-lucide="download"></i> Downloading donations.csv...');
+      const scope = el('select-export-scope').value;
+      
+      let url = `/api/donations/csv?profile=${encodeURIComponent(activeProf)}`;
+      
+      if (scope === 'range') {
+        const startVal = el('input-export-start').value;
+        const endVal = el('input-export-end').value;
+        
+        if (!startVal || !endVal) {
+          showToast('<i data-lucide="alert-triangle"></i> Please select both start and end months.');
+          return;
+        }
+        
+        if (new Date(startVal) > new Date(endVal)) {
+          showToast('<i data-lucide="alert-triangle"></i> Start month cannot be after end month.');
+          return;
+        }
+        
+        url += `&startDate=${encodeURIComponent(startVal)}&endDate=${encodeURIComponent(endVal)}`;
+        showToast(`<i data-lucide="download"></i> Downloading transactions CSV from ${startVal} to ${endVal}...`);
+      } else {
+        url += `&month=all`;
+        showToast('<i data-lucide="download"></i> Downloading all-time transactions CSV...');
+      }
+      
+      window.open(url, '_blank');
+      closeExportModal();
     });
 
     // Manual Payment Modal (Record & Edit)
