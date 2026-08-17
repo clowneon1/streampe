@@ -1,4 +1,4 @@
-package com.clowneon1.paymentalertsobs
+package com.clowneon1.streampe
 
 import android.annotation.SuppressLint
 import android.content.Intent

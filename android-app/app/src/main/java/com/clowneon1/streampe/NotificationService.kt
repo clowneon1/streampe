@@ -1,4 +1,4 @@
-package com.clowneon1.paymentalertsobs
+package com.clowneon1.streampe
 
 import android.app.Notification
 import android.content.pm.PackageManager

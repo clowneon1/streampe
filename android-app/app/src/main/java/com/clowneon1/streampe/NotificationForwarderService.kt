@@ -1,4 +1,4 @@
-package com.clowneon1.paymentalertsobs
+package com.clowneon1.streampe
 
 import android.app.*
 import android.content.Intent
@@ -10,9 +10,9 @@ import androidx.core.app.ServiceCompat
 class NotificationForwarderService : Service() {
 
     companion object {
-        const val CHANNEL_ID = "payment_alerts_channel"
+        const val CHANNEL_ID = "streampe_channel"
         const val NOTIF_ID   = 1
-        const val ACTION_STOP = "com.clowneon1.paymentalertsobs.STOP_SERVICE"
+        const val ACTION_STOP = "com.clowneon1.streampe.STOP_SERVICE"
     }
 
     private var wakeLock: PowerManager.WakeLock? = null
@@ -85,7 +85,7 @@ class NotificationForwarderService : Service() {
         val pm = getSystemService(POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,
-            "PaymentAlertsOBS::NotificationWakeLock"
+            "StreamPe::NotificationWakeLock"
         ).also { it.acquire(10 * 60 * 1000L) } // max 10 min, re-acquired via keepalive
     }
 
@@ -116,7 +116,7 @@ class NotificationForwarderService : Service() {
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Payment Alerts OBS",
+            "StreamPe Alerts",
             NotificationManager.IMPORTANCE_LOW
         ).apply { description = "Keeps notification forwarding alive in background" }
         getSystemService(NotificationManager::class.java).createNotificationChannel(channel)

@@ -26,7 +26,7 @@ let writableBaseDir = baseDir;
 if (isCompiled && (writableBaseDir.toLowerCase().includes('program files') || writableBaseDir.toLowerCase().includes('system32'))) {
   try {
     const appData = process.env.APPDATA || (process.platform === 'darwin' ? path.join(process.env.HOME || '', 'Library', 'Application Support') : path.join(process.env.HOME || '', '.local', 'share'));
-    writableBaseDir = path.join(appData, 'com.clowneon1.paymentalerts');
+    writableBaseDir = path.join(appData, 'com.clowneon1.streampe');
   } catch (e) {}
 }
 

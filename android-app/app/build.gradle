@@ -3,15 +3,15 @@ plugins {
 }
 
 android {
-    namespace 'com.clowneon1.paymentalertsobs'
+    namespace 'com.clowneon1.streampe'
     compileSdk 36
 
     defaultConfig {
-        applicationId "com.clowneon1.paymentalertsobs"
+        applicationId "com.clowneon1.streampe"
         minSdk 30
         targetSdk 36
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "2.0.0"
     }
 
     signingConfigs {
