@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.PaymentAlertsOBS" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.StreamPe" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:statusBarColor">#0a0c14</item>
         <item name="android:navigationBarColor">#0a0c14</item>
         <item name="android:windowLightStatusBar">false</item>
@@ -17,7 +17,7 @@
         <item name="textInputStyle">@style/Widget.App.TextInputLayout</item>
     </style>
 
-    <style name="Theme.PaymentAlertsOBS.Splash" parent="Theme.PaymentAlertsOBS">
+    <style name="Theme.StreamPe.Splash" parent="Theme.StreamPe">
         <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
 

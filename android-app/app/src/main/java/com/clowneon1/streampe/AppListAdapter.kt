@@ -1,4 +1,4 @@
-package com.clowneon1.paymentalertsobs
+package com.clowneon1.streampe
 
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
