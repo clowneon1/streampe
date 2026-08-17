@@ -241,13 +241,27 @@ function isWindowsStartupEnabled(callback) {
   });
 }
 
+function getMainAppExePath() {
+  if (!isCompiled) return process.execPath;
+  const base = path.dirname(process.execPath);
+  const candidates = [
+    path.join(base, 'Payment Alerts for OBS.exe'),
+    path.join(base, 'payment-alerts-obs.exe'),
+    path.join(base, 'PaymentAlertsOBS.exe')
+  ];
+  for (const cand of candidates) {
+    if (fs.existsSync(cand)) return cand;
+  }
+  return process.execPath;
+}
+
 function setWindowsStartup(enable, callback) {
   if (process.platform !== 'win32') return callback ? callback(false, 'Windows platform required') : null;
 
-  // Use registry directly (Tauri handles autostart via tauri-plugin-autostart on the Rust side)
+  // Use registry directly with the main UI application executable
   exec('reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /f', () => {
     if (enable) {
-      const exePath = process.execPath;
+      const exePath = getMainAppExePath();
       const cmd = `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /t REG_SZ /d "\"${exePath}\"" /f`;
       exec(cmd, (err) => {
         if (callback) callback(!err, err ? err.message : null);
