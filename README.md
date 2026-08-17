@@ -10,29 +10,29 @@ A free, open-source, ultra-fast, and self-hosted solution to display real-time m
 
 | 📊 Earning Overview & Analytics | 🎛️ Live Alert Customizer & OBS Preview |
 | :---: | :---: |
-| <img src="readme-assets/Screenshot%202026-08-17%20195718.png" width="420" alt="StreamPe Earning Overview" /> | <img src="readme-assets/Screenshot%202026-08-17%20195736.png" width="420" alt="Live Alert Customizer" /> |
+| <img src="readme-assets/earning-overview-dashboard.png" width="420" alt="StreamPe Earning Overview" /> | <img src="readme-assets/live-alert-customizer.png" width="420" alt="Live Alert Customizer" /> |
 | *Interactive earnings dashboard with income charts & payment breakdowns* | *Real-time alert customizer with live transparent OBS overlay grid* |
 
 | 🎯 Payment Goal Bar Widget | 🏆 Unified List Widget System |
 | :---: | :---: |
-| <img src="readme-assets/Screenshot%202026-08-17%20195822.png" width="420" alt="Payment Goal Bar" /> | <img src="readme-assets/Screenshot%202026-08-17%20195831.png" width="420" alt="Top Supporters & Recent List" /> |
+| <img src="readme-assets/payment-goal-bar.png" width="420" alt="Payment Goal Bar" /> | <img src="readme-assets/unified-list-widget.png" width="420" alt="Top Supporters & Recent List" /> |
 | *Configurable donation goal track, fill colors, and progress overflow* | *Modular list widget system for Top Supporters and Recent Donations* |
 
 | 🔄 Auto-Cycling Info Widget | ⚡ Native Desktop App & System Tray |
 | :---: | :---: |
-| <img src="readme-assets/Screenshot%202026-08-17%20195837.png" width="420" alt="Auto Cycling Widget" /> | <img src="readme-assets/Screenshot%202026-08-17%20195846.png" width="420" alt="StreamPe Desktop App" /> |
+| <img src="readme-assets/auto-cycling-widget.png" width="420" alt="Auto Cycling Widget" /> | <img src="readme-assets/native-desktop-app.png" width="420" alt="StreamPe Desktop App" /> |
 | *Rotational info widget cycling through custom cards & recent alerts* | *Ultra-lightweight Tauri v2 + Bun desktop app (< 25 MB RAM)* |
 
 ### 📱 Android Companion App Features
 
 | 📡 Server Auto-Discovery (mDNS) | 📋 3-Slide Permission Setup | 🎯 App Selector |
 | :---: | :---: | :---: |
-| <img src="readme-assets/Screenshot%202026-08-17%20201550.png" width="240" alt="Server Auto Discovery" /> | <img src="readme-assets/Screenshot%202026-08-17%20200403.png" width="240" alt="Permission Setup" /> | <img src="readme-assets/Screenshot%202026-08-17%20201602.png" width="240" alt="App Selector" /> |
+| <img src="readme-assets/mobile-server-discovery.png" width="240" alt="Server Auto Discovery" /> | <img src="readme-assets/mobile-permission-setup.png" width="240" alt="Permission Setup" /> | <img src="readme-assets/mobile-app-selector.png" width="240" alt="App Selector" /> |
 | *Native mDNS local scanning & IP history chips* | *Concise 3-slide onboarding setup* | *Select payment apps (PhonePe, GPay, Amazon)* |
 
 | 🔔 Notification Tester & Presets | 📜 Alert History & Retrigger Log |
 | :---: | :---: |
-| <img src="readme-assets/Screenshot%202026-08-17%20201611.png" width="240" alt="Notification Tester" /> | <img src="readme-assets/Screenshot%202026-08-17%20201626.png" width="240" alt="Alert History Log" /> |
+| <img src="readme-assets/mobile-notification-tester.png" width="240" alt="Notification Tester" /> | <img src="readme-assets/mobile-alert-history.png" width="240" alt="Alert History Log" /> |
 | *Test payment alerts for GPay, PhonePe, and Amazon Pay* | *Permanent local log of received alerts with 1-click retriggering* |
 
 ---
