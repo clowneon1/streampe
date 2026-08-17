@@ -105,6 +105,14 @@ a:hover {
   font-size: 1.25rem;
   font-weight: 800;
   color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.brand:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .brand-logo-img {
@@ -119,6 +127,40 @@ a:hover {
   filter: drop-shadow(0 2px 6px rgba(108, 99, 255, 0.4));
 }
 
+/* ── Mobile Hamburger Toggle Button ── */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  z-index: 110;
+}
+
+.nav-toggle .bar {
+  width: 100%;
+  height: 2px;
+  background-color: var(--text-main);
+  border-radius: 2px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-toggle.active .bar:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.nav-toggle.active .bar:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-toggle.active .bar:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
 .nav-links {
   display: flex;
   align-items: center;
@@ -130,10 +172,12 @@ a:hover {
   color: var(--text-sub);
   font-size: 0.9rem;
   font-weight: 500;
+  transition: color 0.2s ease;
 }
 
-.nav-links a:hover {
-  color: #fff;
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--accent-cyan);
 }
 
 .nav-actions {
@@ -237,17 +281,26 @@ a:hover {
 }
 
 .repo-sublink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 40px;
 }
 
-.repo-sublink a {
+.sublink-item {
   font-size: 0.9rem;
   color: var(--text-sub);
   font-weight: 500;
 }
 
-.repo-sublink a:hover {
+.sublink-item:hover {
   color: var(--accent-cyan);
+}
+
+.sublink-sep {
+  color: var(--text-muted);
 }
 
 .hero-stats {
@@ -575,6 +628,74 @@ td code {
   font-size: 0.88rem;
 }
 
+/* ── Floating Circle GitHub Button ── */
+.floating-github-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(15, 19, 32, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(108, 99, 255, 0.4);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(108, 99, 255, 0.25);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.floating-github-btn:hover {
+  transform: translateY(-4px) scale(1.06);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 12px 30px rgba(0, 229, 255, 0.4);
+  color: #fff;
+}
+
+.floating-github-btn .gh-icon {
+  width: 26px;
+  height: 26px;
+  fill: #fff;
+}
+
+.floating-github-btn .star-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  font-size: 0.82rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+.floating-github-btn .floating-tooltip {
+  position: absolute;
+  right: 66px;
+  top: 50%;
+  transform: translateY(-50%) translateX(10px);
+  background: rgba(15, 19, 32, 0.95);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid var(--border-card);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+.floating-github-btn:hover .floating-tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
 /* ── Footer ── */
 .footer {
   border-top: 1px solid var(--border-card);
@@ -592,11 +713,128 @@ td code {
 
 /* ── Responsive Mobile Media Queries ── */
 @media (max-width: 768px) {
-  .navbar { padding: 8px 16px; }
-  .nav-container { flex-direction: row; justify-content: space-between; gap: 12px; }
-  .nav-links { display: flex; gap: 14px; font-size: 0.82rem; }
-  .hero-title { font-size: 2.2rem; }
-  .hero-subtitle { font-size: 0.95rem; }
-  .hero-stats { flex-wrap: wrap; gap: 16px; }
-  .carousel-viewport { aspect-ratio: 4 / 3; }
+  .navbar {
+    padding: 12px 20px;
+    position: sticky;
+    top: 0;
+  }
+
+  .nav-container {
+    position: relative;
+  }
+
+  .nav-toggle {
+    display: flex;
+  }
+
+  .nav-links {
+    position: absolute;
+    top: calc(100% + 12px);
+    left: -20px;
+    right: -20px;
+    background: rgba(7, 9, 14, 0.96);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-bottom: 1px solid var(--border-card);
+    border-top: 1px solid var(--border-card);
+    flex-direction: column;
+    padding: 16px 24px;
+    gap: 16px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.6);
+  }
+
+  .nav-links.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .nav-links li {
+    width: 100%;
+    text-align: center;
+  }
+
+  .nav-links a {
+    display: block;
+    padding: 8px 0;
+    font-size: 1.05rem;
+  }
+
+  .hero {
+    padding: 40px 16px 40px;
+  }
+
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .hero-ctas {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-ctas .btn {
+    width: 100%;
+  }
+
+  .repo-sublink {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .sublink-sep {
+    display: none;
+  }
+
+  .hero-stats {
+    grid-template-columns: repeat(2, 1fr);
+    display: grid;
+    gap: 20px;
+  }
+
+  .carousel-section {
+    padding: 0 12px;
+  }
+
+  .carousel-viewport {
+    aspect-ratio: 4 / 3;
+  }
+
+  /* Remove side arrows in mobile view */
+  .carousel-btn {
+    display: none !important;
+  }
+
+  .carousel-caption {
+    padding: 12px 14px;
+  }
+
+  .caption-title {
+    font-size: 0.95rem;
+  }
+
+  .caption-desc {
+    font-size: 0.8rem;
+  }
+
+  .floating-github-btn {
+    bottom: 16px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .floating-github-btn .floating-tooltip {
+    display: none;
+  }
 }

@@ -97,7 +97,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
   startAutoPlay();
 
-  // ── 2. Dynamic GitHub Release Fetch ──────────────────────────────────────
+  // ── 2. Mobile Responsive Navigation Toggle ────────────────────────────────
+  const navToggle = document.getElementById('nav-toggle');
+  const navMenu = document.getElementById('nav-menu');
+  const brandLink = document.getElementById('brand-link');
+
+  if (navToggle && navMenu) {
+    navToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isActive = navMenu.classList.toggle('active');
+      navToggle.classList.toggle('active', isActive);
+      navToggle.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+    });
+
+    // Close mobile menu when clicking any nav link
+    const navLinks = navMenu.querySelectorAll('a');
+    navLinks.forEach((link) => {
+      link.addEventListener('click', () => {
+        navMenu.classList.remove('active');
+        navToggle.classList.remove('active');
+        navToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!navMenu.contains(e.target) && !navToggle.contains(e.target)) {
+        navMenu.classList.remove('active');
+        navToggle.classList.remove('active');
+        navToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  // Smooth scroll to top when brand logo/name is clicked
+  if (brandLink) {
+    brandLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    });
+  }
+
+  // ── 3. Dynamic GitHub Release Fetch ──────────────────────────────────────
   async function fetchLatestRelease() {
     try {
       const res = await fetch('https://api.github.com/repos/clowneon1/streampe/releases/latest');
@@ -122,10 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const downloadPortableBtn = document.querySelector('#btn-download-portable');
         if (downloadPortableBtn) {
           downloadPortableBtn.textContent = `📦 Download Portable ZIP (${versionTag})`;
-        }
-        const navDownloadBtn = document.querySelector('#btn-download-nav');
-        if (navDownloadBtn) {
-          navDownloadBtn.textContent = `Download ${versionTag}`;
         }
       }
     } catch (_) {}
