@@ -6,8 +6,8 @@ const Service = require('node-windows').Service;
 const path = require('path');
 
 const svc = new Service({
-  name: 'PaymentAlertsOBS',
-  description: 'Payment Alerts for OBS - forwards phone notifications to stream overlay',
+  name: 'StreamPe',
+  description: 'StreamPe - forwards phone notifications to stream overlay',
   script: path.join(__dirname, 'server.js'),
   nodeOptions: [],
   env: {
@@ -23,7 +23,7 @@ svc.on('install', () => {
 });
 
 svc.on('start', () => {
-  console.log('✅ PaymentAlertsOBS service is running on port 2907');
+  console.log('✅ StreamPe service is running on port 2907');
   console.log('   It will auto-start on every Windows boot.');
 });
 

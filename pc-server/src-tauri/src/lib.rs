@@ -84,7 +84,7 @@ fn build_tray<R: Runtime>(app: &AppHandle<R>, port: u16) -> tauri::Result<()> {
     )
     .build(app)?;
     let sep = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItemBuilder::with_id("quit", "❌ Quit Payment Alerts").build(app)?;
+    let quit = MenuItemBuilder::with_id("quit", "❌ Quit StreamPe").build(app)?;
 
     let menu = MenuBuilder::new(app)
         .items(&[&open_window, &open_browser, &copy_ip, &sep, &quit])
@@ -97,7 +97,7 @@ fn build_tray<R: Runtime>(app: &AppHandle<R>, port: u16) -> tauri::Result<()> {
 
     let tray = TrayIconBuilder::with_id("main-tray")
         .icon(tray_icon)
-        .tooltip("Payment Alerts for OBS")
+        .tooltip("StreamPe")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_tray_icon_event({
@@ -287,7 +287,7 @@ pub fn run() {
                                 .unwrap(),
                         ),
                     )
-                    .title("Payment Alerts for OBS")
+                    .title("StreamPe")
                     .inner_size(480.0, 640.0)
                     .min_inner_size(440.0, 580.0)
                     .resizable(true)
@@ -319,7 +319,7 @@ pub fn run() {
                     let _ = win.hide();
                     let _ = win.app_handle().notification()
                         .builder()
-                        .title("Payment Alerts for OBS")
+                        .title("StreamPe")
                         .body("App is running in the background. Access it from the system tray.")
                         .show();
                     return;

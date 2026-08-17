@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 echo =========================================================
-echo  Payment Alerts for OBS - Node.js Environment Checker
+echo  StreamPe - Node.js Environment Checker
 echo =========================================================
 echo.
 

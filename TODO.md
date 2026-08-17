@@ -17,7 +17,9 @@
   - **Native Folder Picker & Explorer Shortcuts:** Integrated Windows native `IFileOpenDialog` folder browser and direct 1-click Explorer shortcuts.
   - **Portable & Multi-Drive Support:** Enables streamers to sync configs and databases to cloud storage folders (Dropbox, OneDrive) or external drives with zero-path-breakage.
 
-- [x] **24. Windows Startup Registration & App Metadata Stamping** — Updated autostart registry configuration to register `Payment Alerts for OBS.exe` instead of `server.exe`, and enabled Windows PE VersionInfo compilation (`clowneon1` publisher, app icon, product descriptions) so Windows Task Manager and Startup tab display official app branding.
+- [x] **25. Rebranding to StreamPe & Logo Renewal** — Complete application rebranding from Payment Alerts for OBS to StreamPe (`https://github.com/clowneon1/streampe`): updated all Tauri desktop shell configs, Bun compilation flags, autostart registry entries, web frontend branding, Android companion app, documentation, and installed the new vector application icon.
+
+- [x] **24. Windows Startup Registration & App Metadata Stamping** — Updated autostart registry configuration to register `StreamPe.exe` instead of `server.exe`, and enabled Windows PE VersionInfo compilation (`clowneon1` publisher, app icon, product descriptions) so Windows Task Manager and Startup tab display official app branding.
 
 - [x] **20. Hierarchical Month-Based Database Sharding (`data/[profile]/[year]/[month].csv`) & Metadata Caching** — Transitioned from a single-file flat CSV database to a month-sharded directory structure to support infinite scaling for high-volume streamers:
   - **Hierarchical Directory Pathing:** Organized CSV files into `data/[profile]/[year]/[month].csv` (e.g. `data/Default/2026/08.csv`) for cleaner directories, simple yearly archiving, and rapid scanning.

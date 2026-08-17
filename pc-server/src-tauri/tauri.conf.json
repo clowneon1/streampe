@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Payment Alerts for OBS",
-  "identifier": "com.clowneon1.paymentalerts",
+  "productName": "StreamPe",
+  "identifier": "com.clowneon1.streampe",
   "version": "2.0.0",
   "build": {
     "beforeDevCommand": "",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Payment Alerts for OBS",
+        "title": "StreamPe",
         "width": 480,
         "height": 640,
         "minWidth": 440,
@@ -34,8 +34,8 @@
     "publisher": "clowneon1",
     "copyright": "Copyright © 2026 clowneon1",
     "category": "Utility",
-    "shortDescription": "Payment Alerts for OBS",
-    "longDescription": "Desktop application and OBS overlay server for payment notifications",
+    "shortDescription": "StreamPe - Live Payment Alerts Overlay",
+    "longDescription": "StreamPe desktop app and OBS overlay server for payment notifications",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

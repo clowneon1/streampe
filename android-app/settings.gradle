@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Payment Alerts for OBS"
+rootProject.name = "StreamPe"
 include ':app'

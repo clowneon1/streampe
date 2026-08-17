@@ -12,7 +12,7 @@ const rootDir = path.resolve(pcServerDir, '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(pcServerDir, 'package.json'), 'utf8'));
 const version = pkg.version || '2.0.0';
 
-console.log(`\n🚀 [Release Builder] Building Payment Alerts for OBS v${version}`);
+console.log(`\n🚀 [Release Builder] Building StreamPe v${version}`);
 console.log('─────────────────────────────────────────────────────────────────');
 
 // 1. Build bun sidecar
@@ -40,14 +40,20 @@ distDirs.forEach(d => {
 const pcServerDist = distDirs[0];
 
 // Assemble portable folder
-const portableFolderName = `Payment-Alerts-for-OBS-v${version}-Portable`;
+const portableFolderName = `StreamPe-v${version}-Portable`;
 const portableDir = path.join(pcServerDist, portableFolderName);
 fs.mkdirSync(portableDir, { recursive: true });
 
-// Copy main exe
-const mainExeSrc = path.join(pcServerDir, 'src-tauri', 'target', 'release', 'payment-alerts-obs.exe');
-if (fs.existsSync(mainExeSrc)) {
-  fs.copyFileSync(mainExeSrc, path.join(portableDir, 'Payment Alerts for OBS.exe'));
+// Copy main exe (try both streampe.exe and payment-alerts-obs.exe for transition safety)
+const mainExeCandidates = [
+  path.join(pcServerDir, 'src-tauri', 'target', 'release', 'streampe.exe'),
+  path.join(pcServerDir, 'src-tauri', 'target', 'release', 'payment-alerts-obs.exe')
+];
+for (const cand of mainExeCandidates) {
+  if (fs.existsSync(cand)) {
+    fs.copyFileSync(cand, path.join(portableDir, 'StreamPe.exe'));
+    break;
+  }
 }
 
 // Copy sidecar binary
@@ -78,7 +84,7 @@ if (fs.existsSync(widgetConfig)) {
 }
 
 // Create ZIP from portable folder using PowerShell Compress-Archive
-const zipDstName = `Payment-Alerts-for-OBS-v${version}-Portable.zip`;
+const zipDstName = `StreamPe-v${version}-Portable.zip`;
 const zipDst = path.join(pcServerDist, zipDstName);
 console.log(`Creating ${zipDstName}...`);
 

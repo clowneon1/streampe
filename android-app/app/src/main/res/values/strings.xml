@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Payment Alerts for OBS</string>
+    <string name="app_name">StreamPe</string>
     <string name="accessibility_service_description">
         Reads payment notification text to forward amounts to your OBS stream overlay.
         Only notification events are accessed — no passwords, no screen content, no input monitoring.

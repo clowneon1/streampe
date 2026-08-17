@@ -1,4 +1,4 @@
-# 💸 Payment Alerts for OBS
+# 💸 StreamPe
 
 A free, open-source, ultra-fast, and self-hosted solution to display real-time mobile payment alerts, donation goal bars, top supporter leaderboards, recent donation history, and auto-cycling widgets directly on your **OBS Studio** or **Streamlabs** live stream.
 
@@ -84,7 +84,7 @@ A free, open-source, ultra-fast, and self-hosted solution to display real-time m
 - Extract the ZIP file to any folder on your PC.
 
 ### 2. Launch the Application
-- Run **`Payment Alerts for OBS.exe`**.
+- Run **`StreamPe.exe`**.
 - **Run as Administrator**: If network discovery isn't working, right-click the app and select **Run as Administrator**.
 - **Firewall Permission**: When Windows Security Alert appears, check **both Private and Public networks** and click **Allow Access**.
 - The app starts on **port 2907** by default.

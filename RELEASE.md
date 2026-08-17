@@ -1,6 +1,6 @@
 # 🚀 Release Notes - Version 2.0.0 (Beta 2)
 
-We are proud to present **Version 2.0.0 (Beta 2)** of **Payment Alerts for OBS**! This release contains a complete structural overhaul, transitioning from Electron to a modern **Tauri v2 + Bun sidecar architecture** while introducing a rich suite of new features, widgets, analytics dashboards, and parser optimizations.
+We are proud to present **Version 2.0.0 (Beta 2)** of **StreamPe**! This release contains a complete structural overhaul, transitioning from Electron to a modern **Tauri v2 + Bun sidecar architecture** while introducing a rich suite of new features, widgets, analytics dashboards, and parser optimizations.
 
 Below is the comprehensive list of changes implemented in the Version 2 codebase, synced directly from our project roadmap.
 
@@ -10,7 +10,7 @@ Below is the comprehensive list of changes implemented in the Version 2 codebase
 
 * **Tauri v2 Desktop Shell**: Fully migrated the desktop app wrapper from Electron to Tauri v2. This reduces the application's RAM usage to **less than 25 MB** and significantly improves start times.
 * **Bun Sidecar Server**: Replaced the Node.js runner with a compiled **Bun background sidecar**. The Node.js Express server (`server.js`) is bundled into a lightweight, self-contained binary running natively without external dependencies.
-* **Compact Portable Releases**: The workspace now generates a standalone, zero-install **Portable ZIP** (`Payment-Alerts-for-OBS-v2.0.0-Portable.zip` — `~42 MB`, down from Electron's `~150+ MB`), centrally collected in the `dist/` directory via `npm run app:dist`.
+* **Compact Portable Releases**: The workspace now generates a standalone, zero-install **Portable ZIP** (`StreamPe-v2.0.0-Portable.zip` — `~42 MB`, down from Electron's `~150+ MB`), centrally collected in the `dist/` directory via `npm run app:dist`.
 * **System Tray & Window Controls**: Added native system tray integration. Minimizing the application hides it in the tray for uninterrupted background hosting. Includes start-minimized and launch-on-boot configuration flags.
 * **Unified Version Syncing**: Built a version sync utility (`npm version <patch|minor|major>`) to automatically align versions across `package.json`, `Cargo.toml`, and `tauri.conf.json`.
 

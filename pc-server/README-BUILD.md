@@ -1,9 +1,9 @@
-# Payment Alerts for OBS - Standalone Portable Windows App
+# StreamPe - Standalone Portable Windows App
  
 ## Overview
-Payment Alerts for OBS is distributed as a **Zero-Install Standalone Portable ZIP** for Windows:
+StreamPe is distributed as a **Zero-Install Standalone Portable ZIP** for Windows:
 - **Zero Installation Required**: No setup wizard, no UAC prompts, and no registry pollution.
-- **Instant Click-to-Run**: Unzip anywhere (e.g. Desktop or StreamTools folder) and double-click `Payment Alerts for OBS.exe`.
+- **Instant Click-to-Run**: Unzip anywhere (e.g. Desktop or StreamTools folder) and double-click `StreamPe.exe`.
 
 ## Architecture
 - **Desktop Shell**: Tauri v2 (Rust compiled native shell + Windows WebView2).
@@ -23,7 +23,7 @@ To compile the portable package:
    ```
 
 3. Output Artifact (generated in `dist/`):
-   - `dist/Payment-Alerts-for-OBS-v2.0.0-Portable.zip` (~42 MB)
+   - `dist/StreamPe-v2.0.0-Portable.zip` (~42 MB)
 
 ## Features Included in Release Builds
 - **Native Desktop Window & System Tray Integration**
