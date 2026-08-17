@@ -16,9 +16,10 @@ try {
   execSync('taskkill /F /IM server.exe /IM payment-alerts-obs.exe 2>nul', { stdio: 'ignore' });
 } catch (_) {}
 
-const bunExe      = path.join(pcServerDir, 'src-tauri', 'sidecars', 'bun.exe');
-const outExe      = path.join(pcServerDir, 'src-tauri', 'sidecars', 'server-x86_64-pc-windows-msvc.exe');
-const serverJs    = path.join(pcServerDir, 'server.js');
+const bunExe   = path.join(pcServerDir, 'src-tauri', 'sidecars', 'bun.exe');
+const outExe   = path.join(pcServerDir, 'src-tauri', 'sidecars', 'server-x86_64-pc-windows-msvc.exe');
+const serverJs = path.join(pcServerDir, 'server.js');
+const iconIco  = path.join(pcServerDir, 'src-tauri', 'icons', 'icon.ico');
 
 if (!fs.existsSync(bunExe)) {
   console.error('bun.exe not found in src-tauri/sidecars/.');
@@ -30,8 +31,8 @@ if (!fs.existsSync(serverJs)) {
   process.exit(1);
 }
 
-console.log('Compiling server.js with bun...');
-const cmd = `"${bunExe}" build "${serverJs}" --compile --target bun-windows-x64 --outfile "${outExe}"`;
+console.log('Compiling server.js with bun (stamping Windows metadata & icon)...');
+const cmd = `"${bunExe}" build "${serverJs}" --compile --target bun-windows-x64 --windows-title "Payment Alerts for OBS" --windows-publisher "clowneon1" --windows-description "Payment Alerts for OBS Server" --windows-copyright "Copyright (c) 2026 clowneon1" --windows-version "2.0.0.0" --windows-icon "${iconIco}" --windows-hide-console --outfile "${outExe}"`;
 console.log('>', cmd);
 
 try {

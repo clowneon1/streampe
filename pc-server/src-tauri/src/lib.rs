@@ -288,8 +288,8 @@ pub fn run() {
                         ),
                     )
                     .title("Payment Alerts for OBS")
-                    .inner_size(480.0, 520.0)
-                    .min_inner_size(440.0, 480.0)
+                    .inner_size(480.0, 640.0)
+                    .min_inner_size(440.0, 580.0)
                     .resizable(true)
                     .center()
                     .build()
