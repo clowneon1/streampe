@@ -2022,6 +2022,9 @@
           <button class="btn btn-outline" id="btn-clear-column-filters" type="button" style="font-size: 11px; padding: 4px 8px;" title="Reset all column filters">
             <i data-lucide="filter-x"></i> Reset Filters
           </button>
+          <button class="btn btn-outline" id="btn-download-filtered-csv" type="button" style="font-size: 11px; padding: 4px 8px;" title="Download currently filtered ledger list as CSV">
+            <i data-lucide="download"></i> Export Filtered CSV
+          </button>
           <div style="display: flex; gap: 2px; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2px 4px;" title="Ledger height preset">
             <button type="button" class="btn-box-toggle" id="btn-ledger-height-sm" title="Compact view (220px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">S</button>
             <button type="button" class="btn-box-toggle" id="btn-ledger-height-md" title="Default view (420px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px; color: var(--accent);">M</button>
@@ -2097,8 +2100,15 @@
                 <input type="text" id="filter-col-note" class="form-control" placeholder="Search message..." style="font-size: 11px; padding: 3px 6px; height: 26px;" />
                 <div class="col-resize-handle" title="Drag to resize column width"></div>
               </th>
-              <th style="padding: 8px 10px; text-align: right; width: 130px; background: var(--surface-2); position: relative;" class="resizable-col">
-                <div style="margin-bottom: 4px; font-weight: 600;">Amount</div>
+              <th style="padding: 8px 10px; text-align: right; width: 160px; background: var(--surface-2); position: relative;" class="resizable-col">
+                <div style="display: flex; align-items: center; justify-content: flex-end; margin-bottom: 4px; gap: 4px;">
+                  <span style="font-weight: 600;">Amount</span>
+                  <select id="select-col-amount-sort" class="form-control" style="font-size: 10px; padding: 2px 4px; height: 22px; width: auto; text-align: left;" title="Amount Sort Order">
+                    <option value="none" selected>— None</option>
+                    <option value="desc">↓ Highest First</option>
+                    <option value="asc">↑ Lowest First</option>
+                  </select>
+                </div>
                 <input type="number" id="filter-col-min-amount" class="form-control" placeholder="Min ₹..." style="font-size: 11px; padding: 3px 6px; height: 26px; text-align: right;" />
                 <div class="col-resize-handle" title="Drag to resize column width"></div>
               </th>
@@ -2333,6 +2343,49 @@
         <button type="button" class="btn btn-secondary" id="btn-cancel-manual-payment">Cancel</button>
         <button type="button" class="btn btn-primary" id="btn-submit-manual-payment">
           <i data-lucide="check"></i> <span id="btn-submit-manual-text">Record &amp; Credit Goal</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Time-Based Export CSV Modal -->
+  <div id="modal-export-csv" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 440px; width: 92%;">
+      <div class="modal-header">
+        <h3 style="margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="file-spreadsheet" style="color: var(--accent);"></i>
+          <span>Export Donations CSV</span>
+        </h3>
+        <button type="button" class="modal-close-btn" id="modal-export-csv-close"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body" style="padding: 16px 20px;">
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+          Select whether to export your entire history, or filter the backup to a specific month and year range.
+        </p>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="select-export-scope" style="font-weight: 600;">Export Scope</label>
+          <select id="select-export-scope" class="form-control">
+            <option value="all">📅 All Time (Full History)</option>
+            <option value="range">📅 Custom Month/Year Range</option>
+          </select>
+        </div>
+        <div id="export-range-fields" style="display: none;">
+          <div class="form-row" style="margin-bottom: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label for="input-export-start" style="font-weight: 600;">From (Month/Year)</label>
+              <input type="month" id="input-export-start" class="form-control" style="color-scheme: dark; color: #ffffff;" />
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="input-export-end" style="font-weight: 600;">To (Month/Year)</label>
+              <input type="month" id="input-export-end" class="form-control" style="color-scheme: dark; color: #ffffff;" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-export-csv">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-submit-export-csv">
+          <i data-lucide="download"></i> Download CSV
         </button>
       </div>
     </div>

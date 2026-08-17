@@ -482,7 +482,13 @@ function applySettingsPatch(current, patch) {
 function saveSettings(settings) {
   try {
     if (!fs.existsSync(SETTINGS_DIR)) fs.mkdirSync(SETTINGS_DIR, { recursive: true });
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf8');
+    const cleanSettings = JSON.parse(JSON.stringify(settings));
+    if (cleanSettings.widgets) {
+      if (cleanSettings.widgets.goal) delete cleanSettings.widgets.goal.currentAmount;
+      if (cleanSettings.widgets.leaderboard) delete cleanSettings.widgets.leaderboard.supporters;
+      if (cleanSettings.widgets.recent) delete cleanSettings.widgets.recent.recentDonations;
+    }
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(cleanSettings, null, 2), 'utf8');
   } catch (e) { log.error('Settings', 'Save error: ' + e.message); }
 }
 
@@ -507,7 +513,16 @@ function loadProfilesStore() {
 function saveProfilesStore(store) {
   try {
     if (!fs.existsSync(SETTINGS_DIR)) fs.mkdirSync(SETTINGS_DIR, { recursive: true });
-    fs.writeFileSync(PROFILES_FILE, JSON.stringify(store, null, 2), 'utf8');
+    const cleanStore = JSON.parse(JSON.stringify(store));
+    Object.keys(cleanStore.profiles).forEach(pName => {
+      const p = cleanStore.profiles[pName];
+      if (p && p.widgets) {
+        if (p.widgets.goal) delete p.widgets.goal.currentAmount;
+        if (p.widgets.leaderboard) delete p.widgets.leaderboard.supporters;
+        if (p.widgets.recent) delete p.widgets.recent.recentDonations;
+      }
+    });
+    fs.writeFileSync(PROFILES_FILE, JSON.stringify(cleanStore, null, 2), 'utf8');
   } catch (e) { log.error('Profiles', 'Save error: ' + e.message); }
 }
 
@@ -517,89 +532,277 @@ let alertSettings = profilesStore.profiles[profilesStore.activeProfile] || loadS
 // ── Single Source of Truth: In-Memory Cached CSV Ledger ─────────────
 const donationsCache = {};
 
-function getDonationsCsvPath(profileName) {
-  const profile = (profileName || (profilesStore && profilesStore.activeProfile) || 'Default')
-    .replace(/[^a-zA-Z0-9_-]/g, '_');
-  return path.join(DATA_DIR, `donations_${profile}.csv`);
+function getTodayYearMonth() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function loadDonations(profileName) {
-  const profile = profileName || (profilesStore && profilesStore.activeProfile) || 'Default';
-  if (donationsCache[profile]) {
-    return donationsCache[profile];
-  }
-  const filePath = getDonationsCsvPath(profile);
+function getDonationsCsvPath(profileName, yearMonth) {
+  const profile = (profileName || (profilesStore && profilesStore.activeProfile) || 'Default')
+    .replace(/[^a-zA-Z0-9_-]/g, '_');
+  const ym = yearMonth || getTodayYearMonth();
+  const [year, month] = ym.split('-');
+  return path.join(DATA_DIR, profile, year, `${month}.csv`);
+}
+
+function getAvailableProfileMonths(profileName) {
+  const profile = (profileName || (profilesStore && profilesStore.activeProfile) || 'Default')
+    .replace(/[^a-zA-Z0-9_-]/g, '_');
+  const profileDir = path.join(DATA_DIR, profile);
+  if (!fs.existsSync(profileDir)) return [];
+  
+  const months = [];
   try {
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, 'utf8');
-      const txs = PaymentsCsv.parseCsv(content);
-      donationsCache[profile] = txs;
-      return txs;
+    const years = fs.readdirSync(profileDir).filter(y => /^\d{4}$/.test(y));
+    for (const yr of years) {
+      const yearDir = path.join(profileDir, yr);
+      const files = fs.readdirSync(yearDir).filter(f => /^\d{2}\.csv$/.test(f));
+      for (const f of files) {
+        const mo = f.replace('.csv', '');
+        months.push(`${yr}-${mo}`);
+      }
     }
   } catch (e) {
-    log.error('DonationsCSV', `Failed to load donations CSV (${filePath}): ` + e.message);
+    log.error('Database', 'Error scanning profile months: ' + e.message);
   }
-  donationsCache[profile] = [];
-  return [];
+  return months.sort().reverse();
+}
+
+function loadDonations(profileName, monthKey) {
+  const profile = profileName || (profilesStore && profilesStore.activeProfile) || 'Default';
+  
+  // If specific month is requested
+  if (monthKey && monthKey !== 'all') {
+    const cacheKey = `${profile}_${monthKey}`;
+    if (donationsCache[cacheKey]) {
+      return donationsCache[cacheKey];
+    }
+    const filePath = getDonationsCsvPath(profile, monthKey);
+    try {
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const txs = PaymentsCsv.parseCsv(content);
+        donationsCache[cacheKey] = txs;
+        return txs;
+      }
+    } catch (e) {
+      log.error('DonationsCSV', `Failed to load donations CSV (${filePath}): ` + e.message);
+    }
+    donationsCache[cacheKey] = [];
+    return [];
+  }
+  
+  // If all history is requested
+  const allMonths = getAvailableProfileMonths(profile);
+  let allTxs = [];
+  for (const ym of allMonths) {
+    const monthTxs = loadDonations(profile, ym);
+    allTxs = allTxs.concat(monthTxs);
+  }
+  allTxs.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
+  return allTxs;
 }
 
 function saveDonations(profileName, transactions) {
   const profile = profileName || (profilesStore && profilesStore.activeProfile) || 'Default';
-  const filePath = getDonationsCsvPath(profile);
   try {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    // Guarantee that ONLY authentic payments are stored in the CSV ledger
+    const groups = {};
     const realTransactions = (transactions || []).filter(t => !t.simulated);
-    const content = PaymentsCsv.serializeCsv(realTransactions);
-    fs.writeFileSync(filePath, content, 'utf8');
-    donationsCache[profile] = realTransactions;
+    
+    realTransactions.forEach(t => {
+      let ym = PaymentsCsv.getMonthKey(t.timestamp || t.date);
+      if (!ym) ym = getTodayYearMonth();
+      if (!groups[ym]) groups[ym] = [];
+      groups[ym].push(t);
+    });
+
+    const cacheKeys = Object.keys(donationsCache).filter(k => k.startsWith(`${profile}_`));
+    cacheKeys.forEach(k => delete donationsCache[k]);
+    
+    const existingMonths = getAvailableProfileMonths(profile);
+    existingMonths.forEach(ym => {
+      if (!groups[ym]) {
+        const filePath = getDonationsCsvPath(profile, ym);
+        if (fs.existsSync(filePath)) {
+          try { fs.unlinkSync(filePath); } catch (_) {}
+        }
+      }
+    });
+
+    for (const [ym, txs] of Object.entries(groups)) {
+      const filePath = getDonationsCsvPath(profile, ym);
+      const fileDir = path.dirname(filePath);
+      if (!fs.existsSync(fileDir)) fs.mkdirSync(fileDir, { recursive: true });
+      const content = PaymentsCsv.serializeCsv(txs);
+      fs.writeFileSync(filePath, content, 'utf8');
+      donationsCache[`${profile}_${ym}`] = txs;
+    }
+    
     return true;
   } catch (e) {
-    log.error('DonationsCSV', `Failed to save donations CSV (${filePath}): ` + e.message);
+    log.error('DonationsCSV', `Failed to save donations CSV for ${profile}: ` + e.message);
     return false;
   }
 }
 
 function appendDonation(profileName, tx) {
   const profile = profileName || (profilesStore && profilesStore.activeProfile) || 'Default';
-  const filePath = getDonationsCsvPath(profile);
   if (tx.simulated) return;
 
+  let ym = PaymentsCsv.getMonthKey(tx.timestamp || tx.date);
+  if (!ym) ym = getTodayYearMonth();
+  
+  const filePath = getDonationsCsvPath(profile, ym);
+  const cacheKey = `${profile}_${ym}`;
+
   try {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    if (!fs.existsSync(filePath)) {
-      return saveDonations(profile, [tx]);
-    }
+    const fileDir = path.dirname(filePath);
+    if (!fs.existsSync(fileDir)) fs.mkdirSync(fileDir, { recursive: true });
+    
     const row = PaymentsCsv.formatCsvRow(tx) + '\n';
-    fs.appendFileSync(filePath, row, 'utf8');
-    if (!donationsCache[profile]) {
-      loadDonations(profile);
+    
+    if (!fs.existsSync(filePath)) {
+      saveDonations(profile, [tx]);
     } else {
-      donationsCache[profile].unshift(tx);
+      fs.appendFileSync(filePath, row, 'utf8');
+      if (donationsCache[cacheKey]) {
+        donationsCache[cacheKey].unshift(tx);
+      } else {
+        loadDonations(profile, ym);
+      }
     }
     return true;
   } catch (e) {
-    log.error('DonationsCSV', `Failed to append donation (${filePath}): ` + e.message);
+    log.error('DonationsCSV', `Failed to append donation to ${filePath}: ` + e.message);
     return false;
   }
 }
 
-function syncDerivedMetricsToSettings(profileName, broadcast = true) {
+function migrateLegacyCsvDatabases() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) return;
+    const files = fs.readdirSync(DATA_DIR);
+    for (const file of files) {
+      const match = file.match(/^donations_(.+?)\.csv$/);
+      if (match) {
+        const profile = match[1];
+        const filePath = path.join(DATA_DIR, file);
+        log.info('Migration', `Found legacy CSV database for profile "${profile}": ${file}`);
+        try {
+          const content = fs.readFileSync(filePath, 'utf8');
+          const txs = PaymentsCsv.parseCsv(content);
+          if (txs.length > 0) {
+            log.info('Migration', `Migrating ${txs.length} legacy transactions to month-sharded structure...`);
+            saveDonations(profile, txs);
+          }
+          fs.renameSync(filePath, filePath + '.bak');
+          log.info('Migration', `Legacy file renamed to ${file}.bak`);
+        } catch (err) {
+          log.error('Migration', `Failed to migrate legacy CSV ${file}: ` + err.message);
+        }
+      }
+    }
+  } catch (e) {
+    log.error('Migration', 'Error listing legacy CSV files: ' + e.message);
+  }
+}
+
+migrateLegacyCsvDatabases();
+
+// ── Metadata Cache Helpers (data/[profile]/metadata.json) ──────────
+function getMetadataPath(profileName) {
+  const profile = (profileName || (profilesStore && profilesStore.activeProfile) || 'Default')
+    .replace(/[^a-zA-Z0-9_-]/g, '_');
+  return path.join(DATA_DIR, profile, 'metadata.json');
+}
+
+function loadProfileMetadata(profileName) {
+  const filePath = getMetadataPath(profileName);
+  try {
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    }
+  } catch (e) {
+    log.error('Metadata', 'Load error: ' + e.message);
+  }
+  return {
+    goal: { currentAmount: 0 },
+    leaderboard: { supporters: {} },
+    recent: { recentDonations: [] }
+  };
+}
+
+function saveProfileMetadata(profileName, metadata) {
+  const filePath = getMetadataPath(profileName);
+  try {
+    const fileDir = path.dirname(filePath);
+    if (!fs.existsSync(fileDir)) fs.mkdirSync(fileDir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(metadata, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    log.error('Metadata', 'Save error: ' + e.message);
+    return false;
+  }
+}
+
+function syncDerivedMetricsToSettings(profileName, broadcast = true, newTx = null, forceRebuild = false) {
   const profile = profileName || (profilesStore && profilesStore.activeProfile) || 'Default';
   const targetSettings = profilesStore.profiles[profile] || alertSettings;
-  const transactions = loadDonations(profile);
   const startAmount = parseFloat(targetSettings.widgets?.goal?.startAmount) || 0;
 
-  const metrics = PaymentsCsv.computeMetrics(transactions, { startAmount, includeSimulated: false });
+  let metadata;
 
+  if (newTx && !newTx.simulated) {
+    // Incremental sync for real-time performance (prevents heavy historical CSV file parses during streams)
+    metadata = loadProfileMetadata(profile);
+    
+    if (!metadata.goal) metadata.goal = { currentAmount: startAmount };
+    if (!metadata.leaderboard) metadata.leaderboard = { supporters: {} };
+    if (!metadata.recent) metadata.recent = { recentDonations: [] };
+
+    const amt = parseFloat(newTx.amount) || 0;
+    metadata.goal.currentAmount = (parseFloat(metadata.goal.currentAmount) || 0) + amt;
+
+    const supporters = metadata.leaderboard.supporters || {};
+    supporters[newTx.sender] = (parseFloat(supporters[newTx.sender]) || 0) + amt;
+    metadata.leaderboard.supporters = supporters;
+
+    let recent = metadata.recent.recentDonations || [];
+    if (!Array.isArray(recent)) recent = [];
+    const decorated = decorateWithTemplate(newTx);
+    recent.unshift(decorated);
+    if (recent.length > 50) recent = recent.slice(0, 50);
+    metadata.recent.recentDonations = recent;
+
+    saveProfileMetadata(profile, metadata);
+  } else {
+    // Full sync from disk files (triggered on startup, profile switch, manual edit, delete, or import)
+    const metadataPath = getMetadataPath(profile);
+    if (!forceRebuild && fs.existsSync(metadataPath)) {
+      metadata = loadProfileMetadata(profile);
+    } else {
+      const transactions = loadDonations(profile);
+      const metrics = PaymentsCsv.computeMetrics(transactions, { startAmount, includeSimulated: false });
+
+      metadata = {
+        goal: { currentAmount: metrics.goalAmount },
+        leaderboard: { supporters: metrics.supporters },
+        recent: { recentDonations: metrics.recentDonations }
+      };
+
+      saveProfileMetadata(profile, metadata);
+    }
+  }
+
+  // Merge into in-memory settings for widgets and websocket broadcasts
   if (!targetSettings.widgets) targetSettings.widgets = {};
   if (!targetSettings.widgets.goal) targetSettings.widgets.goal = {};
   if (!targetSettings.widgets.leaderboard) targetSettings.widgets.leaderboard = {};
   if (!targetSettings.widgets.recent) targetSettings.widgets.recent = {};
 
-  targetSettings.widgets.goal.currentAmount = metrics.goalAmount;
-  targetSettings.widgets.leaderboard.supporters = metrics.supporters;
-  targetSettings.widgets.recent.recentDonations = metrics.recentDonations;
+  targetSettings.widgets.goal.currentAmount = metadata.goal.currentAmount;
+  targetSettings.widgets.leaderboard.supporters = metadata.leaderboard.supporters;
+  targetSettings.widgets.recent.recentDonations = metadata.recent.recentDonations;
 
   if (profile === profilesStore.activeProfile) {
     alertSettings = targetSettings;
@@ -611,15 +814,20 @@ function syncDerivedMetricsToSettings(profileName, broadcast = true) {
   if (broadcast) {
     broadcastSettings(alertSettings);
   }
-  return metrics;
+  return {
+    goalAmount: targetSettings.widgets.goal.currentAmount,
+    supporters: targetSettings.widgets.leaderboard.supporters,
+    recentDonations: targetSettings.widgets.recent.recentDonations
+  };
 }
 
 // Initial Auto-Migration from settings.json to donations.csv if CSV doesn't exist
 function autoMigrateInitialDonations() {
   try {
     const activeProf = profilesStore.activeProfile || 'Default';
-    const filePath = getDonationsCsvPath(activeProf);
-    if (!fs.existsSync(filePath)) {
+    const availableMonths = getAvailableProfileMonths(activeProf);
+    if (availableMonths.length === 0) {
+      const filePath = getDonationsCsvPath(activeProf);
       const supporters = alertSettings.widgets?.leaderboard?.supporters || {};
       const recentList = alertSettings.widgets?.recent?.recentDonations || [];
       const txs = [];
@@ -755,10 +963,9 @@ function processPaymentForGoalAndLeaderboard(notification) {
       simulated: false
     };
 
-    // Single source of truth: Append to ledger and compute derived metrics
     appendDonation(profilesStore.activeProfile, tx);
 
-    const metrics = syncDerivedMetricsToSettings(profilesStore.activeProfile, true);
+    const metrics = syncDerivedMetricsToSettings(profilesStore.activeProfile, true, tx);
     if (alertId) processedAlertIds.add(alertId);
 
     log.info('Payment', `[CSV Recorded] ₹${effectiveAmount} from "${senderName}" via ${tx.sourceApp} | Total Goal: ₹${metrics.goalAmount} | AlertID=${tx.id}`);
@@ -789,13 +996,7 @@ app.get('/list',                (req, res) => res.sendFile(path.join(__dirname, 
 // ── CSV Donations & Analytics Endpoints ──────────────────────────────
 app.get('/api/donations/months', (req, res) => {
   const profile = req.query.profile || profilesStore.activeProfile;
-  const transactions = loadDonations(profile);
-  const monthSet = new Set();
-  transactions.forEach(t => {
-    const m = PaymentsCsv.getMonthKey(t.date || t.timestamp);
-    if (m) monthSet.add(m);
-  });
-  const months = Array.from(monthSet).sort().reverse();
+  const months = getAvailableProfileMonths(profile);
   res.json({ ok: true, profile, months });
 });
 
@@ -810,7 +1011,7 @@ app.get('/api/analytics', (req, res) => {
   const startDate = req.query.startDate || '';
   const endDate = req.query.endDate || '';
 
-  const transactions = loadDonations(profile);
+  const transactions = loadDonations(profile, month);
   const targetSettings = profilesStore.profiles[profile] || alertSettings;
   const startAmount = parseFloat(targetSettings.widgets?.goal?.startAmount) || 0;
 
@@ -860,10 +1061,11 @@ app.get('/api/donations/query', (req, res) => {
   const startDate = req.query.startDate || '';
   const endDate = req.query.endDate || '';
   const sort = (req.query.sort || 'desc').toLowerCase();
+  const sortBy = (req.query.sortBy || 'date').toLowerCase();
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(100, Math.max(10, parseInt(req.query.limit, 10) || 50));
 
-  const allTransactions = loadDonations(profile);
+  const allTransactions = loadDonations(profile, month);
   const filtered = PaymentsCsv.filterTransactions(allTransactions, {
     month,
     provider,
@@ -876,10 +1078,18 @@ app.get('/api/donations/query', (req, res) => {
     includeSimulated: false
   });
 
-  if (sort === 'asc') {
-    filtered.sort((a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0));
+  if (sortBy === 'amount') {
+    if (sort === 'asc') {
+      filtered.sort((a, b) => (Number(a.amount) || 0) - (Number(b.amount) || 0));
+    } else {
+      filtered.sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0));
+    }
   } else {
-    filtered.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
+    if (sort === 'asc') {
+      filtered.sort((a, b) => (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0));
+    } else {
+      filtered.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
+    }
   }
 
   const total = filtered.length;
@@ -914,17 +1124,77 @@ app.get('/api/donations', (req, res) => {
   });
 });
 
+function getMonthsInRange(startDateStr, endDateStr) {
+  if (!startDateStr || !endDateStr) return [];
+  const start = new Date(startDateStr);
+  const end = new Date(endDateStr);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return [];
+  
+  const months = [];
+  let current = new Date(start.getFullYear(), start.getMonth(), 1);
+  const targetEnd = new Date(end.getFullYear(), end.getMonth(), 1);
+  
+  while (current <= targetEnd) {
+    const yr = current.getFullYear();
+    const mo = String(current.getMonth() + 1).padStart(2, '0');
+    months.push(`${yr}-${mo}`);
+    current.setMonth(current.getMonth() + 1);
+  }
+  return months;
+}
+
 app.get('/api/donations/csv', (req, res) => {
   const profile = req.query.profile || profilesStore.activeProfile;
-  const filePath = getDonationsCsvPath(profile);
-  if (!fs.existsSync(filePath)) {
-    const defaultCsv = PaymentsCsv.serializeCsv([]);
-    fs.writeFileSync(filePath, defaultCsv, 'utf8');
+  const month = req.query.month || 'all';
+  const provider = req.query.provider || 'all';
+  const search = req.query.search || '';
+  const minAmount = req.query.minAmount || '';
+  const maxAmount = req.query.maxAmount || '';
+  const specificDate = req.query.date || req.query.specificDate || '';
+  let startDate = req.query.startDate || '';
+  let endDate = req.query.endDate || '';
+
+  // Normalize YYYY-MM inputs to full YYYY-MM-DD bounds so string comparisons are inclusive
+  if (startDate && startDate.length === 7) {
+    startDate = `${startDate}-01`;
   }
-  const filename = `donations_${profile}_${new Date().toISOString().split('T')[0]}.csv`;
+  if (endDate && endDate.length === 7) {
+    const [year, monthVal] = endDate.split('-').map(Number);
+    const lastDay = new Date(year, monthVal, 0).getDate();
+    endDate = `${endDate}-${String(lastDay).padStart(2, '0')}`;
+  }
+
+  let transactions = [];
+  if (startDate && endDate) {
+    const months = getMonthsInRange(startDate, endDate);
+    for (const ym of months) {
+      transactions = transactions.concat(loadDonations(profile, ym));
+    }
+  } else {
+    transactions = loadDonations(profile, month);
+  }
+
+  const filtered = PaymentsCsv.filterTransactions(transactions, {
+    month,
+    provider,
+    search,
+    minAmount,
+    maxAmount,
+    specificDate,
+    startDate,
+    endDate,
+    includeSimulated: false
+  });
+
+  // Sort descending by timestamp
+  filtered.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
+
+  const csvContent = PaymentsCsv.serializeCsv(filtered);
+  const rangeSuffix = (startDate && endDate) ? `${startDate}_to_${endDate}` : month;
+  const filename = `donations_${profile}_filtered_${rangeSuffix}_${new Date().toISOString().split('T')[0]}.csv`;
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  res.sendFile(filePath);
+  res.send(csvContent);
 });
 
 app.post('/api/donations/import', (req, res) => {
@@ -948,7 +1218,7 @@ app.post('/api/donations/import', (req, res) => {
     }
 
     saveDonations(profile, finalTxs);
-    const metrics = syncDerivedMetricsToSettings(profile, true);
+    const metrics = syncDerivedMetricsToSettings(profile, true, null, true);
     log.info('DonationsCSV', `Imported ${importedTxs.length} transactions (mode: ${mode}) into ${profile}`);
     res.json({ ok: true, profile, importedCount: importedTxs.length, totalCount: finalTxs.length, metrics });
   } catch (e) {
@@ -987,7 +1257,7 @@ app.post('/api/donations/record', (req, res) => {
     currentTxs.unshift(tx);
     saveDonations(profile, currentTxs);
 
-    const metrics = syncDerivedMetricsToSettings(profile, true);
+    const metrics = syncDerivedMetricsToSettings(profile, true, null, true);
     log.info('DonationsCSV', `Recorded manual donation: ₹${amountNum} from "${tx.sender}" via ${tx.sourceApp}`);
     res.json({ ok: true, transaction: tx, metrics });
   } catch (e) {
@@ -1026,7 +1296,7 @@ app.put('/api/donations/:id', (req, res) => {
     };
 
     saveDonations(profile, currentTxs);
-    const metrics = syncDerivedMetricsToSettings(profile, true);
+    const metrics = syncDerivedMetricsToSettings(profile, true, null, true);
     log.info('DonationsCSV', `Updated transaction ${id} in ${profile}: ₹${amountNum} from "${currentTxs[idx].sender}"`);
     res.json({ ok: true, transaction: currentTxs[idx], metrics });
   } catch (e) {
@@ -1046,7 +1316,7 @@ app.delete('/api/donations/:id', (req, res) => {
     }
 
     saveDonations(profile, filtered);
-    const metrics = syncDerivedMetricsToSettings(profile, true);
+    const metrics = syncDerivedMetricsToSettings(profile, true, null, true);
     log.info('DonationsCSV', `Deleted transaction ${id} from ${profile}`);
     res.json({ ok: true, deletedId: id, remainingCount: filtered.length, metrics });
   } catch (e) {
@@ -1057,9 +1327,15 @@ app.delete('/api/donations/:id', (req, res) => {
 app.post('/api/donations/clear', (req, res) => {
   try {
     const profile = req.body?.profile || profilesStore.activeProfile;
-    saveDonations(profile, []);
-    const metrics = syncDerivedMetricsToSettings(profile, true);
-    log.info('DonationsCSV', `Cleared all transactions for ${profile}`);
+    const profileDir = path.join(DATA_DIR, profile.replace(/[^a-zA-Z0-9_-]/g, '_'));
+    if (fs.existsSync(profileDir)) {
+      try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch (_) {}
+    }
+    const cacheKeys = Object.keys(donationsCache).filter(k => k.startsWith(`${profile}_`));
+    cacheKeys.forEach(k => delete donationsCache[k]);
+
+    const metrics = syncDerivedMetricsToSettings(profile, true, null, true);
+    log.info('DonationsCSV', `Cleared all transactions and directories for ${profile}`);
     res.json({ ok: true, profile, count: 0, metrics });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

@@ -20,9 +20,7 @@
     'amount',
     'currency',
     'sourceApp',
-    'message',
-    'templateId',
-    'simulated'
+    'message'
   ];
 
   const CURRENCY_SYMBOLS = {
@@ -117,9 +115,7 @@
       effectiveAmount,
       escapeCsvField(currCode),
       escapeCsvField(tx.sourceApp || 'Unknown'),
-      escapeCsvField(tx.message || ''),
-      escapeCsvField(tx.templateId || ''),
-      tx.simulated ? 'true' : 'false'
+      escapeCsvField(tx.message || '')
     ].join(',');
   }
 
@@ -191,7 +187,11 @@
       const row = rows[r];
       if (row.length === 0 || (row.length === 1 && !row[0])) continue;
 
-      const get = (idx, fallback = '') => (idx >= 0 && idx < row.length && row[idx] !== undefined) ? row[idx] : fallback;
+      const get = (idx, fallback = '') => {
+        if (idx < 0 || idx >= row.length || row[idx] === undefined || row[idx] === null) return fallback;
+        const val = String(row[idx]).trim();
+        return val !== '' ? val : fallback;
+      };
 
       const rawAmtStr = get(fieldIndex.amount, get(fieldIndex.rawAmount, '0'));
       const parsedAmount = parseFloat(rawAmtStr.replace(/[^0-9.-]/g, '')) || 0;
