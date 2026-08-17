@@ -292,6 +292,55 @@ try {
 
   console.log('✅ Test 5 Passed!');
 
+  // 6. Test Custom Directories & Single Storage Root Bootstrapping
+  console.log('⚡ Running Test 6: Custom storage root & PUBLIC_DIR resolution...');
+  const TEST_DIR = TEST_PROFILE_DIR;
+  fs.mkdirSync(TEST_DIR, { recursive: true });
+  const testPathConfigFile = path.join(TEST_DIR, 'path-config.json');
+  const customConfig = {
+    storageRootDir: path.join(TEST_DIR, 'custom-storage-root')
+  };
+
+  fs.writeFileSync(testPathConfigFile, JSON.stringify(customConfig, null, 2), 'utf8');
+  assert.ok(fs.existsSync(testPathConfigFile), 'path-config.json should be written successfully');
+
+  const parsedPaths = JSON.parse(fs.readFileSync(testPathConfigFile, 'utf8'));
+  const storageRoot = parsedPaths.storageRootDir && parsedPaths.storageRootDir.trim()
+    ? path.resolve(parsedPaths.storageRootDir.trim())
+    : TEST_DIR;
+
+  const testLogDir      = path.join(storageRoot, 'logs');
+  const testSettingsDir = path.join(storageRoot, 'config');
+  const testDataDir     = path.join(storageRoot, 'data');
+
+  assert.strictEqual(testLogDir, path.join(customConfig.storageRootDir, 'logs'), 'Logs dir should be subfolder under storage root');
+  assert.strictEqual(testSettingsDir, path.join(customConfig.storageRootDir, 'config'), 'Config dir should be subfolder under storage root');
+  assert.strictEqual(testDataDir, path.join(customConfig.storageRootDir, 'data'), 'Data dir should be subfolder under storage root');
+
+  // Test fallback when storageRootDir is empty
+  const emptyConfig = { storageRootDir: '   ' };
+  const fallbackRoot = emptyConfig.storageRootDir && emptyConfig.storageRootDir.trim()
+    ? path.resolve(emptyConfig.storageRootDir.trim())
+    : TEST_DIR;
+
+  assert.strictEqual(fallbackRoot, TEST_DIR, 'Fallback root should resolve to base directory');
+  assert.strictEqual(path.join(fallbackRoot, 'logs'), path.join(TEST_DIR, 'logs'), 'Fallback logs dir should be subfolder under base dir');
+
+  // Test dynamic PUBLIC_DIR resolution
+  const testExecDir = TEST_DIR;
+  const testExecPublic = path.join(testExecDir, 'public');
+  fs.mkdirSync(testExecPublic, { recursive: true });
+  fs.writeFileSync(path.join(testExecPublic, 'app.html'), '<html></html>', 'utf8');
+
+  let resolvedPublic = path.join(testExecDir, 'public');
+  if (!fs.existsSync(resolvedPublic)) {
+    resolvedPublic = path.join(__dirname, '..', 'public');
+  }
+  assert.strictEqual(resolvedPublic, testExecPublic, 'PUBLIC_DIR should resolve relative to process execution directory');
+  assert.ok(fs.existsSync(path.join(resolvedPublic, 'app.html')), 'PUBLIC_DIR app.html asset should exist');
+
+  console.log('✅ Test 6 Passed!');
+
   // Cleanup testing workspace
   cleanupTestDir();
   console.log('\n🎉 ALL PERSISTENT DATABASE TEST CASES PASSED SUCCESSFULLY!');

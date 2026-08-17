@@ -9,29 +9,18 @@ const winston = require('winston');
 require('winston-daily-rotate-file');
 const { Bonjour } = require('bonjour-service');
 
-const app = express();
-const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
-
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/favicon.ico', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'icon.png'));
-});
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'config.html'));
-});
-
-// ── Debug Logger (Winston with Daily Rotation & 7-Day Retention) ─────
 const isCompiled = !process.execPath.endsWith('node') && 
                    !process.execPath.endsWith('node.exe') && 
                    !process.execPath.endsWith('bun') && 
                    !process.execPath.endsWith('bun.exe');
 
-let writableBaseDir = isCompiled ? path.dirname(process.execPath) : __dirname;
+let baseDir = isCompiled ? path.dirname(process.execPath) : __dirname;
+let PUBLIC_DIR = path.join(baseDir, 'public');
+if (!fs.existsSync(PUBLIC_DIR)) {
+  PUBLIC_DIR = path.join(__dirname, 'public');
+}
+
+let writableBaseDir = baseDir;
 
 // If compiled and running from a system/read-only location (e.g. Program Files), fall back to AppData Roaming
 if (isCompiled && (writableBaseDir.toLowerCase().includes('program files') || writableBaseDir.toLowerCase().includes('system32'))) {
@@ -48,12 +37,47 @@ try {
   }
 } catch (e) {}
 
-const LOG_DIR = path.join(writableBaseDir, 'logs');
+const app = express();
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
 
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.static(PUBLIC_DIR));
+
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'icon.png'));
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'config.html'));
+});
+
+// ── Path Config Bootstrapping ──
+const PATH_CONFIG_FILE = path.join(writableBaseDir, 'path-config.json');
+let customPaths = { storageRootDir: '' };
 try {
-  if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+  if (fs.existsSync(PATH_CONFIG_FILE)) {
+    customPaths = JSON.parse(fs.readFileSync(PATH_CONFIG_FILE, 'utf8')) || {};
+  }
 } catch (e) {
-  console.error('[Server] Failed to create log directory:', e.message);
+  console.error('[Server] Failed to read path-config.json:', e.message);
+}
+
+const storageRoot = customPaths.storageRootDir && customPaths.storageRootDir.trim()
+  ? path.resolve(customPaths.storageRootDir.trim())
+  : writableBaseDir;
+
+const LOG_DIR      = path.join(storageRoot, 'logs');
+const SETTINGS_DIR = path.join(storageRoot, 'config');
+const DATA_DIR     = path.join(storageRoot, 'data');
+
+for (const dir of [LOG_DIR, SETTINGS_DIR, DATA_DIR]) {
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  } catch (e) {
+    console.error(`[Server] Failed to create directory ${dir}:`, e.message);
+  }
 }
 
 const customLevels = {
@@ -217,13 +241,27 @@ function isWindowsStartupEnabled(callback) {
   });
 }
 
+function getMainAppExePath() {
+  if (!isCompiled) return process.execPath;
+  const base = path.dirname(process.execPath);
+  const candidates = [
+    path.join(base, 'Payment Alerts for OBS.exe'),
+    path.join(base, 'payment-alerts-obs.exe'),
+    path.join(base, 'PaymentAlertsOBS.exe')
+  ];
+  for (const cand of candidates) {
+    if (fs.existsSync(cand)) return cand;
+  }
+  return process.execPath;
+}
+
 function setWindowsStartup(enable, callback) {
   if (process.platform !== 'win32') return callback ? callback(false, 'Windows platform required') : null;
 
-  // Use registry directly (Tauri handles autostart via tauri-plugin-autostart on the Rust side)
+  // Use registry directly with the main UI application executable
   exec('reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /f', () => {
     if (enable) {
-      const exePath = process.execPath;
+      const exePath = getMainAppExePath();
       const cmd = `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /t REG_SZ /d "\"${exePath}\"" /f`;
       exec(cmd, (err) => {
         if (callback) callback(!err, err ? err.message : null);
@@ -436,14 +474,8 @@ const ConfigMigration = require('./public/js/lib/config-migration');
 const TemplateMatcher = require('./public/js/lib/template-matcher');
 const PaymentsCsv = require('./public/js/lib/payments-csv');
 
-const SETTINGS_DIR = path.join(writableBaseDir, 'config');
 const SETTINGS_FILE = path.join(SETTINGS_DIR, 'settings.json');
-const LEGACY_CONFIG_FILE = path.join(__dirname, 'widget-config.json');
-
-const DATA_DIR = path.join(writableBaseDir, 'data');
-if (!fs.existsSync(DATA_DIR)) {
-  try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (_) {}
-}
+const LEGACY_CONFIG_FILE = fs.existsSync(path.join(baseDir, 'widget-config.json')) ? path.join(baseDir, 'widget-config.json') : path.join(__dirname, 'widget-config.json');
 
 function loadSettings() {
   try {
@@ -975,23 +1007,23 @@ function processPaymentForGoalAndLeaderboard(notification) {
 }
 
 // ── Routes ───────────────────────────────────────────────────────────
-app.get('/app',                 (req, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
-app.get('/config',              (req, res) => res.sendFile(path.join(__dirname, 'public', 'config.html')));
-app.get('/preview',             (req, res) => res.sendFile(path.join(__dirname, 'public', 'preview.html')));
-app.get('/overlay/alerts',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
-app.get('/overlay/alert',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
-app.get('/overlay/goal',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
-app.get('/overlay/list',        (req, res) => res.sendFile(path.join(__dirname, 'public', 'list.html')));
-app.get('/overlay/lists',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'list.html')));
-app.get('/overlay/leaderboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'list.html')));
-app.get('/overlay/recent',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'list.html')));
-app.get('/overlay/cycling-widget', (req, res) => res.sendFile(path.join(__dirname, 'public', 'cycling-widget.html')));
-app.get('/overlay',             (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
-app.get('/alerts',              (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
-app.get('/alert',               (req, res) => res.sendFile(path.join(__dirname, 'public', 'overlay.html')));
-app.get('/goal',                (req, res) => res.sendFile(path.join(__dirname, 'public', 'goal.html')));
-app.get('/leaderboard',         (req, res) => res.sendFile(path.join(__dirname, 'public', 'list.html')));
-app.get('/list',                (req, res) => res.sendFile(path.join(__dirname, 'public', 'list.html')));
+app.get('/app',                 (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'app.html')));
+app.get('/config',              (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'config.html')));
+app.get('/preview',             (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'preview.html')));
+app.get('/overlay/alerts',      (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
+app.get('/overlay/alert',       (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
+app.get('/overlay/goal',        (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'goal.html')));
+app.get('/overlay/list',        (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
+app.get('/overlay/lists',       (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
+app.get('/overlay/leaderboard', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
+app.get('/overlay/recent',      (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
+app.get('/overlay/cycling-widget', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'cycling-widget.html')));
+app.get('/overlay',             (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
+app.get('/alerts',              (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
+app.get('/alert',               (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
+app.get('/goal',                (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'goal.html')));
+app.get('/leaderboard',         (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
+app.get('/list',                (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
 
 // ── CSV Donations & Analytics Endpoints ──────────────────────────────
 app.get('/api/donations/months', (req, res) => {
@@ -1404,6 +1436,50 @@ app.post('/api/config', (req, res) => {
   res.json({ ok: true, config: alertSettings });
 });
 
+app.get('/api/system/paths', (req, res) => {
+  res.json({
+    ok: true,
+    paths: {
+      storageRootDir: customPaths.storageRootDir || ''
+    },
+    resolved: {
+      storageRootDir: storageRoot,
+      configDir: SETTINGS_DIR,
+      dataDir: DATA_DIR,
+      logsDir: LOG_DIR
+    }
+  });
+});
+
+app.post('/api/system/paths', (req, res) => {
+  try {
+    const body = req.body || {};
+    const newPaths = {
+      storageRootDir: (body.storageRootDir || '').trim()
+    };
+
+    fs.writeFileSync(PATH_CONFIG_FILE, JSON.stringify(newPaths, null, 2), 'utf8');
+    customPaths = newPaths;
+
+    res.json({
+      ok: true,
+      message: 'Storage root configured. Please restart the PC Server to apply the new directory locations.'
+    });
+  } catch (e) {
+    log.error('System', 'Failed to save paths: ' + e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/system/restart', (req, res) => {
+  log.info('System', 'Server restart requested via dashboard UI...');
+  res.json({ ok: true, message: 'Server is restarting...' });
+  stopMdnsDiscovery();
+  setTimeout(() => {
+    process.exit(0);
+  }, 500);
+});
+
 app.get('/api/logs/dates', (req, res) => {
   const dates = getAvailableLogDates();
   res.json({ ok: true, dates, today: getTodayDateStr() });
@@ -1556,6 +1632,95 @@ app.post('/api/system/open-browser', (req, res) => {
     exec(`start "" "${targetUrl}"`);
   }
   res.json({ ok: true });
+});
+
+app.post('/api/system/open-explorer', (req, res) => {
+  const { folderPath } = req.body || {};
+  if (!folderPath) return res.status(400).json({ ok: false, error: 'folderPath required' });
+  const safePath = path.resolve(folderPath);
+  if (process.platform === 'win32') {
+    exec(`explorer "${safePath}"`);
+  }
+  res.json({ ok: true });
+});
+
+app.post('/api/system/pick-folder', (req, res) => {
+  if (process.platform !== 'win32') {
+    return res.status(400).json({ ok: false, error: 'Folder picker only supported on Windows' });
+  }
+
+  // Write to a temp .ps1 — avoids all shell-escaping headaches
+  const os = require('os');
+  const tmpScript = path.join(os.tmpdir(), 'pa-obs-pick-folder.ps1');
+
+  // Uses IFileOpenDialog (modern Windows Explorer UI) via C# COM interop.
+  // FOS_PICKFOLDERS (0x20) | FOS_FORCEFILESYSTEM (0x40) = 0x60
+  const psScript = `
+if (-not ([System.Management.Automation.PSTypeName]'FolderPicker').Type) {
+  Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class FolderPicker {
+  [ComImport, Guid("DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7")]
+  class FileOpenDialog {}
+
+  [ComImport, Guid("42f85136-db7e-439c-85f1-e4075d135fc8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  interface IFileDialog {
+    [PreserveSig] int Show(IntPtr hwnd);
+    void m02(uint n, IntPtr p);  void m03(uint i); void m04(out uint i);
+    void m05(IntPtr s, out uint c); void m06(uint c);
+    void SetOptions(uint fos);
+    void m08(out uint fos);
+    void m09(IntPtr psi); void m10(IntPtr psi);
+    void m11(out IntPtr ppsi); void m12(out IntPtr ppsi);
+    void m13([MarshalAs(UnmanagedType.LPWStr)] string n);
+    void m14([MarshalAs(UnmanagedType.LPWStr)] out string n);
+    void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string title);
+    void m16([MarshalAs(UnmanagedType.LPWStr)] string l);
+    void m17([MarshalAs(UnmanagedType.LPWStr)] string l);
+    void GetResult(out IShellItem ppsi);
+    void m19(IntPtr psi, int fdap);
+    void m20([MarshalAs(UnmanagedType.LPWStr)] string ext);
+    void m21(int hr); void m22(ref Guid g); void m23(); void m24(IntPtr f);
+  }
+
+  [ComImport, Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  interface IShellItem {
+    void n01(IntPtr pbc, ref Guid bhid, ref Guid riid, out IntPtr ppv);
+    void n02(out IShellItem ppsi);
+    void GetDisplayName(uint sigdn, [MarshalAs(UnmanagedType.LPWStr)] out string name);
+    void n04(uint mask, out uint a); void n05(IShellItem psi, uint h, out int o);
+  }
+
+  public static string Pick() {
+    try {
+      var dlg = (IFileDialog)(new FileOpenDialog());
+      dlg.SetOptions(0x60); // FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM
+      dlg.SetTitle("Select Storage Root Directory");
+      if (dlg.Show(IntPtr.Zero) != 0) return "";
+      IShellItem item;
+      dlg.GetResult(out item);
+      string result;
+      item.GetDisplayName(0x80058000, out result); // SIGDN_FILESYSPATH
+      return result ?? "";
+    } catch { return ""; }
+  }
+}
+"@
+}
+[FolderPicker]::Pick()
+`.trimStart();
+
+  try {
+    fs.writeFileSync(tmpScript, psScript, 'utf8');
+    exec(`powershell -NoProfile -ExecutionPolicy Bypass -STA -File "${tmpScript}"`, { timeout: 60000 }, (err, stdout) => {
+      try { fs.unlinkSync(tmpScript); } catch (_) {}
+      if (err) return res.status(500).json({ ok: false, error: err.message });
+      res.json({ ok: true, path: stdout.trim() });
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 let isServerListening = true;

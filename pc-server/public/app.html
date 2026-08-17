@@ -324,15 +324,63 @@
       </label>
     </div>
 
-    <!-- Action Button -->
-    <button type="button" class="btn-primary" id="btn-open-control-panel">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-        <polyline points="15 3 21 3 21 9"></polyline>
-        <line x1="10" y1="14" x2="21" y2="3"></line>
-      </svg>
-      Open Control Panel in Browser
-    </button>
+    <!-- Storage Root Card -->
+    <div class="section-card" id="storage-card">
+      <span class="card-title">Storage Directory</span>
+
+      <div class="checkbox-row" style="cursor: default;">
+        <div class="checkbox-label">
+          <span class="checkbox-title">Storage Root</span>
+          <span class="checkbox-sub" id="display-path-root">Loading…</span>
+        </div>
+        <div style="display: flex; gap: 6px; flex-shrink: 0;">
+          <button type="button" id="btn-reset-paths" class="btn-copy" title="Use default" style="height: 28px; padding: 0 10px; font-size: 11px;">Default</button>
+          <button type="button" id="btn-browse-root" class="btn-copy" title="Pick folder" style="height: 28px; padding: 0 10px; font-size: 11px; display: flex; align-items: center; gap: 5px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            Browse
+          </button>
+        </div>
+      </div>
+      <div id="storage-hint" style="font-size: 10.5px; color: var(--text-muted); display: none; margin-top: 4px;">
+        ↻ &nbsp;Requires restart to take effect
+      </div>
+    </div>
+
+    <!-- Bottom row: Logs · Data · Config  +  Open Control Panel (3:1) -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;">
+      <button type="button" id="btn-open-logs" title="" style="
+        background: var(--surface-card); border: 1px solid var(--border-color); border-radius: 12px;
+        color: var(--text-muted); font-size: 11.5px; font-weight: 600; cursor: pointer;
+        padding: 10px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 5px; transition: all 0.2s ease;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Logs
+      </button>
+      <button type="button" id="btn-open-data" title="" style="
+        background: var(--surface-card); border: 1px solid var(--border-color); border-radius: 12px;
+        color: var(--text-muted); font-size: 11.5px; font-weight: 600; cursor: pointer;
+        padding: 10px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 5px; transition: all 0.2s ease;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        Data
+      </button>
+      <button type="button" id="btn-open-config" title="" style="
+        background: var(--surface-card); border: 1px solid var(--border-color); border-radius: 12px;
+        color: var(--text-muted); font-size: 11.5px; font-weight: 600; cursor: pointer;
+        padding: 10px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 5px; transition: all 0.2s ease;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+        Config
+      </button>
+      <button type="button" id="btn-open-control-panel" style="
+        background: var(--accent); color: #000; border: none; border-radius: 12px;
+        font-size: 11px; font-weight: 700; cursor: pointer; padding: 10px 4px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 5px; transition: all 0.2s ease; box-shadow: 0 4px 14px rgba(0,229,255,0.25);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Control Panel
+      </button>
+    </div>
 
   </div>
 

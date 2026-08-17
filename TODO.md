@@ -5,17 +5,22 @@
 ## 🚀 Upcoming Features & Tasks
 
 - [ ] **19. Security & Access Control (PIN / Password / 2FA Authentication)** — Add optional password/PIN protection for the PC Dashboard (`/config`) and the Android companion connection (`ws://.../android` & `/api/*`). Prevents unauthorized devices on shared Wi-Fi networks (roommates, shared studios, public Wi-Fi) from accessing financial analytics, triggering bogus alerts, or connecting without entering the streamer's configured PIN/password.
-- [ ] **20. Hierarchical Month-Based Database Sharding (`data/[profile]/[year]/[month].csv`) & Metadata Caching** — Transition from a single-file flat CSV database to a month-sharded directory structure to support infinite scaling for high-volume streamers:
-  - **Hierarchical Directory Pathing:** Organize CSV files into `data/[profile]/[year]/[month].csv` (e.g. `data/Default/2026/08.csv`) for cleaner directories, simple yearly archiving, and rapid scanning.
-  - **Pre-Aggregated Metadata Cache:** Maintain a lightweight memory-efficient running totals cache (`metadata.json`) for active goals, the top 100 supporters leaderboard, and the last 50 recent donations. This enables OBS overlays and the boot lifecycle to start instantly without parsing raw CSV logs, staying under the < 25 MB RAM target.
-  - **On-Demand Archive Loading:** Update the "Earning Overview" dashboard ledger to read/parse historical CSV files on-demand (only loading them when requested, and immediately garbage collecting the memory structures).
-  - **12-Month Rolling UI Window:** Group month selectors in the analytics dashboard into "Active Months (Last 12 Months)" and "Historical Archives (Older)" to keep daily workflows fast and responsive.
+- [ ] **21. Custom Storage Path Settings (Logs, Data, and Config Directories)** — Add a dashboard configuration section (above the logs tab) to control where application files are stored:
+  - **Directory Relocation:** Allow users to set custom directories for `logs/`, `data/` (transactions ledger), and `config/` (profiles and settings).
+  - **Default Fallbacks:** If paths are left empty, automatically fallback to local server subfolders (`pc-server/logs`, `pc-server/data`, `pc-server/config`).
+  - **Flexible Environments:** Enables streamers to sync configs and databases to cloud storage folders (Dropbox, OneDrive) or run configurations from external drives.
 
 ---
 
 ## ✅ Completed
 
 ### Version 2.0.0 (`feature/version-2`)
+
+- [x] **20. Hierarchical Month-Based Database Sharding (`data/[profile]/[year]/[month].csv`) & Metadata Caching** — Transitioned from a single-file flat CSV database to a month-sharded directory structure to support infinite scaling for high-volume streamers:
+  - **Hierarchical Directory Pathing:** Organized CSV files into `data/[profile]/[year]/[month].csv` (e.g. `data/Default/2026/08.csv`) for cleaner directories, simple yearly archiving, and rapid scanning.
+  - **Pre-Aggregated Metadata Cache:** Maintained a lightweight memory-efficient running totals cache (`metadata.json`) for active goals, the top 100 supporters leaderboard, and the last 50 recent donations. This enables OBS overlays and the boot lifecycle to start instantly without parsing raw CSV logs, staying under the < 25 MB RAM target.
+  - **On-Demand Archive Loading:** Updated the "Earning Overview" dashboard ledger to read/parse historical CSV files on-demand (only loading them when requested, and immediately garbage collecting the memory structures).
+  - **12-Month Rolling UI Window:** Grouped month selectors in the analytics dashboard into "Active Months (Last 12 Months)" and "Historical Archives (Older)" to keep daily workflows fast and responsive.
 
 - [x] **23. Fix Initial Profile Context & Donations CSV Loading on Boot** — Resolved bug where the dashboard initially loaded the `Default` profile's CSV ledger before `/api/settings` finished. Added `getCurrentProfileName()`, synchronized `loadProfilesList()` with `window.__activeProfile`, and automatically trigger `refreshEarningsAnalytics()` upon boot so the active profile's donations ledger, monthly breakdown, and analytics KPIs load immediately.
 - [x] **21. Automatic Stale WebSocket Connection Cleanup & Accurate Connection Counter** — Implemented fast 5s ping/pong heartbeat, IP-based socket deduplication, and `getActiveWsCount()` to guarantee phantom connections (e.g. "3 Android connected") are immediately evicted when a phone disconnects or switches network.

@@ -30,7 +30,12 @@
     }
   },
   "bundle": {
-    "active": false,
+    "active": true,
+    "publisher": "clowneon1",
+    "copyright": "Copyright © 2026 clowneon1",
+    "category": "Utility",
+    "shortDescription": "Payment Alerts for OBS",
+    "longDescription": "Desktop application and OBS overlay server for payment notifications",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
