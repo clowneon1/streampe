@@ -8,27 +8,32 @@ A free, open-source, ultra-fast, and self-hosted solution to display real-time m
 
 ### 💻 Desktop Client & Web Control Panel
 
-| 💻 Lightweight Desktop App Window | 🎛️ Live Alert Customizer & OBS Preview |
+| 📊 Earning Overview & Analytics | 🎛️ Live Alert Customizer & OBS Preview |
 | :---: | :---: |
-| <img src="readme-assets/Screenshot%202026-07-28%20212603.png" width="420" alt="Desktop App Window" /> | <img src="readme-assets/Screenshot%202026-07-28%20212617.png" width="420" alt="Live Alert Customizer" /> |
-| *Native Tauri v2 app window with IP URL copy & auto-start toggle* | *Real-time alert customizer with live transparent OBS overlay grid* |
+| <img src="readme-assets/Screenshot%202026-08-17%20195718.png" width="420" alt="StreamPe Earning Overview" /> | <img src="readme-assets/Screenshot%202026-08-17%20195736.png" width="420" alt="Live Alert Customizer" /> |
+| *Interactive earnings dashboard with income charts & payment breakdowns* | *Real-time alert customizer with live transparent OBS overlay grid* |
 
-| 🎯 Payment Goal Bar Widget | 🏆 Top Supporters Leaderboard |
+| 🎯 Payment Goal Bar Widget | 🏆 Unified List Widget System |
 | :---: | :---: |
-| <img src="readme-assets/Screenshot%202026-07-28%20212631.png" width="420" alt="Payment Goal Bar" /> | <img src="readme-assets/Screenshot%202026-07-28%20212639.png" width="420" alt="Top Supporters Leaderboard" /> |
-| *Configurable donation goal track, fill colors, and progress percentages* | *Live ranking leaderboard for top payment contributors* |
+| <img src="readme-assets/Screenshot%202026-08-17%20195822.png" width="420" alt="Payment Goal Bar" /> | <img src="readme-assets/Screenshot%202026-08-17%20195831.png" width="420" alt="Top Supporters & Recent List" /> |
+| *Configurable donation goal track, fill colors, and progress overflow* | *Modular list widget system for Top Supporters and Recent Donations* |
 
-| 🔄 Auto-Cycling Info Widget | 📱 Android Companion Setup |
+| 🔄 Auto-Cycling Info Widget | ⚡ Native Desktop App & System Tray |
 | :---: | :---: |
-| <img src="readme-assets/Screenshot%202026-07-28%20212647.png" width="420" alt="Auto Cycling Widget" /> | <img src="readme-assets/Screenshot%202026-07-28%20212851.png" width="280" alt="Android Companion Setup" /> |
-| *Rotational widget cycling through top supporters & recent donations* | *Android companion app setup for local network connection & listener* |
+| <img src="readme-assets/Screenshot%202026-08-17%20195837.png" width="420" alt="Auto Cycling Widget" /> | <img src="readme-assets/Screenshot%202026-08-17%20195846.png" width="420" alt="StreamPe Desktop App" /> |
+| *Rotational info widget cycling through custom cards & recent alerts* | *Ultra-lightweight Tauri v2 + Bun desktop app (< 25 MB RAM)* |
 
 ### 📱 Android Companion App Features
 
-| 🔔 Notification Tester & Preset Selector | 📜 Recent Donations & Retrigger Log |
+| 📡 Server Auto-Discovery (mDNS) | 📋 3-Slide Permission Setup | 🎯 App Selector |
+| :---: | :---: | :---: |
+| <img src="readme-assets/Screenshot%202026-08-17%20201550.png" width="240" alt="Server Auto Discovery" /> | <img src="readme-assets/Screenshot%202026-08-17%20200403.png" width="240" alt="Permission Setup" /> | <img src="readme-assets/Screenshot%202026-08-17%20201602.png" width="240" alt="App Selector" /> |
+| *Native mDNS local scanning & IP history chips* | *Concise 3-slide onboarding setup* | *Select payment apps (PhonePe, GPay, Amazon)* |
+
+| 🔔 Notification Tester & Presets | 📜 Alert History & Retrigger Log |
 | :---: | :---: |
-| <img src="readme-assets/Screenshot%202026-07-28%20213504.png" width="280" alt="Notification Tester" /> | <img src="readme-assets/Screenshot%202026-07-28%20213516.png" width="280" alt="Recent Donations Log" /> |
-| *Test payment notification triggers for PhonePe, Amazon Pay, etc.* | *Local log of received notifications with one-click retrigger to OBS* |
+| <img src="readme-assets/Screenshot%202026-08-17%20201611.png" width="240" alt="Notification Tester" /> | <img src="readme-assets/Screenshot%202026-08-17%20201626.png" width="240" alt="Alert History Log" /> |
+| *Test payment alerts for GPay, PhonePe, and Amazon Pay* | *Permanent local log of received alerts with 1-click retriggering* |
 
 ---
 
@@ -79,8 +84,8 @@ A free, open-source, ultra-fast, and self-hosted solution to display real-time m
 ## ⬇️ How to Install & Use (Streamer Setup)
 
 ### 1. Download Pre-Built Release
-- Visit the official [GitHub Releases Page](https://github.com/clowneon1/payment-alerts-for-obs/releases).
-- Download **`Payment-Alerts-for-OBS-v2.0.0-Portable.zip`** (Zero-install portable archive).
+- Visit the official [GitHub Releases Page](https://github.com/clowneon1/streampe/releases).
+- Download **`StreamPe-v2.0.0-Portable.zip`** (Zero-install portable archive).
 - Extract the ZIP file to any folder on your PC.
 
 ### 2. Launch the Application
@@ -102,8 +107,8 @@ In OBS Studio, click **+ (Add Source)** ➔ **Browser**:
 | :--- | :--- | :--- |
 | 📡 **Payment Alert Widget** | `http://<YOUR-PC-IP>:2907/overlay/alerts` | `800 x 600` |
 | 🎯 **Payment Goal Bar** | `http://<YOUR-PC-IP>:2907/overlay/goal` | `800 x 120` |
-| 🏆 **Top Leaderboard** | `http://<YOUR-PC-IP>:2907/overlay/leaderboard` | `400 x 600` |
-| 📜 **Recent Donations List** | `http://<YOUR-PC-IP>:2907/overlay/recent` | `400 x 600` |
+| 🏆 **Top Leaderboard** | `http://<YOUR-PC-IP>:2907/overlay/list?id=top-supporters` | `400 x 600` |
+| 📜 **Recent Donations List** | `http://<YOUR-PC-IP>:2907/overlay/list?id=recent-donations` | `400 x 600` |
 | 🔄 **Cycling Widget** | `http://<YOUR-PC-IP>:2907/overlay/cycling-widget` | `400 x 140` |
 
 ---
@@ -113,8 +118,8 @@ In OBS Studio, click **+ (Add Source)** ➔ **Browser**:
 Check our **[Frequently Asked Questions (FAQ) & Troubleshooting Guide](FAQ.md)** for step-by-step help with Android Play Protect, Android 13+ Restricted Settings, battery optimization, and network setup!
 
 - ❓ **FAQ & Troubleshooting**: [Read FAQ.md](FAQ.md)
-- 🐛 **Report a Bug**: [Submit an Issue on GitHub](https://github.com/clowneon1/payment-alerts-for-obs/issues)
-- 💡 **Feature Requests**: [Propose a Feature](https://github.com/clowneon1/payment-alerts-for-obs/issues/new?title=[Feature]+Your+Feature+Idea)
+- 🐛 **Report a Bug**: [Submit an Issue on GitHub](https://github.com/clowneon1/streampe/issues)
+- 💡 **Feature Requests**: [Propose a Feature](https://github.com/clowneon1/streampe/issues/new?title=[Feature]+Your+Feature+Idea)
 - 💬 **Discord Support**: Join our [Discord Community Server](https://partially-practical.codepenguin.in/) for live setup assistance.
 
 ---
@@ -122,8 +127,8 @@ Check our **[Frequently Asked Questions (FAQ) & Troubleshooting Guide](FAQ.md)**
 ## 🛠️ How to Build from Source (Developer Guide)
 
 ```bash
-git clone https://github.com/clowneon1/payment-alerts-for-obs.git
-cd payment-alerts-for-obs/pc-server
+git clone https://github.com/clowneon1/streampe.git
+cd streampe/pc-server
 npm install
 ```
 
@@ -142,10 +147,11 @@ npm run app:dev
 ```bash
 npm run app:dist
 ```
-*Outputs `Payment-Alerts-for-OBS-v2.0.0-Portable.zip` into `dist/`.*
+*Outputs `StreamPe-v2.0.0-Portable.zip` into `dist/`.*
 
 ---
 
 ## 📄 License & Credits
 Developed with ❤️ by [clowneon1](https://github.com/clowneon1).  
 Distributed under the [MIT License](LICENSE). ⭐ If you like this project, please give it a star on GitHub!
+

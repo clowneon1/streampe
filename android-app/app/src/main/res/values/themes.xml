@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.StreamPe" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.StreamPe" parent="Theme.MaterialComponents.NoActionBar">
         <item name="android:statusBarColor">#0a0c14</item>
         <item name="android:navigationBarColor">#0a0c14</item>
         <item name="android:windowLightStatusBar">false</item>

@@ -12,7 +12,7 @@ import java.util.UUID
 class NotificationService : NotificationListenerService() {
 
     companion object {
-        private const val TAG = "PaymentAlertsOBS"
+        private const val TAG = "StreamPeNotifService"
         var allowedPackages: Set<String>? = null
     }
 
