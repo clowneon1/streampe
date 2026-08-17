@@ -1899,10 +1899,11 @@ wss.on('connection', (ws, req) => {
     const rawIp = req.socket?.remoteAddress || '';
     const normIp = rawIp.replace(/^::ffff:/, '');
 
-    // Evict any existing or stale android sockets
+    // Evict any stale or duplicate android sockets from the same IP address
     for (const existing of androidClients) {
+      if (existing === ws) continue;
       const existingNormIp = (existing.remoteIp || '').replace(/^::ffff:/, '');
-      if (existing.readyState !== 1 || existingNormIp === normIp || existing !== ws) {
+      if (existing.readyState !== 1 || (normIp && existingNormIp === normIp)) {
         androidClients.delete(existing);
         try { existing.terminate(); } catch (_) {}
       }
@@ -2044,7 +2045,7 @@ function startMdnsDiscovery(port, retryCount = 0) {
       }
     }
     const hostName = os.hostname() || 'Streamer-PC';
-    let serviceName = `Payment Alerts - ${hostName}`;
+    let serviceName = `StreamPe - ${hostName}`;
     if (port !== PREFERRED_PORT || retryCount > 0) {
       serviceName += ` (Port ${port}${retryCount > 0 ? ` #${retryCount}` : ''})`;
     }

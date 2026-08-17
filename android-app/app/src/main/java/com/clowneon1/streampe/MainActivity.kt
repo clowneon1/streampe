@@ -11,6 +11,7 @@ import android.view.View
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
@@ -37,7 +38,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(R.style.Theme_PaymentAlertsOBS)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        setTheme(R.style.Theme_StreamPe)
         super.onCreate(savedInstanceState)
         prefs = AppPrefs(this)
         discoveryManager = ServerDiscoveryManager(this)

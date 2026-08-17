@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 
 class AppPrefs(context: Context) {
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("payment_alerts_prefs", Context.MODE_PRIVATE)
+        context.getSharedPreferences("streampe_prefs", Context.MODE_PRIVATE)
 
     var serverUrl: String
         get() = prefs.getString("server_url", "") ?: ""

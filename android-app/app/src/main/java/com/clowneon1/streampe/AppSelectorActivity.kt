@@ -16,6 +16,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.appcompat.app.AppCompatDelegate
 
 class AppSelectorActivity : AppCompatActivity() {
 
@@ -42,6 +43,7 @@ class AppSelectorActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_app_selector)
         prefs = AppPrefs(this)

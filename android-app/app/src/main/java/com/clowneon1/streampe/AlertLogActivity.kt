@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.*
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.text.SimpleDateFormat
@@ -16,6 +17,7 @@ class AlertLogActivity : AppCompatActivity() {
     private lateinit var tvCount : TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_alert_log)
         AlertLog.init(this)

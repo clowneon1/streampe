@@ -29,6 +29,7 @@ object WebSocketManager {
     private var webSocket: WebSocket? = null
     private var serverUrl: String     = ""
     private val isConnected           = AtomicBoolean(false)
+    private val isConnecting          = AtomicBoolean(false)
     private val isReconnecting        = AtomicBoolean(false)
     private val messageQueue          = ArrayDeque<String>(MAX_QUEUE)
     private val handler               = Handler(Looper.getMainLooper())
@@ -57,8 +58,8 @@ object WebSocketManager {
     }
 
     fun connect(url: String) {
-        if (isConnected.get() && serverUrl == url && webSocket != null) {
-            Log.d(TAG, "Already connected to $url — skipping duplicate connection")
+        if (serverUrl == url && (isConnected.get() || isConnecting.get()) && webSocket != null) {
+            Log.d(TAG, "Already connected or connecting to $url — skipping duplicate connection")
             return
         }
         serverUrl = url
@@ -66,7 +67,7 @@ object WebSocketManager {
     }
 
     fun connectIfNeeded(url: String) {
-        if (isConnected.get() && serverUrl == url && webSocket != null) return
+        if (serverUrl == url && (isConnected.get() || isConnecting.get()) && webSocket != null) return
         serverUrl = url
         openSocket()
     }
@@ -80,7 +81,7 @@ object WebSocketManager {
             }
         } else {
             queueMessage(message)
-            if (!isReconnecting.get()) scheduleReconnect()
+            if (!isReconnecting.get() && !isConnecting.get()) scheduleReconnect()
         }
     }
 
@@ -97,7 +98,7 @@ object WebSocketManager {
                 notifyState(false, "Server ping failed — Reconnecting...")
                 scheduleReconnect()
             }
-        } else if (!isReconnecting.get()) {
+        } else if (!isReconnecting.get() && !isConnecting.get()) {
             scheduleReconnect()
         }
     }
@@ -106,6 +107,7 @@ object WebSocketManager {
         handler.removeCallbacksAndMessages(null)
         val oldWs = webSocket
         webSocket     = null
+        isConnecting.set(false)
         isConnected.set(false)
         isReconnecting.set(false)
         try { oldWs?.close(1000, "User disconnected") } catch (_: Exception) {}
@@ -116,6 +118,11 @@ object WebSocketManager {
 
     private fun openSocket() {
         if (serverUrl.isBlank()) return
+        if (isConnecting.getAndSet(true)) {
+            Log.d(TAG, "Connection attempt already in progress — skipping duplicate openSocket call")
+            return
+        }
+
         val oldWs = webSocket
         webSocket = null
         try { oldWs?.close(1000, "Replaced by new connection") } catch (_: Exception) {}
@@ -126,6 +133,7 @@ object WebSocketManager {
 
             override fun onOpen(ws: WebSocket, response: Response) {
                 Log.d(TAG, "Connected to $serverUrl")
+                isConnecting.set(false)
                 isConnected.set(true)
                 isReconnecting.set(false)
                 notifyState(true, "Connected to PC Server")
@@ -138,6 +146,7 @@ object WebSocketManager {
 
             override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
                 Log.w(TAG, "Connection failure to $serverUrl: ${t.message}")
+                isConnecting.set(false)
                 isConnected.set(false)
                 notifyState(false, "Server Offline / Reconnecting...")
                 scheduleReconnect()
@@ -145,15 +154,17 @@ object WebSocketManager {
 
             override fun onClosing(ws: WebSocket, code: Int, reason: String) {
                 ws.close(1000, null)
+                isConnecting.set(false)
                 isConnected.set(false)
                 notifyState(false, "Server Closed Connection")
-                if (code != 1000) scheduleReconnect()
+                if (webSocket == ws) scheduleReconnect()
             }
 
             override fun onClosed(ws: WebSocket, code: Int, reason: String) {
+                isConnecting.set(false)
                 isConnected.set(false)
                 notifyState(false, "Disconnected")
-                if (code != 1000) scheduleReconnect()
+                if (webSocket == ws) scheduleReconnect()
             }
         })
     }
@@ -162,7 +173,7 @@ object WebSocketManager {
         if (isReconnecting.getAndSet(true)) return
         handler.postDelayed({
             isReconnecting.set(false)
-            if (!isConnected.get() && serverUrl.isNotBlank()) {
+            if (!isConnected.get() && !isConnecting.get() && serverUrl.isNotBlank()) {
                 Log.d(TAG, "Attempting auto-reconnect to $serverUrl...")
                 notifyState(false, "Reconnecting to server...")
                 openSocket()
