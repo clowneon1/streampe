@@ -5,10 +5,11 @@
 ## 🚀 Upcoming Features & Tasks
 
 - [ ] **19. Security & Access Control (PIN / Password / 2FA Authentication)** — Add optional password/PIN protection for the PC Dashboard (`/config`) and the Android companion connection (`ws://.../android` & `/api/*`). Prevents unauthorized devices on shared Wi-Fi networks (roommates, shared studios, public Wi-Fi) from accessing financial analytics, triggering bogus alerts, or connecting without entering the streamer's configured PIN/password.
-- [ ] **20. Money / Amount Text Highlight & Styling Settings** — Add dedicated styling and highlight options for payment amounts (`{{amount}}`) in Alert Templates, Leaderboards, and Cycling Widgets:
-  - **Highlight Color Picker**: Custom text color for the amount (e.g. Glowing Gold `#ffd700`, Neon Emerald `#10b981`, Vibrant Cyan `#00e5ff`).
-  - **Highlight Text Shadow / Glow**: Configurable glow radius, glow color, and intensity for the amount to make high-value donations stand out on stream.
-  - **Pill / Badge Background**: Optional glassmorphic pill/badge background wrap around the currency amount (`<span class="amount-badge">₹500</span>`).
+- [ ] **20. Hierarchical Month-Based Database Sharding (`data/[profile]/[year]/[month].csv`) & Metadata Caching** — Transition from a single-file flat CSV database to a month-sharded directory structure to support infinite scaling for high-volume streamers:
+  - **Hierarchical Directory Pathing:** Organize CSV files into `data/[profile]/[year]/[month].csv` (e.g. `data/Default/2026/08.csv`) for cleaner directories, simple yearly archiving, and rapid scanning.
+  - **Pre-Aggregated Metadata Cache:** Maintain a lightweight memory-efficient running totals cache (`metadata.json`) for active goals, the top 100 supporters leaderboard, and the last 50 recent donations. This enables OBS overlays and the boot lifecycle to start instantly without parsing raw CSV logs, staying under the < 25 MB RAM target.
+  - **On-Demand Archive Loading:** Update the "Earning Overview" dashboard ledger to read/parse historical CSV files on-demand (only loading them when requested, and immediately garbage collecting the memory structures).
+  - **12-Month Rolling UI Window:** Group month selectors in the analytics dashboard into "Active Months (Last 12 Months)" and "Historical Archives (Older)" to keep daily workflows fast and responsive.
 
 ---
 
