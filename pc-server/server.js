@@ -221,14 +221,12 @@ function getPrimaryIp() {
 function isWindowsStartupEnabled(callback) {
   if (process.platform !== 'win32') return callback(false);
 
-  exec('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS"', (err, stdout) => {
-    if (!err && stdout && (stdout.includes('PaymentAlertsOBS') || stdout.includes('Payment Alerts'))) {
+  exec('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"', (err, stdout) => {
+    if (!err && stdout && (stdout.includes('PaymentAlertsOBS') || stdout.includes('Payment Alerts for OBS') || stdout.includes('Payment Alerts'))) {
       return callback(true);
     }
 
     try {
-      const path = require('path');
-      const fs = require('fs');
       const startupFolder = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup');
       const s1 = path.join(startupFolder, 'PaymentAlertsOBS.lnk');
       const s2 = path.join(startupFolder, 'Payment Alerts for OBS.lnk');
@@ -242,15 +240,27 @@ function isWindowsStartupEnabled(callback) {
 }
 
 function getMainAppExePath() {
-  if (!isCompiled) return process.execPath;
   const base = path.dirname(process.execPath);
   const candidates = [
+    // 1. Portable release structure (same directory)
     path.join(base, 'Payment Alerts for OBS.exe'),
     path.join(base, 'payment-alerts-obs.exe'),
-    path.join(base, 'PaymentAlertsOBS.exe')
+    path.join(base, 'PaymentAlertsOBS.exe'),
+
+    // 2. Tauri target build locations (from src-tauri/sidecars or root)
+    path.join(base, '..', 'target', 'release', 'payment-alerts-obs.exe'),
+    path.join(base, '..', 'target', 'release', 'Payment Alerts for OBS.exe'),
+    path.join(base, '..', 'target', 'debug', 'payment-alerts-obs.exe'),
+    path.join(base, '..', '..', 'src-tauri', 'target', 'release', 'payment-alerts-obs.exe'),
+    path.join(base, '..', '..', 'src-tauri', 'target', 'release', 'Payment Alerts for OBS.exe'),
+    path.join(__dirname, 'src-tauri', 'target', 'release', 'payment-alerts-obs.exe')
   ];
+
   for (const cand of candidates) {
-    if (fs.existsSync(cand)) return cand;
+    try {
+      const resolved = path.resolve(cand);
+      if (fs.existsSync(resolved)) return resolved;
+    } catch (_) {}
   }
   return process.execPath;
 }
@@ -258,11 +268,13 @@ function getMainAppExePath() {
 function setWindowsStartup(enable, callback) {
   if (process.platform !== 'win32') return callback ? callback(false, 'Windows platform required') : null;
 
-  // Use registry directly with the main UI application executable
-  exec('reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /f', () => {
+  // Clean up all legacy registry keys and cached Task Manager entries
+  const cleanupCmd = 'reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /f 2>nul & reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "Payment Alerts for OBS" /f 2>nul & reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run" /v "PaymentAlertsOBS" /f 2>nul & reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run" /v "Payment Alerts for OBS" /f 2>nul';
+
+  exec(cleanupCmd, () => {
     if (enable) {
       const exePath = getMainAppExePath();
-      const cmd = `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /t REG_SZ /d "\"${exePath}\"" /f`;
+      const cmd = `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "Payment Alerts for OBS" /t REG_SZ /d "\"${exePath}\"" /f`;
       exec(cmd, (err) => {
         if (callback) callback(!err, err ? err.message : null);
       });
@@ -270,8 +282,6 @@ function setWindowsStartup(enable, callback) {
     }
     if (!enable) {
       try {
-        const path = require('path');
-        const fs = require('fs');
         const startupFolder = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup');
         ['PaymentAlertsOBS.lnk', 'Payment Alerts for OBS.lnk'].forEach(f => {
           const p = path.join(startupFolder, f);

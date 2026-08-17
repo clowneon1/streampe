@@ -5,16 +5,19 @@
 ## 🚀 Upcoming Features & Tasks
 
 - [ ] **19. Security & Access Control (PIN / Password / 2FA Authentication)** — Add optional password/PIN protection for the PC Dashboard (`/config`) and the Android companion connection (`ws://.../android` & `/api/*`). Prevents unauthorized devices on shared Wi-Fi networks (roommates, shared studios, public Wi-Fi) from accessing financial analytics, triggering bogus alerts, or connecting without entering the streamer's configured PIN/password.
-- [ ] **21. Custom Storage Path Settings (Logs, Data, and Config Directories)** — Add a dashboard configuration section (above the logs tab) to control where application files are stored:
-  - **Directory Relocation:** Allow users to set custom directories for `logs/`, `data/` (transactions ledger), and `config/` (profiles and settings).
-  - **Default Fallbacks:** If paths are left empty, automatically fallback to local server subfolders (`pc-server/logs`, `pc-server/data`, `pc-server/config`).
-  - **Flexible Environments:** Enables streamers to sync configs and databases to cloud storage folders (Dropbox, OneDrive) or run configurations from external drives.
 
 ---
 
 ## ✅ Completed
 
 ### Version 2.0.0 (`feature/version-2`)
+
+- [x] **21. Custom Storage Path Settings & Single Root Control** — Added a System Preferences storage configuration section (`app.html`) to control where application data is stored:
+  - **Single Storage Root:** Centralized path configuration (`storageRootDir`) for `logs/`, `data/` (transactions ledger), and `config/` (profiles and settings).
+  - **Native Folder Picker & Explorer Shortcuts:** Integrated Windows native `IFileOpenDialog` folder browser and direct 1-click Explorer shortcuts.
+  - **Portable & Multi-Drive Support:** Enables streamers to sync configs and databases to cloud storage folders (Dropbox, OneDrive) or external drives with zero-path-breakage.
+
+- [x] **24. Windows Startup Registration & App Metadata Stamping** — Updated autostart registry configuration to register `Payment Alerts for OBS.exe` instead of `server.exe`, and enabled Windows PE VersionInfo compilation (`clowneon1` publisher, app icon, product descriptions) so Windows Task Manager and Startup tab display official app branding.
 
 - [x] **20. Hierarchical Month-Based Database Sharding (`data/[profile]/[year]/[month].csv`) & Metadata Caching** — Transitioned from a single-file flat CSV database to a month-sharded directory structure to support infinite scaling for high-volume streamers:
   - **Hierarchical Directory Pathing:** Organized CSV files into `data/[profile]/[year]/[month].csv` (e.g. `data/Default/2026/08.csv`) for cleaner directories, simple yearly archiving, and rapid scanning.
