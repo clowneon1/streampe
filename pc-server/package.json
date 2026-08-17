@@ -1,7 +1,7 @@
 {
-  "name": "payment-alerts-obs-server",
+  "name": "streampe-server",
   "version": "2.0.0",
-  "description": "Payment Alerts for OBS - PC Server App",
+  "description": "StreamPe - PC Server App",
   "author": "clowneon1",
   "main": "server.js",
   "scripts": {

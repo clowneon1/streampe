@@ -1,7 +1,7 @@
 [package]
-name = "payment-alerts-obs"
+name = "streampe"
 version = "2.0.0"
-description = "Payment Alerts for OBS – PC Server"
+description = "StreamPe – PC Server & Desktop App"
 authors = ["clowneon1"]
 license = "MIT"
 repository = ""

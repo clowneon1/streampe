@@ -8,7 +8,7 @@ Common solutions for Android installation, permissions, background execution, an
 
 ### 1. 🛡️ "Blocked by Play Protect" Warning During Installation
 
-**Problem**: When installing `payment-alerts-obs.apk`, Android shows a modal saying *"Blocked by Play Protect"*.
+**Problem**: When installing `streampe.apk`, Android shows a modal saying *"Blocked by Play Protect"*.
 
 **Why this happens**: Android flags sideloaded APKs built outside Google Play Store.
 
@@ -31,10 +31,10 @@ Common solutions for Android installation, permissions, background execution, an
 
 **Solution**:
 1. Open your phone's **Settings** ➔ **Apps** (or *App Management* / *See all apps*).
-2. Find and tap **Payment Alerts for OBS**.
+2. Find and tap **StreamPe**.
 3. Tap the **3 Dots (⋮)** icon in the **top-right corner** of the App Info page.
 4. Tap **"Allow restricted settings"** (authenticate with your Fingerprint, Face ID, or PIN if prompted).
-5. Open **Payment Alerts for OBS** app again and click **Grant Notification Access**. The permission toggle will now be unlocked!
+5. Open **StreamPe** app again and click **Grant Notification Access**. The permission toggle will now be unlocked!
 
 ---
 
@@ -45,11 +45,11 @@ Common solutions for Android installation, permissions, background execution, an
 **Why this happens**: Android OS battery saver puts background WebSocket connections to sleep to conserve battery.
 
 **Solution**:
-1. Open **Settings ➔ Apps ➔ Payment Alerts for OBS ➔ Battery**.
+1. Open **Settings ➔ Apps ➔ StreamPe ➔ Battery**.
 2. Change battery setting from *Optimized / Intelligent* to **Unrestricted** (or *Don't Optimize*).
 3. **Xiaomi / Redmi (MIUI / HyperOS)**: Go to App Info ➔ enable **Autostart**. Set Battery Saver to **No restrictions**.
 4. **OnePlus / Realme / Oppo (OxygenOS / ColorOS)**: Go to App Info ➔ Battery usage ➔ enable **Allow background activity** and **Allow auto-launch**.
-5. **Samsung (One UI)**: Go to Settings ➔ Battery ➔ Background usage limits ➔ add *Payment Alerts for OBS* to **Never sleeping apps**.
+5. **Samsung (One UI)**: Go to Settings ➔ Battery ➔ Background usage limits ➔ add *StreamPe* to **Never sleeping apps**.
 
 ---
 
@@ -76,7 +76,7 @@ Common solutions for Android installation, permissions, background execution, an
 
 **Solutions**:
 1. **Same Wi-Fi Network**: Ensure your Android phone and streaming PC are connected to the **same local Wi-Fi router** (avoid guest networks or cellular data).
-2. **Windows Defender Firewall**: When launching `Payment Alerts for OBS.exe`, make sure Windows Security Alert allows access on **both Private and Public networks**.
+2. **Windows Defender Firewall**: When launching `StreamPe.exe`, make sure Windows Security Alert allows access on **both Private and Public networks**.
 3. **Verify Connection IP**: Check the top header of the Desktop App or Control Panel (`http://127.0.0.1:2907/config`) to copy the exact **Mobile Connection IP**.
 4. **Port In Use**: If port `2907` is blocked by another app on your PC, the desktop server automatically selects an alternate port (e.g. `2908`). Use the exact port shown in your Desktop App header.
 

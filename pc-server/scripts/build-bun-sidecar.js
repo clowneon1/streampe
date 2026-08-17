@@ -13,7 +13,7 @@ const pcServerDir = path.resolve(__dirname, '..');
 
 // Kill any previously running instances so target files are not locked
 try {
-  execSync('taskkill /F /IM server.exe /IM payment-alerts-obs.exe 2>nul', { stdio: 'ignore' });
+  execSync('taskkill /F /IM server.exe /IM StreamPe.exe /IM streampe.exe /IM payment-alerts-obs.exe 2>nul', { stdio: 'ignore' });
 } catch (_) {}
 
 const bunExe   = path.join(pcServerDir, 'src-tauri', 'sidecars', 'bun.exe');
@@ -32,7 +32,7 @@ if (!fs.existsSync(serverJs)) {
 }
 
 console.log('Compiling server.js with bun (stamping Windows metadata & icon)...');
-const cmd = `"${bunExe}" build "${serverJs}" --compile --target bun-windows-x64 --windows-title "Payment Alerts for OBS" --windows-publisher "clowneon1" --windows-description "Payment Alerts for OBS Server" --windows-copyright "Copyright (c) 2026 clowneon1" --windows-version "2.0.0.0" --windows-icon "${iconIco}" --windows-hide-console --outfile "${outExe}"`;
+const cmd = `"${bunExe}" build "${serverJs}" --compile --target bun-windows-x64 --windows-title "StreamPe" --windows-publisher "clowneon1" --windows-description "StreamPe Server" --windows-copyright "Copyright (c) 2026 clowneon1" --windows-version "2.0.0.0" --windows-icon "${iconIco}" --windows-hide-console --outfile "${outExe}"`;
 console.log('>', cmd);
 
 try {

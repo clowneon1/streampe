@@ -212,9 +212,9 @@ class PermissionsActivity : AppCompatActivity() {
         MaterialAlertDialogBuilder(this)
             .setTitle("Notification Access Required")
             .setMessage(
-                "Payment Alerts for OBS needs Notification Access to forward alerts to your stream overlay.\n\n" +
+                "StreamPe needs Notification Access to forward alerts to your stream overlay.\n\n" +
                 "📱 If Android says 'Restricted Setting':\n" +
-                "1. Tap 'App Info' below (or go to Settings ➔ Apps ➔ Payment Alerts for OBS)\n" +
+                "1. Tap 'App Info' below (or go to Settings ➔ Apps ➔ StreamPe)\n" +
                 "2. Tap the 3 dots (⋮) in the top-right corner\n" +
                 "3. Tap 'Allow restricted settings'\n\n" +
                 "Then come back here and turn ON Notification Access."
@@ -234,7 +234,7 @@ class PermissionsActivity : AppCompatActivity() {
             }
             startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(this, "Open Settings ➔ Apps ➔ Payment Alerts for OBS", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Open Settings ➔ Apps ➔ StreamPe", Toast.LENGTH_SHORT).show()
         }
     }
 

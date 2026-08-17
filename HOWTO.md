@@ -7,12 +7,12 @@ This guide covers everything from downloading the application to configuring you
 ## 💻 Part 1: PC Setup (Windows)
 
 ### 1. Download and Extract
-- Download the latest **`Payment-Alerts-for-OBS-v2.0.0-Portable.zip`** from the [GitHub Releases](https://github.com/clowneon1/payment-alerts-for-obs/releases) page.
+- Download the latest **`StreamPe-v2.0.0-Portable.zip`** from the [GitHub Releases](https://github.com/clowneon1/streampe/releases) page.
 - Extract the ZIP file to any folder on your PC (e.g., `C:\StreamTools\PaymentAlerts` or your Desktop).
-- Double-click **`Payment Alerts for OBS.exe`** to run.
+- Double-click **`StreamPe.exe`** to run.
 
 ### 2. Run as Administrator
-- If you have network discovery issues, right-click **`Payment Alerts for OBS.exe`** and select **Run as Administrator**.
+- If you have network discovery issues, right-click **`StreamPe.exe`** and select **Run as Administrator**.
 - **Why?** This allows the app to automatically configure the Windows Firewall and setup "Run on Startup" if you choose to enable it.
 
 ### 3. Allow Network Access (Firewall)
@@ -41,7 +41,7 @@ Android 13 and newer restricts sensitive permissions for side-loaded apps. When 
 **How to unlock it:**
 1. Open your phone **Settings**.
 2. Go to **Apps** ➔ **See all apps**.
-3. Find and tap **Payment Alerts for OBS**.
+3. Find and tap **StreamPe**.
 4. Tap the **⋮ (three-dot menu)** in the top-right corner.
 5. Tap **Allow restricted settings**.
 6. Confirm with your phone PIN/Pattern.

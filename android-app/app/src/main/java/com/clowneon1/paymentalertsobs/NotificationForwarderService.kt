@@ -103,7 +103,7 @@ class NotificationForwarderService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Payment Alerts for OBS")
+            .setContentTitle("StreamPe")
             .setContentText("Running — forwarding notifications to stream")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setOngoing(true)

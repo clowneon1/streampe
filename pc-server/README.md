@@ -1,6 +1,6 @@
-# Payment Alerts for OBS - PC Server & Desktop App
+# StreamPe - PC Server & Desktop App
 
-The core server and Tauri v2 desktop client for **Payment Alerts for OBS**.
+The core server and Tauri v2 desktop client for **StreamPe**.
 
 ## Features
 - **Embedded Express & WebSocket Server**: Powered by a high-performance **Bun** binary sidecar listening on port 2907 (or fallback port) for real-time mobile payment events.
@@ -28,7 +28,7 @@ npm run bun:build
 # Run Tauri desktop app in development mode
 npm run app:dev
 
-# Build release portable ZIP (outputs to dist/Payment-Alerts-for-OBS-v2.0.0-Portable.zip)
+# Build release portable ZIP (outputs to dist/StreamPe-v2.0.0-Portable.zip)
 npm run app:dist
 
 # Bump version across package.json, Cargo.toml & tauri.conf.json
@@ -36,5 +36,5 @@ npm version patch # (or minor / major)
 ```
 
 ## Bug Reports & Support
-- 🐛 **GitHub Issues**: [Report an Issue](https://github.com/clowneon1/payment-alerts-for-obs/issues)
+- 🐛 **GitHub Issues**: [Report an Issue](https://github.com/clowneon1/streampe/issues)
 - 💬 **Discord**: [Community Support Server](https://partially-practical.codepenguin.in/)

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Payment Alerts for OBS - Customization Dashboard</title>
+  <title>StreamPe - Customization Dashboard</title>
   <link rel="icon" type="image/png" href="/icon.png" />
   <link rel="shortcut icon" type="image/png" href="/icon.png" />
   <link rel="stylesheet" href="/css/config.css" />
@@ -18,6 +18,7 @@
       font-family: 'Fira Code', 'Consolas', monospace;
       font-size: 13px;
     }
+
     input[type="date"],
     input[type="date"].form-control,
     input[type="time"],
@@ -26,6 +27,7 @@
       color-scheme: dark !important;
       color: #ffffff !important;
     }
+
     input[type="date"]::-webkit-calendar-picker-indicator,
     input[type="date"].form-control::-webkit-calendar-picker-indicator,
     .date-filter-input::-webkit-calendar-picker-indicator {
@@ -38,6 +40,7 @@
       filter: none !important;
       -webkit-filter: none !important;
     }
+
     input[type="time"]::-webkit-calendar-picker-indicator,
     input[type="time"].form-control::-webkit-calendar-picker-indicator {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12 6 12 12 16 14'/%3E%3C/svg%3E") !important;
@@ -60,8 +63,8 @@
       <div class="brand">
         <img src="/icon.png" alt="Logo" style="width: 34px; height: 34px; object-fit: contain; border-radius: 6px;" />
         <div>
-          <div class="brand-title">Payment Alerts for OBS</div>
-          <div class="brand-sub">Widget Customizer</div>
+          <div class="brand-title">StreamPe</div>
+          <div class="brand-sub">UPI Alerts Overlay</div>
         </div>
       </div>
 
@@ -94,11 +97,13 @@
 
       <!-- Profile Switcher Card -->
       <div class="profile-switcher-card">
-        <label for="select-profile" class="profile-label"><i data-lucide="user" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Active Profile Context</label>
+        <label for="select-profile" class="profile-label"><i data-lucide="user"
+            style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Active Profile
+          Context</label>
         <select id="select-profile" class="form-control select-profile-dropdown"></select>
         <div class="profile-actions-grid">
-          <button class="btn btn-secondary profile-icon-btn" type="button" id="btn-profile-new"
-            title="New Profile"><i data-lucide="plus"></i></button>
+          <button class="btn btn-secondary profile-icon-btn" type="button" id="btn-profile-new" title="New Profile"><i
+              data-lucide="plus"></i></button>
           <button class="btn btn-outline profile-icon-btn" type="button" id="btn-profile-rename"
             title="Rename Profile"><i data-lucide="pencil"></i></button>
           <button class="btn btn-danger profile-icon-btn" type="button" id="btn-profile-delete"
@@ -112,19 +117,26 @@
       </div>
 
       <!-- Centralized Donations Data CSV Card in Sidebar -->
-      <div class="sidebar-donations-data-card" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 12px 14px 0 14px;">
-        <div style="font-size: 12px; font-weight: 600; color: var(--text); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+      <div class="sidebar-donations-data-card"
+        style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 12px 14px 0 14px;">
+        <div
+          style="font-size: 12px; font-weight: 600; color: var(--text); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
           <span style="display: flex; align-items: center; gap: 5px;">
             <i data-lucide="table" style="width: 14px; height: 14px; color: var(--accent);"></i>
             <span>Donations Data</span>
           </span>
-          <span style="font-size: 10px; background: rgba(0, 229, 255, 0.12); color: var(--accent); padding: 1px 6px; border-radius: 4px; font-weight: 700;">CSV</span>
+          <span
+            style="font-size: 10px; background: rgba(0, 229, 255, 0.12); color: var(--accent); padding: 1px 6px; border-radius: 4px; font-weight: 700;">CSV</span>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-          <button class="btn btn-outline" type="button" id="btn-sidebar-export-donations" style="font-size: 11px; padding: 5px 8px; display: flex; align-items: center; justify-content: center; gap: 4px;" title="Export all donations history and supporter balances as CSV spreadsheet">
+          <button class="btn btn-outline" type="button" id="btn-sidebar-export-donations"
+            style="font-size: 11px; padding: 5px 8px; display: flex; align-items: center; justify-content: center; gap: 4px;"
+            title="Export all donations history and supporter balances as CSV spreadsheet">
             <i data-lucide="upload" style="width: 12px; height: 12px;"></i> Export
           </button>
-          <button class="btn btn-outline" type="button" id="btn-sidebar-import-donations" style="font-size: 11px; padding: 5px 8px; display: flex; align-items: center; justify-content: center; gap: 4px;" title="Import CSV spreadsheet to update Goal, Leaderboard & Recent donations">
+          <button class="btn btn-outline" type="button" id="btn-sidebar-import-donations"
+            style="font-size: 11px; padding: 5px 8px; display: flex; align-items: center; justify-content: center; gap: 4px;"
+            title="Import CSV spreadsheet to update Goal, Leaderboard & Recent donations">
             <i data-lucide="download" style="width: 12px; height: 12px;"></i> Import
           </button>
           <input type="file" id="file-import-donations-csv" accept=".csv,.json" style="display: none;" />
@@ -132,9 +144,11 @@
       </div>
 
       <!-- Simulation Mode Quick Toggle Card in Sidebar -->
-      <div class="sidebar-sim-mode-card" style="background: rgba(0, 229, 255, 0.06); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 8px; padding: 10px 12px; margin: 12px 14px 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+      <div class="sidebar-sim-mode-card"
+        style="background: rgba(0, 229, 255, 0.06); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 8px; padding: 10px 12px; margin: 12px 14px 0 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">
         <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 12px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 5px; white-space: nowrap;">
+          <div
+            style="font-size: 12px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 5px; white-space: nowrap;">
             <i data-lucide="shield-check" style="width: 14px; height: 14px; color: var(--accent); flex-shrink: 0;"></i>
             <span>Simulation Mode</span>
           </div>
@@ -142,7 +156,8 @@
             If turned on, test alerts won't affect original payments data.
           </div>
         </div>
-        <label class="switch" style="flex-shrink: 0; margin-bottom: 0;" title="If turned on, test alerts won't affect original payments data. Turning OFF treats test alerts as real payments.">
+        <label class="switch" style="flex-shrink: 0; margin-bottom: 0;"
+          title="If turned on, test alerts won't affect original payments data. Turning OFF treats test alerts as real payments.">
           <input type="checkbox" id="chk-sim-isolated-mode" checked />
           <span class="slider round"></span>
         </label>
@@ -169,8 +184,8 @@
             </div>
             <code id="net-ip-display"
               style="background: rgba(0,229,255,0.08); color: #00e5ff; font-family: 'Fira Code', 'Consolas', monospace; padding: 6px 12px; border-radius: 6px; font-size: 14px; font-weight: 700; border: 1px solid rgba(0,229,255,0.3);">Detecting IP...</code>
-            <button class="btn btn-secondary btn-copy-icon" type="button" id="btn-copy-ip"
-              title="Copy IP Address"><i data-lucide="copy"></i></button>
+            <button class="btn btn-secondary btn-copy-icon" type="button" id="btn-copy-ip" title="Copy IP Address"><i
+                data-lucide="copy"></i></button>
           </div>
           <div style="display: flex; gap: 14px; font-size: 12px; align-items: center;">
             <div style="display: flex; align-items: center; gap: 6px;">
@@ -189,7 +204,9 @@
         <!-- Template manager: shared by the alert-facing tabs -->
         <div class="template-manager" id="template-manager" style="display: none;">
           <div class="label-with-switch">
-            <label for="select-template"><i data-lucide="file-text" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Editing Alert Template</label>
+            <label for="select-template"><i data-lucide="file-text"
+                style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Editing Alert
+              Template</label>
             <label class="checkbox-row">
               <input type="checkbox" id="chk-template-enabled" checked />
               <span>Template enabled</span>
@@ -225,7 +242,9 @@
           <!-- Collapsible Section: Alert Text & Variables -->
           <details class="collapsible-advanced" open>
             <summary class="collapsible-summary">
-              <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Alert Text Templates &amp; Variables</span>
+              <span><i data-lucide="type"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Alert Text
+                Templates &amp; Variables</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -258,7 +277,9 @@
           <!-- Collapsible Section: Media & Sound -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="clapperboard" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Media &amp; Sound Settings</span>
+              <span><i data-lucide="clapperboard"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Media &amp; Sound
+                Settings</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -267,7 +288,8 @@
                 <div class="input-with-button">
                   <input type="text" id="input-image-url" class="form-control"
                     placeholder="https://example.com/alert.gif or select file..." />
-                  <button class="btn btn-secondary btn-browse" type="button" id="btn-browse-image"><i data-lucide="folder-open"></i>
+                  <button class="btn btn-secondary btn-browse" type="button" id="btn-browse-image"><i
+                      data-lucide="folder-open"></i>
                     Browse</button>
                   <input type="file" id="input-image-file" accept="image/*" style="display: none;" />
                 </div>
@@ -278,9 +300,11 @@
                 <div class="input-with-button">
                   <input type="text" id="input-sound-url" class="form-control"
                     placeholder="https://example.com/chime.mp3 or select audio file..." />
-                  <button class="btn btn-secondary btn-browse" type="button" id="btn-browse-sound"><i data-lucide="folder-open"></i>
+                  <button class="btn btn-secondary btn-browse" type="button" id="btn-browse-sound"><i
+                      data-lucide="folder-open"></i>
                     Browse</button>
-                  <button class="btn btn-outline" type="button" id="btn-test-sound"><i data-lucide="volume-2"></i> Test Sound</button>
+                  <button class="btn btn-outline" type="button" id="btn-test-sound"><i data-lucide="volume-2"></i> Test
+                    Sound</button>
                   <input type="file" id="input-sound-file" accept="audio/*" style="display: none;" />
                 </div>
               </div>
@@ -315,7 +339,9 @@
           <!-- Collapsible Section: Amount Filters & Matching -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="target" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Amount Matching &amp; Trigger Filters</span>
+              <span><i data-lucide="target"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Amount Matching
+                &amp; Trigger Filters</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -328,15 +354,16 @@
               <div class="form-group">
                 <label>Amount Filters</label>
                 <div id="amount-filter-list" class="amount-filter-list"></div>
-                <button class="btn btn-secondary" type="button" id="btn-filter-row-add"
-                  style="margin-top: 8px;"><i data-lucide="plus"></i> Add Filter</button>
+                <button class="btn btn-secondary" type="button" id="btn-filter-row-add" style="margin-top: 8px;"><i
+                    data-lucide="plus"></i> Add Filter</button>
               </div>
 
               <div class="form-group">
                 <label for="input-match-test">Match &amp; Trigger Tester (&#8377;)</label>
                 <div class="input-with-button">
                   <input type="number" id="input-match-test" class="form-control" placeholder="e.g. 500" step="any" />
-                  <button class="btn btn-secondary" type="button" id="btn-match-test"><i data-lucide="zap"></i> Test Alert for
+                  <button class="btn btn-secondary" type="button" id="btn-match-test"><i data-lucide="zap"></i> Test
+                    Alert for
                     Amount</button>
                 </div>
                 <div class="variable-pills" style="margin-top: 8px; flex-wrap: wrap; gap: 6px; align-items: center;">
@@ -363,13 +390,16 @@
         <div class="tab-content" id="tab-style">
           <div class="panel-header">
             <h2 class="panel-title">Alert Style &amp; Animations</h2>
-            <p class="panel-desc">Typography, colors, motion animations, canvas dimensions, card borders, and advanced code overrides for the selected template.</p>
+            <p class="panel-desc">Typography, colors, motion animations, canvas dimensions, card borders, and advanced
+              code overrides for the selected template.</p>
           </div>
 
           <!-- Collapsible Section: Typography -->
           <details class="collapsible-advanced" open>
             <summary class="collapsible-summary">
-              <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Typography &amp; Text Alignment</span>
+              <span><i data-lucide="type"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Typography &amp;
+                Text Alignment</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -462,7 +492,8 @@
                 </div>
                 <div class="form-group">
                   <label for="tpl-line-height">Line Height</label>
-                  <input type="number" id="tpl-line-height" class="form-control" min="0.1" max="10" step="0.05" value="1.3" />
+                  <input type="number" id="tpl-line-height" class="form-control" min="0.1" max="10" step="0.05"
+                    value="1.3" />
                 </div>
               </div>
 
@@ -479,7 +510,9 @@
           <!-- Collapsible Section: Colors & Borders -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Colors, Borders &amp; Backgrounds</span>
+              <span><i data-lucide="palette"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Colors, Borders
+                &amp; Backgrounds</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -533,7 +566,9 @@
           <!-- Collapsible Section: Motion & Entry Animations -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="sparkles" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Motion &amp; Entry Animations</span>
+              <span><i data-lucide="sparkles"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Motion &amp; Entry
+                Animations</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -551,12 +586,14 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="input-anim-duration">Animation Speed (ms)</label>
-                  <input type="number" id="input-anim-duration" class="form-control" min="0" max="10000" step="10" value="600" />
+                  <input type="number" id="input-anim-duration" class="form-control" min="0" max="10000" step="10"
+                    value="600" />
                 </div>
 
                 <div class="form-group">
                   <label for="input-display-duration">Alert Display Duration (ms)</label>
-                  <input type="number" id="input-display-duration" class="form-control" min="100" max="60000" step="100" value="5000" />
+                  <input type="number" id="input-display-duration" class="form-control" min="100" max="60000" step="100"
+                    value="5000" />
                 </div>
               </div>
             </div>
@@ -565,7 +602,9 @@
           <!-- Collapsible Section: Canvas & Layout -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="maximize" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Canvas &amp; Layout Dimensions</span>
+              <span><i data-lucide="maximize"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Canvas &amp; Layout
+                Dimensions</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -612,7 +651,9 @@
           <!-- Advanced Custom Code Overrides -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="code" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Custom Code Overrides (HTML/CSS/JS)</span>
+              <span><i data-lucide="code"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Custom
+                Code Overrides (HTML/CSS/JS)</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -640,7 +681,8 @@
                     <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
                   </div>
                   <div style="display: flex; gap: 6px;">
-                    <button class="btn btn-outline btn-format-code" type="button" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
+                    <button class="btn btn-outline btn-format-code" type="button"
+                      style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
                     <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-alert-code"
                       style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
                   </div>
@@ -651,9 +693,11 @@
                     <textarea id="input-custom-html" class="form-control code-editor-input"></textarea>
                   </div>
                   <div class="snippet-btns">
-                    <button class="snippet-btn" type="button" data-snippet="html-default"><i data-lucide="file"></i> Default Card
+                    <button class="snippet-btn" type="button" data-snippet="html-default"><i data-lucide="file"></i>
+                      Default Card
                       HTML</button>
-                    <button class="snippet-btn" type="button" data-snippet="html-badge"><i data-lucide="tag"></i> Badge Style
+                    <button class="snippet-btn" type="button" data-snippet="html-badge"><i data-lucide="tag"></i> Badge
+                      Style
                       HTML</button>
                   </div>
                 </div>
@@ -663,13 +707,17 @@
                     <textarea id="input-custom-css" class="form-control code-editor-input"></textarea>
                   </div>
                   <div class="snippet-btns">
-                    <button class="snippet-btn" type="button" data-snippet="css-no-border"><i data-lucide="x"></i> Remove Left
+                    <button class="snippet-btn" type="button" data-snippet="css-no-border"><i data-lucide="x"></i>
+                      Remove Left
                       Border</button>
-                    <button class="snippet-btn" type="button" data-snippet="css-transparent"><i data-lucide="ghost"></i> Transparent
+                    <button class="snippet-btn" type="button" data-snippet="css-transparent"><i data-lucide="ghost"></i>
+                      Transparent
                       Card</button>
-                    <button class="snippet-btn" type="button" data-snippet="css-large-media"><i data-lucide="image"></i> 100%
+                    <button class="snippet-btn" type="button" data-snippet="css-large-media"><i data-lucide="image"></i>
+                      100%
                       Media Width</button>
-                    <button class="snippet-btn" type="button" data-snippet="css-glow"><i data-lucide="sparkles"></i> Neon Glow</button>
+                    <button class="snippet-btn" type="button" data-snippet="css-glow"><i data-lucide="sparkles"></i>
+                      Neon Glow</button>
                   </div>
                 </div>
 
@@ -678,9 +726,11 @@
                     <textarea id="input-custom-js" class="form-control code-editor-input"></textarea>
                   </div>
                   <div class="snippet-btns">
-                    <button class="snippet-btn" type="button" data-snippet="js-log"><i data-lucide="scroll"></i> Log Notification
+                    <button class="snippet-btn" type="button" data-snippet="js-log"><i data-lucide="scroll"></i> Log
+                      Notification
                       Data</button>
-                    <button class="snippet-btn" type="button" data-snippet="js-scale"><i data-lucide="zap"></i> Scale Pulse
+                    <button class="snippet-btn" type="button" data-snippet="js-scale"><i data-lucide="zap"></i> Scale
+                      Pulse
                       Animation</button>
                   </div>
                 </div>
@@ -710,7 +760,9 @@
           <!-- Collapsible Section: Goal Setup -->
           <details class="collapsible-advanced" open>
             <summary class="collapsible-summary">
-              <span><i data-lucide="target" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Setup &amp; Target Amounts</span>
+              <span><i data-lucide="target"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Setup &amp;
+                Target Amounts</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -756,12 +808,18 @@
                 </div>
               </div>
 
-              <div class="form-group" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-top: 6px;">
-                <label class="checkbox-row" style="cursor: pointer; display: flex; align-items: flex-start; gap: 10px; margin-top: 0;">
-                  <input type="checkbox" id="chk-goal-allow-overflow" style="margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;" />
+              <div class="form-group"
+                style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border); margin-top: 6px;">
+                <label class="checkbox-row"
+                  style="cursor: pointer; display: flex; align-items: flex-start; gap: 10px; margin-top: 0;">
+                  <input type="checkbox" id="chk-goal-allow-overflow"
+                    style="margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;" />
                   <div>
-                    <span style="font-weight: 600; font-size: 13px; color: var(--text-main); display: block;">Allow Percentage Overflow (Exceed 100%)</span>
-                    <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px;">When checked, the progress bar and {{percent}} can exceed 100% (e.g. 140%) when donations surpass the goal target.</span>
+                    <span style="font-weight: 600; font-size: 13px; color: var(--text-main); display: block;">Allow
+                      Percentage Overflow (Exceed 100%)</span>
+                    <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px;">When
+                      checked, the progress bar and {{percent}} can exceed 100% (e.g. 140%) when donations surpass the
+                      goal target.</span>
                   </div>
                 </label>
               </div>
@@ -771,7 +829,9 @@
           <!-- Collapsible Section: Goal Colors & Bar -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Colors, Progress Bar &amp; Track</span>
+              <span><i data-lucide="palette"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Colors,
+                Progress Bar &amp; Track</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -800,7 +860,8 @@
                 </div>
               </div>
 
-              <div class="form-group" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+              <div class="form-group"
+                style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
                 <div class="label-with-switch">
                   <label style="margin-bottom: 0;">Gradient Options</label>
                   <label class="checkbox-row" style="margin-top: 0;">
@@ -819,22 +880,23 @@
 
               <div class="form-row">
                 <div class="form-row">
-                <div class="form-group">
-                  <label for="input-goal-bar-height">Bar Height (px)</label>
-                  <input type="number" id="input-goal-bar-height" class="form-control" min="1" max="500" value="36" />
+                  <div class="form-group">
+                    <label for="input-goal-bar-height">Bar Height (px)</label>
+                    <input type="number" id="input-goal-bar-height" class="form-control" min="1" max="500" value="36" />
+                  </div>
+                  <div class="form-group">
+                    <label for="select-goal-effect">Bar Fill Effect</label>
+                    <select id="select-goal-effect" class="form-control">
+                      <option value="none">None</option>
+                      <option value="glow">Animated Glow</option>
+                      <option value="shimmer">Shimmer Streak</option>
+                    </select>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label for="select-goal-effect">Bar Fill Effect</label>
-                  <select id="select-goal-effect" class="form-control">
-                    <option value="none">None</option>
-                    <option value="glow">Animated Glow</option>
-                    <option value="shimmer">Shimmer Streak</option>
-                  </select>
-                </div>
-              </div>
                 <div class="form-group">
                   <label for="input-goal-bar-roundness">Bar Roundness (px)</label>
-                  <input type="number" id="input-goal-bar-roundness" class="form-control" min="0" max="200" value="40" />
+                  <input type="number" id="input-goal-bar-roundness" class="form-control" min="0" max="200"
+                    value="40" />
                 </div>
               </div>
 
@@ -852,7 +914,8 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="input-goal-border-radius">Border Roundness (px)</label>
-                  <input type="number" id="input-goal-border-radius" class="form-control" min="0" max="200" value="14" />
+                  <input type="number" id="input-goal-border-radius" class="form-control" min="0" max="200"
+                    value="14" />
                 </div>
                 <div class="form-group">
                   <label for="input-goal-border-width">Border Width (px)</label>
@@ -865,7 +928,9 @@
           <!-- Collapsible Section: Goal Typography -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Typography &amp; Text Style</span>
+              <span><i data-lucide="type"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Typography
+                &amp; Text Style</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -958,7 +1023,8 @@
                 </div>
                 <div class="form-group">
                   <label for="goal-line-height">Line Height</label>
-                  <input type="number" id="goal-line-height" class="form-control" min="0.1" max="10" step="0.05" value="1.3" />
+                  <input type="number" id="goal-line-height" class="form-control" min="0.1" max="10" step="0.05"
+                    value="1.3" />
                 </div>
               </div>
 
@@ -975,7 +1041,9 @@
           <!-- Collapsible Section: Goal Canvas & Actions -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="maximize" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Canvas &amp; Controls</span>
+              <span><i data-lucide="maximize"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Goal Canvas &amp;
+                Controls</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -1000,8 +1068,10 @@
 
               <div class="form-group" style="margin-top: 10px;">
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                  <button class="btn btn-secondary" type="button" id="btn-goal-test-add"><i data-lucide="zap"></i> Add &#8377;100 Test</button>
-                  <button class="btn btn-danger" type="button" id="btn-goal-reset"><i data-lucide="rotate-ccw"></i> Reset Current Amount</button>
+                  <button class="btn btn-secondary" type="button" id="btn-goal-test-add"><i data-lucide="zap"></i> Add
+                    &#8377;100 Test</button>
+                  <button class="btn btn-danger" type="button" id="btn-goal-reset"><i data-lucide="rotate-ccw"></i>
+                    Reset Current Amount</button>
                 </div>
               </div>
             </div>
@@ -1009,7 +1079,9 @@
 
           <details class="collapsible-advanced">
             <summary class="collapsible-summary">
-              <span><i data-lucide="settings" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Code &amp; Layout Settings</span>
+              <span><i data-lucide="settings"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Code &amp;
+                Layout Settings</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -1037,7 +1109,8 @@
                     <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
                   </div>
                   <div style="display: flex; gap: 6px;">
-                    <button class="btn btn-outline btn-format-code" type="button" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
+                    <button class="btn btn-outline btn-format-code" type="button"
+                      style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
                     <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-goal-code"
                       style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
                   </div>
@@ -1070,7 +1143,8 @@
           <div class="panel-header-with-switch">
             <div>
               <h2 class="panel-title">List Widgets</h2>
-              <p class="panel-desc">Customize Top Supporters (Leaderboard) and Recent Donations list overlays for OBS.</p>
+              <p class="panel-desc">Customize Top Supporters (Leaderboard) and Recent Donations list overlays for OBS.
+              </p>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
               <button class="btn btn-secondary btn-copy-icon" type="button" id="btn-copy-list-url"
@@ -1084,32 +1158,41 @@
           </div>
 
           <!-- List Config Switcher Card -->
-          <div class="list-manager-card" style="background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 18px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
-              <label for="select-active-list" style="font-weight: 700; font-size: 13px; color: var(--text-main); margin-bottom: 0; display: flex; align-items: center; gap: 6px;">
-                <i data-lucide="layers" style="width: 14px; height: 14px; color: var(--accent);"></i> Select Default List Widget
+          <div class="list-manager-card"
+            style="background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 18px;">
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+              <label for="select-active-list"
+                style="font-weight: 700; font-size: 13px; color: var(--text-main); margin-bottom: 0; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="layers" style="width: 14px; height: 14px; color: var(--accent);"></i> Select Default
+                List Widget
               </label>
-              <span id="badge-list-url" style="font-size: 11px; font-family: monospace; background: rgba(0,229,255,0.1); color: var(--accent); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(0,229,255,0.2);">
+              <span id="badge-list-url"
+                style="font-size: 11px; font-family: monospace; background: rgba(0,229,255,0.1); color: var(--accent); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(0,229,255,0.2);">
                 /overlay/list?id=top-supporters
               </span>
             </div>
 
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-              <select id="select-active-list" class="form-control" style="flex: 1; min-width: 200px; font-weight: 600;"></select>
+              <select id="select-active-list" class="form-control"
+                style="flex: 1; min-width: 200px; font-weight: 600;"></select>
             </div>
           </div>
 
           <!-- Collapsible Section: List Rules & Filtering -->
           <details class="collapsible-advanced" open>
             <summary class="collapsible-summary">
-              <span><i data-lucide="filter" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> List Type, Filters &amp; Sorting</span>
+              <span><i data-lucide="filter"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> List Type, Filters
+                &amp; Sorting</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
               <div class="form-row">
                 <div class="form-group">
                   <label for="select-list-type">List Type</label>
-                  <select id="select-list-type" class="form-control" disabled style="opacity: 0.8; cursor: not-allowed;">
+                  <select id="select-list-type" class="form-control" disabled
+                    style="opacity: 0.8; cursor: not-allowed;">
                     <option value="leaderboard">Leaderboard (Top Donors - Sum of Contributions)</option>
                     <option value="recent">Recent Donations (Chronological Activity Feed)</option>
                   </select>
@@ -1142,7 +1225,8 @@
                 </div>
                 <div class="form-group">
                   <label for="input-list-min-amount">Minimum Donation (&#8377;)</label>
-                  <input type="number" id="input-list-min-amount" class="form-control" min="0" value="0" placeholder="0 (No minimum)" />
+                  <input type="number" id="input-list-min-amount" class="form-control" min="0" value="0"
+                    placeholder="0 (No minimum)" />
                 </div>
               </div>
 
@@ -1157,14 +1241,17 @@
                       <option value="20">Top 20 Entries</option>
                       <option value="custom">Custom Amount...</option>
                     </select>
-                    <input type="number" id="input-list-max-custom" class="form-control" min="1" max="100" placeholder="Count" style="display: none; flex: 1;" />
+                    <input type="number" id="input-list-max-custom" class="form-control" min="1" max="100"
+                      placeholder="Count" style="display: none; flex: 1;" />
                   </div>
                 </div>
 
                 <div class="form-group" style="margin-top: 24px;">
                   <label class="checkbox-row" style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" id="chk-list-show-amounts" checked style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;" />
-                    <span style="font-weight: 600; font-size: 13px; color: var(--text-main);">Show Contribution Amounts (&#8377;)</span>
+                    <input type="checkbox" id="chk-list-show-amounts" checked
+                      style="width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;" />
+                    <span style="font-weight: 600; font-size: 13px; color: var(--text-main);">Show Contribution Amounts
+                      (&#8377;)</span>
                   </label>
                 </div>
               </div>
@@ -1174,7 +1261,9 @@
           <!-- Collapsible Section: Colors & Card Styling -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Colors &amp; Card Style</span>
+              <span><i data-lucide="palette"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Colors &amp; Card
+                Style</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -1239,7 +1328,9 @@
           <!-- Collapsible Section: Typography -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Typography &amp; Text Style</span>
+              <span><i data-lucide="type"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Typography &amp;
+                Text Style</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -1332,7 +1423,8 @@
                 </div>
                 <div class="form-group">
                   <label for="list-line-height">Line Height</label>
-                  <input type="number" id="list-line-height" class="form-control" min="0.1" max="10" step="0.05" value="1.3" />
+                  <input type="number" id="list-line-height" class="form-control" min="0.1" max="10" step="0.05"
+                    value="1.3" />
                 </div>
               </div>
 
@@ -1349,7 +1441,9 @@
           <!-- Collapsible Section: Canvas & Layout -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="maximize" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Canvas &amp; Position Controls</span>
+              <span><i data-lucide="maximize"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Canvas &amp;
+                Position Controls</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -1375,7 +1469,8 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="input-list-layout-width">Card Width (px)</label>
-                  <input type="number" id="input-list-layout-width" class="form-control" min="100" max="2000" value="450" />
+                  <input type="number" id="input-list-layout-width" class="form-control" min="100" max="2000"
+                    value="450" />
                 </div>
               </div>
             </div>
@@ -1384,7 +1479,9 @@
           <!-- Collapsible Section: Custom Code -->
           <details class="collapsible-advanced">
             <summary class="collapsible-summary">
-              <span><i data-lucide="settings" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Custom Code</span>
+              <span><i data-lucide="settings"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Custom
+                Code</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -1412,7 +1509,8 @@
                     <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
                   </div>
                   <div style="display: flex; gap: 6px;">
-                    <button class="btn btn-outline btn-format-code" type="button" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
+                    <button class="btn btn-outline btn-format-code" type="button"
+                      style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
                     <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-list-code"
                       style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
                   </div>
@@ -1443,7 +1541,8 @@
           <div class="panel-header-with-switch">
             <div>
               <h2 class="panel-title">Cycling Info Widget</h2>
-              <p class="panel-desc">A rotational widget that cycles through top supporters, recent donations, and socials.</p>
+              <p class="panel-desc">A rotational widget that cycles through top supporters, recent donations, and
+                socials.</p>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
               <button class="btn btn-secondary btn-copy-icon" type="button" id="btn-copy-cycling-url"
@@ -1458,14 +1557,17 @@
 
           <details class="collapsible-advanced" open>
             <summary class="collapsible-summary">
-              <span><i data-lucide="list" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Cycling Items &amp; Timing</span>
+              <span><i data-lucide="list"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Cycling Items &amp;
+                Timing</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
               <div class="form-row">
                 <div class="form-group">
                   <label for="input-cycling-duration">Cycle Duration (ms)</label>
-                  <input type="number" id="input-cycling-duration" class="form-control" min="1000" max="60000" step="500" value="5000" />
+                  <input type="number" id="input-cycling-duration" class="form-control" min="1000" max="60000"
+                    step="500" value="5000" />
                 </div>
                 <div class="form-group">
                   <label for="select-cycling-in-effect">Transition In (Enter)</label>
@@ -1496,11 +1598,13 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="input-cycling-in-duration">Transition In Duration (ms)</label>
-                  <input type="number" id="input-cycling-in-duration" class="form-control" min="100" max="5000" step="50" value="500" />
+                  <input type="number" id="input-cycling-in-duration" class="form-control" min="100" max="5000"
+                    step="50" value="500" />
                 </div>
                 <div class="form-group">
                   <label for="input-cycling-out-duration">Transition Out Duration (ms)</label>
-                  <input type="number" id="input-cycling-out-duration" class="form-control" min="100" max="5000" step="50" value="400" />
+                  <input type="number" id="input-cycling-out-duration" class="form-control" min="100" max="5000"
+                    step="50" value="400" />
                 </div>
               </div>
 
@@ -1510,9 +1614,12 @@
                   <!-- Items injected by JS -->
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 12px;">
-                  <button type="button" class="btn btn-secondary btn-add-cycling-item" data-type="top_supporter"><i data-lucide="trophy"></i> + Top Supporter</button>
-                  <button type="button" class="btn btn-secondary btn-add-cycling-item" data-type="recent_donation"><i data-lucide="history"></i> + Recent Donation</button>
-                  <button type="button" class="btn btn-secondary btn-add-cycling-item" data-type="custom"><i data-lucide="plus-circle"></i> + Custom (Icon + Text)</button>
+                  <button type="button" class="btn btn-secondary btn-add-cycling-item" data-type="top_supporter"><i
+                      data-lucide="trophy"></i> + Top Supporter</button>
+                  <button type="button" class="btn btn-secondary btn-add-cycling-item" data-type="recent_donation"><i
+                      data-lucide="history"></i> + Recent Donation</button>
+                  <button type="button" class="btn btn-secondary btn-add-cycling-item" data-type="custom"><i
+                      data-lucide="plus-circle"></i> + Custom (Icon + Text)</button>
                 </div>
               </div>
             </div>
@@ -1520,7 +1627,9 @@
 
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="palette" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Style, Borders &amp; Media</span>
+              <span><i data-lucide="palette"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Style, Borders
+                &amp; Media</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -1534,7 +1643,8 @@
                 </div>
                 <div class="form-group">
                   <label for="input-cycling-bg-opacity">Background Opacity (%)</label>
-                  <input type="number" id="input-cycling-bg-opacity" class="form-control" min="0" max="100" value="85" />
+                  <input type="number" id="input-cycling-bg-opacity" class="form-control" min="0" max="100"
+                    value="85" />
                 </div>
               </div>
               <div class="form-row">
@@ -1556,11 +1666,13 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="input-cycling-border-width">Border Width (px)</label>
-                  <input type="number" id="input-cycling-border-width" class="form-control" min="0" max="20" value="1" />
+                  <input type="number" id="input-cycling-border-width" class="form-control" min="0" max="20"
+                    value="1" />
                 </div>
                 <div class="form-group">
                   <label for="input-cycling-border-radius">Border Radius (px)</label>
-                  <input type="number" id="input-cycling-border-radius" class="form-control" min="0" max="100" value="14" />
+                  <input type="number" id="input-cycling-border-radius" class="form-control" min="0" max="100"
+                    value="14" />
                 </div>
                 <div class="form-group">
                   <label for="input-cycling-padding">Padding (px)</label>
@@ -1570,7 +1682,8 @@
               <div class="form-row">
                 <div class="form-group">
                   <label for="input-cycling-media-size">Media / Icon Size (px)</label>
-                  <input type="number" id="input-cycling-media-size" class="form-control" min="16" max="120" value="32" />
+                  <input type="number" id="input-cycling-media-size" class="form-control" min="16" max="120"
+                    value="32" />
                 </div>
                 <div class="form-group">
                   <label for="input-cycling-media-bg">Media Background</label>
@@ -1581,7 +1694,8 @@
                 </div>
                 <div class="form-group">
                   <label for="input-cycling-media-radius">Media Radius (px)</label>
-                  <input type="number" id="input-cycling-media-radius" class="form-control" min="0" max="50" value="8" />
+                  <input type="number" id="input-cycling-media-radius" class="form-control" min="0" max="50"
+                    value="8" />
                 </div>
               </div>
             </div>
@@ -1589,7 +1703,8 @@
 
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="type" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Typography</span>
+              <span><i data-lucide="type"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Typography</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -1650,7 +1765,9 @@
 
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="maximize" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Canvas &amp; Position</span>
+              <span><i data-lucide="maximize"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Canvas &amp;
+                Position</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -1665,7 +1782,8 @@
                 </div>
                 <div class="form-group">
                   <label for="cycling-layout-width">Widget Width (px)</label>
-                  <input type="number" id="cycling-layout-width" class="form-control" min="100" max="2000" value="350" />
+                  <input type="number" id="cycling-layout-width" class="form-control" min="100" max="2000"
+                    value="350" />
                 </div>
               </div>
               <div class="form-row">
@@ -1683,549 +1801,639 @@
             </div>
           </details>
 
-        <details class="collapsible-advanced" style="margin-top: 16px;">
-          <summary class="collapsible-summary">
-            <span><i data-lucide="settings" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Code &amp; Layout Settings</span>
-            <span><i data-lucide="chevron-down"></i></span>
-          </summary>
-          <div class="collapsible-content">
-            <div class="warning-callout" style="margin-top: 0;">
-              <span class="warning-icon"><i data-lucide="alert-triangle"></i></span>
-              <div>
-                <strong>Security Warning:</strong> Custom HTML, CSS, and JavaScript functions are executed at your own
-                risk. Verify code before running to ensure it performs safely.
-              </div>
-            </div>
-
-            <div class="panel-header-with-switch" style="margin-bottom: 12px;">
-              <span style="font-weight: 600; font-size: 13px;">Enable Custom Cycling Code</span>
-              <label class="switch-container">
-                <input type="checkbox" id="chk-enable-cycling-custom-code" />
-                <span class="switch-slider"></span>
-              </label>
-            </div>
-
-            <div class="code-editor-container">
-              <div class="code-tabs-header">
-                <div class="code-tabs">
-                  <button class="code-tab-btn active" type="button" data-code-tab="html">HTML</button>
-                  <button class="code-tab-btn" type="button" data-code-tab="css">CSS</button>
-                  <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
-                </div>
-                <div style="display: flex; gap: 6px;">
-                  <button class="btn btn-outline btn-format-code" type="button" style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
-                  <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-cycling-code"
-                    style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
+          <details class="collapsible-advanced" style="margin-top: 16px;">
+            <summary class="collapsible-summary">
+              <span><i data-lucide="settings"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Code &amp;
+                Layout Settings</span>
+              <span><i data-lucide="chevron-down"></i></span>
+            </summary>
+            <div class="collapsible-content">
+              <div class="warning-callout" style="margin-top: 0;">
+                <span class="warning-icon"><i data-lucide="alert-triangle"></i></span>
+                <div>
+                  <strong>Security Warning:</strong> Custom HTML, CSS, and JavaScript functions are executed at your own
+                  risk. Verify code before running to ensure it performs safely.
                 </div>
               </div>
 
-              <div class="code-tab-panel" data-code-panel="html" id="code-panel-cycling-html">
-                <div class="variable-pills-container" style="margin-bottom: 8px;">
-                  <span class="pills-label">Click variable tag to insert into template:</span>
-                  <div class="variable-pills">
-                    <span class="var-pill" data-var="label" data-target-input="input-cycling-custom-html">{{label}}</span>
-                    <span class="var-pill" data-var="text" data-target-input="input-cycling-custom-html">{{text}}</span>
-                    <span class="var-pill" data-var="transitionEffect" data-target-input="input-cycling-custom-html">{{transitionEffect}}</span>
-                    <span class="var-pill" data-var="mediaHtml" data-target-input="input-cycling-custom-html">{{mediaHtml}}</span>
+              <div class="panel-header-with-switch" style="margin-bottom: 12px;">
+                <span style="font-weight: 600; font-size: 13px;">Enable Custom Cycling Code</span>
+                <label class="switch-container">
+                  <input type="checkbox" id="chk-enable-cycling-custom-code" />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+
+              <div class="code-editor-container">
+                <div class="code-tabs-header">
+                  <div class="code-tabs">
+                    <button class="code-tab-btn active" type="button" data-code-tab="html">HTML</button>
+                    <button class="code-tab-btn" type="button" data-code-tab="css">CSS</button>
+                    <button class="code-tab-btn" type="button" data-code-tab="js">JS</button>
+                  </div>
+                  <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-outline btn-format-code" type="button"
+                      style="padding: 2px 8px; font-size: 11px;"><i data-lucide="align-left"></i> Format</button>
+                    <button class="btn btn-secondary btn-reset-widget-code" type="button" id="btn-reset-cycling-code"
+                      style="padding: 2px 8px; font-size: 11px;"><i data-lucide="rotate-ccw"></i> Reset Code</button>
                   </div>
                 </div>
-                <div class="form-group" style="margin-bottom: 8px;">
-                  <textarea id="input-cycling-custom-html" class="form-control code-editor-input"></textarea>
-                </div>
-              </div>
 
-              <div class="code-tab-panel" data-code-panel="css" id="code-panel-cycling-css" style="display: none;">
-                <div class="css-reference-box">
-                  <div class="css-ref-header"><i data-lucide="info" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Cycling Widget CSS Classes Reference (Click tag to insert/copy):</div>
-                  <div class="css-ref-tags">
-                    <span class="css-pill" data-copy=".cycling-card">{ .cycling-card }</span>
-                    <span class="css-pill" data-copy=".cycling-icon">{ .cycling-icon }</span>
-                    <span class="css-pill" data-copy=".cycling-content">{ .cycling-content }</span>
-                    <span class="css-pill" data-copy=".cycling-label">{ .cycling-label }</span>
-                    <span class="css-pill" data-copy=".cycling-text">{ .cycling-text }</span>
+                <div class="code-tab-panel" data-code-panel="html" id="code-panel-cycling-html">
+                  <div class="variable-pills-container" style="margin-bottom: 8px;">
+                    <span class="pills-label">Click variable tag to insert into template:</span>
+                    <div class="variable-pills">
+                      <span class="var-pill" data-var="label"
+                        data-target-input="input-cycling-custom-html">{{label}}</span>
+                      <span class="var-pill" data-var="text"
+                        data-target-input="input-cycling-custom-html">{{text}}</span>
+                      <span class="var-pill" data-var="transitionEffect"
+                        data-target-input="input-cycling-custom-html">{{transitionEffect}}</span>
+                      <span class="var-pill" data-var="mediaHtml"
+                        data-target-input="input-cycling-custom-html">{{mediaHtml}}</span>
+                    </div>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 8px;">
+                    <textarea id="input-cycling-custom-html" class="form-control code-editor-input"></textarea>
                   </div>
                 </div>
-                <div class="form-group" style="margin-bottom: 8px;">
-                  <textarea id="input-cycling-custom-css" class="form-control code-editor-input"></textarea>
-                </div>
-              </div>
 
-              <div class="code-tab-panel" data-code-panel="js" id="code-panel-cycling-js" style="display: none;">
-                <div class="form-group" style="margin-bottom: 8px;">
-                  <textarea id="input-cycling-custom-js" class="form-control code-editor-input"></textarea>
+                <div class="code-tab-panel" data-code-panel="css" id="code-panel-cycling-css" style="display: none;">
+                  <div class="css-reference-box">
+                    <div class="css-ref-header"><i data-lucide="info"
+                        style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Cycling
+                      Widget CSS Classes Reference (Click tag to insert/copy):</div>
+                    <div class="css-ref-tags">
+                      <span class="css-pill" data-copy=".cycling-card">{ .cycling-card }</span>
+                      <span class="css-pill" data-copy=".cycling-icon">{ .cycling-icon }</span>
+                      <span class="css-pill" data-copy=".cycling-content">{ .cycling-content }</span>
+                      <span class="css-pill" data-copy=".cycling-label">{ .cycling-label }</span>
+                      <span class="css-pill" data-copy=".cycling-text">{ .cycling-text }</span>
+                    </div>
+                  </div>
+                  <div class="form-group" style="margin-bottom: 8px;">
+                    <textarea id="input-cycling-custom-css" class="form-control code-editor-input"></textarea>
+                  </div>
+                </div>
+
+                <div class="code-tab-panel" data-code-panel="js" id="code-panel-cycling-js" style="display: none;">
+                  <div class="form-group" style="margin-bottom: 8px;">
+                    <textarea id="input-cycling-custom-js" class="form-control code-editor-input"></textarea>
+                  </div>
                 </div>
               </div>
             </div>
+          </details>
+        </div>
+
+
+        <!-- Tab 8: Event Dispatcher & Testing Panel -->
+        <div class="tab-content" id="tab-test-panel">
+          <div class="panel-header">
+            <h2 class="panel-title"><i data-lucide="send"></i> Custom Event Dispatcher &amp; Tester</h2>
+            <p class="panel-desc">Dispatch realistic mobile payment notifications to OBS overlays. Select a payment
+              provider, enter sender &amp; amount, and test regex parsing &amp; visual alerts.</p>
           </div>
-        </details>
-        </div>
 
-
-  <!-- Tab 8: Event Dispatcher & Testing Panel -->
-  <div class="tab-content" id="tab-test-panel">
-    <div class="panel-header">
-      <h2 class="panel-title"><i data-lucide="send"></i> Custom Event Dispatcher &amp; Tester</h2>
-      <p class="panel-desc">Dispatch realistic mobile payment notifications to OBS overlays. Select a payment provider, enter sender &amp; amount, and test regex parsing &amp; visual alerts.</p>
-    </div>
-
-    <!-- Presets toolbar -->
-    <div class="form-group"
-      style="background: var(--surface); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
-      <label style="font-weight: 600; font-size: 13px;"><i data-lucide="zap" style="width: 14px; height: 14px; color: var(--accent); vertical-align: middle; margin-right: 4px;"></i> Quick Presets:</label>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
-        <button type="button" class="btn btn-outline btn-sim-preset" data-preset="phonepe"
-          style="font-size: 12px;"><i data-lucide="smartphone"></i> PhonePe (&#8377;500)</button>
-        <button type="button" class="btn btn-outline btn-sim-preset" data-preset="gpay"
-          style="font-size: 12px;"><i data-lucide="credit-card"></i> Google Pay (&#8377;1,000)</button>
-        <button type="button" class="btn btn-outline btn-sim-preset" data-preset="amazon"
-          style="font-size: 12px;"><i data-lucide="package"></i> Amazon Pay (&#8377;1,500)</button>
-        <button type="button" class="btn btn-outline btn-sim-preset" data-preset="cash"
-          style="font-size: 12px;"><i data-lucide="banknote"></i> Cash (&#8377;250)</button>
-        <button type="button" class="btn btn-outline btn-sim-preset" data-preset="highval"
-          style="font-size: 12px;"><i data-lucide="crown"></i> High Value (&#8377;5,000)</button>
-        <button type="button" class="btn btn-secondary" id="btn-sim-random"
-          style="font-size: 12px; margin-left: auto;"><i data-lucide="dices"></i> Random Event</button>
-      </div>
-    </div>
-
-    <!-- Simulator Form -->
-    <div class="form-row">
-      <div class="form-group">
-        <label for="sim-app-provider">Payment App Provider</label>
-        <select id="sim-app-provider" class="form-control">
-          <option value="phonepe">📱 PhonePe (com.phonepe.app)</option>
-          <option value="gpay">💳 Google Pay (com.google.android.apps.nbu.paisa.user)</option>
-          <option value="amazon">🛒 Amazon Pay (in.amazon.mShop.android.shopping)</option>
-          <option value="cash">💵 Cash / Manual Entry (Cash)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="sim-sender">Sender Name</label>
-        <input type="text" id="sim-sender" class="form-control" placeholder="e.g. Rahul Kumar" value="Rahul Kumar" />
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label for="sim-amount">Amount (&#8377;)</label>
-        <input type="text" id="sim-amount" class="form-control" placeholder="e.g. 500" value="500" />
-      </div>
-      <div class="form-group">
-        <label for="sim-message">Optional Message / Note</label>
-        <input type="text" id="sim-message" class="form-control" placeholder="e.g. Great stream!"
-          value="Awesome stream!" />
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label for="sim-template-override">Template Selection Override</label>
-        <select id="sim-template-override" class="form-control">
-          <option value="">Auto-Match by Amount (Default)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="sim-alert-id">Custom Event / Alert ID</label>
-        <div class="input-with-button">
-          <input type="text" id="sim-alert-id" class="form-control" placeholder="Auto-generated if empty" />
-          <button type="button" class="btn btn-outline" id="btn-sim-gen-id" style="font-size: 11px;">Generate ID</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Dispatch & Test Buttons -->
-    <div class="form-group" style="display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap;">
-      <button type="button" class="btn btn-primary" id="btn-sim-dispatch"
-        style="padding: 10px 20px; font-size: 14px;"><i data-lucide="send"></i> Dispatch Custom Event</button>
-      <button type="button" class="btn btn-secondary" id="btn-sim-inspect"><i data-lucide="search"></i> Inspect Match &amp; Parser</button>
-      <button type="button" class="btn btn-outline" id="btn-sim-clear-console"><i data-lucide="eraser"></i> Clear Console Log</button>
-    </div>
-
-    <!-- Simulated Event Console -->
-    <div class="form-group" style="margin-top: 16px;">
-      <div class="label-with-switch">
-        <label>Event Inspector &amp; Dispatch Console Log</label>
-      </div>
-      <pre id="sim-console" class="box-expandable"
-        style="background: var(--bg-dark, #06080d); color: #00e5ff; font-family: 'Fira Code', 'Consolas', monospace; font-size: 12px; padding: 14px; border-radius: 8px; border: 1px solid var(--border); overflow-y: auto; white-space: pre-wrap; margin-top: 4px;">Press "Inspect Match &amp; Parser" or "Dispatch Custom Event" to simulate an event.</pre>
-    </div>
-  </div>
-
-  <!-- Tab: Earning Overview & Analytics -->
-  <div class="tab-content active" id="tab-earnings">
-    <div class="panel-header-with-switch" style="margin-bottom: 14px;">
-      <div>
-        <h2 class="panel-title"><i data-lucide="line-chart"></i> Earning Overview &amp; Analytics</h2>
-        <p class="panel-desc">Real-time payment analytics, income distributions, and top donor insights from your single source of truth ledger.</p>
-      </div>
-      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-        <button class="btn btn-primary" id="btn-open-record-modal" type="button" style="font-size: 12px; padding: 6px 12px;">
-          <i data-lucide="plus-circle"></i> Record Manual Payment
-        </button>
-        <button class="btn btn-outline" id="btn-analytics-export-csv" type="button" style="font-size: 12px; padding: 6px 12px;">
-          <i data-lucide="file-spreadsheet"></i> Export CSV
-        </button>
-      </div>
-    </div>
-
-    <!-- Filter & Month Toolbar -->
-    <div class="analytics-filter-toolbar">
-      <div class="analytics-filter-group">
-        <label for="select-analytics-month" style="font-size: 12px; font-weight: 600; color: var(--text-muted);"><i data-lucide="calendar" style="width: 13px; height: 13px; vertical-align: middle;"></i> Month:</label>
-        <select id="select-analytics-month" class="form-control" style="width: auto; min-width: 140px; padding: 5px 10px; font-size: 12px;">
-          <option value="all">📅 All Time (Full History)</option>
-        </select>
-      </div>
-
-      <div class="analytics-filter-group">
-        <label for="select-analytics-provider" style="font-size: 12px; font-weight: 600; color: var(--text-muted);"><i data-lucide="filter" style="width: 13px; height: 13px; vertical-align: middle;"></i> Method:</label>
-        <select id="select-analytics-provider" class="form-control" style="width: auto; min-width: 130px; padding: 5px 10px; font-size: 12px;">
-          <option value="all">All Payment Methods</option>
-          <option value="phonepe">PhonePe</option>
-          <option value="gpay">Google Pay</option>
-          <option value="paytm">Paytm</option>
-          <option value="amazon">Amazon Pay</option>
-          <option value="bhim">BHIM UPI</option>
-          <option value="manual">Manual Entry</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-
-      <div class="analytics-filter-group">
-        <div class="analytics-range-pills">
-          <button type="button" class="analytics-range-btn active" data-range="all">All</button>
-          <button type="button" class="analytics-range-btn" data-range="month">This Month</button>
-          <button type="button" class="analytics-range-btn" data-range="week">This Week</button>
-          <button type="button" class="analytics-range-btn" data-range="today">Today</button>
-        </div>
-      </div>
-
-      <div class="analytics-filter-group" style="flex: 1; min-width: 160px; justify-content: flex-end;">
-        <input type="text" id="input-analytics-search" class="form-control" placeholder="Search donor or note..." style="font-size: 12px; padding: 5px 10px; max-width: 200px;" />
-        <button class="btn btn-secondary" id="btn-refresh-analytics" type="button" style="padding: 5px 10px; font-size: 12px;" title="Refresh Analytics"><i data-lucide="rotate-cw"></i></button>
-      </div>
-    </div>
-
-    <!-- 5 KPI Summary Metric Cards -->
-    <div class="analytics-kpi-grid">
-      <div class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">Total Revenue</span>
-          <div class="analytics-kpi-icon"><i data-lucide="indian-rupee"></i></div>
-        </div>
-        <div class="analytics-kpi-value" id="kpi-total-revenue">&#8377;0.00</div>
-        <div class="analytics-kpi-sub" id="kpi-total-revenue-sub">Gross income received</div>
-      </div>
-
-      <div class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">Total Donations</span>
-          <div class="analytics-kpi-icon"><i data-lucide="gift"></i></div>
-        </div>
-        <div class="analytics-kpi-value" id="kpi-total-count">0</div>
-        <div class="analytics-kpi-sub">Total verified transactions</div>
-      </div>
-
-      <div class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">Unique Supporters</span>
-          <div class="analytics-kpi-icon"><i data-lucide="users"></i></div>
-        </div>
-        <div class="analytics-kpi-value" id="kpi-unique-donors">0</div>
-        <div class="analytics-kpi-sub">Individual donors</div>
-      </div>
-
-      <div class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">Average Donation</span>
-          <div class="analytics-kpi-icon"><i data-lucide="calculator"></i></div>
-        </div>
-        <div class="analytics-kpi-value" id="kpi-avg-amount">&#8377;0.00</div>
-        <div class="analytics-kpi-sub">Per payment contribution</div>
-      </div>
-
-      <div class="analytics-kpi-card">
-        <div class="analytics-kpi-header">
-          <span class="analytics-kpi-title">Peak Earning Day</span>
-          <div class="analytics-kpi-icon"><i data-lucide="trending-up"></i></div>
-        </div>
-        <div class="analytics-kpi-value" id="kpi-peak-day" style="font-size: 16px;">N/A</div>
-        <div class="analytics-kpi-sub" id="kpi-peak-day-sub">Highest daily revenue</div>
-      </div>
-    </div>
-
-    <!-- Interactive Visual Charts Grid -->
-    <div class="analytics-charts-grid">
-      <!-- Left: Interactive Donut Chart with Center Total -->
-      <div class="analytics-card">
-        <div class="analytics-card-header">
-          <div class="analytics-card-title"><i data-lucide="pie-chart"></i> Payment Methods Breakdown</div>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <select id="select-donut-view-mode" class="form-control" style="font-size: 11px; padding: 2px 6px; height: 26px; width: auto;" title="Breakdown Timeframe">
-              <option value="all" selected>📅 All Time (Full History)</option>
-              <option value="week">📅 Current Week (7 Days)</option>
-              <option value="month">🗓️ Current Month (Weeks)</option>
-              <option value="year">📊 Current Year (12 Months)</option>
-            </select>
-          </div>
-        </div>
-        <div class="analytics-donut-container">
-          <div class="analytics-donut-wrapper" id="analytics-donut-wrapper">
-            <svg id="analytics-donut-svg" viewBox="0 0 220 220" width="220" height="220" style="overflow: visible;">
-              <!-- Donut arcs injected by JS -->
-            </svg>
-            <div class="analytics-donut-center">
-              <div class="analytics-donut-center-amount" id="donut-center-amount">&#8377;0</div>
-              <div class="analytics-donut-center-label" id="donut-center-label">Total Received</div>
+          <!-- Presets toolbar -->
+          <div class="form-group"
+            style="background: var(--surface); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+            <label style="font-weight: 600; font-size: 13px;"><i data-lucide="zap"
+                style="width: 14px; height: 14px; color: var(--accent); vertical-align: middle; margin-right: 4px;"></i>
+              Quick Presets:</label>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
+              <button type="button" class="btn btn-outline btn-sim-preset" data-preset="phonepe"
+                style="font-size: 12px;"><i data-lucide="smartphone"></i> PhonePe (&#8377;500)</button>
+              <button type="button" class="btn btn-outline btn-sim-preset" data-preset="gpay"
+                style="font-size: 12px;"><i data-lucide="credit-card"></i> Google Pay (&#8377;1,000)</button>
+              <button type="button" class="btn btn-outline btn-sim-preset" data-preset="amazon"
+                style="font-size: 12px;"><i data-lucide="package"></i> Amazon Pay (&#8377;1,500)</button>
+              <button type="button" class="btn btn-outline btn-sim-preset" data-preset="cash"
+                style="font-size: 12px;"><i data-lucide="banknote"></i> Cash (&#8377;250)</button>
+              <button type="button" class="btn btn-outline btn-sim-preset" data-preset="highval"
+                style="font-size: 12px;"><i data-lucide="crown"></i> High Value (&#8377;5,000)</button>
+              <button type="button" class="btn btn-secondary" id="btn-sim-random"
+                style="font-size: 12px; margin-left: auto;"><i data-lucide="dices"></i> Random Event</button>
             </div>
           </div>
-          <div class="analytics-donut-legend" id="analytics-donut-legend">
-            <!-- Legend items injected by JS -->
+
+          <!-- Simulator Form -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sim-app-provider">Payment App Provider</label>
+              <select id="sim-app-provider" class="form-control">
+                <option value="phonepe">📱 PhonePe (com.phonepe.app)</option>
+                <option value="gpay">💳 Google Pay (com.google.android.apps.nbu.paisa.user)</option>
+                <option value="amazon">🛒 Amazon Pay (in.amazon.mShop.android.shopping)</option>
+                <option value="cash">💵 Cash / Manual Entry (Cash)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sim-sender">Sender Name</label>
+              <input type="text" id="sim-sender" class="form-control" placeholder="e.g. Rahul Kumar"
+                value="Rahul Kumar" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sim-amount">Amount (&#8377;)</label>
+              <input type="text" id="sim-amount" class="form-control" placeholder="e.g. 500" value="500" />
+            </div>
+            <div class="form-group">
+              <label for="sim-message">Optional Message / Note</label>
+              <input type="text" id="sim-message" class="form-control" placeholder="e.g. Great stream!"
+                value="Awesome stream!" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sim-template-override">Template Selection Override</label>
+              <select id="sim-template-override" class="form-control">
+                <option value="">Auto-Match by Amount (Default)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sim-alert-id">Custom Event / Alert ID</label>
+              <div class="input-with-button">
+                <input type="text" id="sim-alert-id" class="form-control" placeholder="Auto-generated if empty" />
+                <button type="button" class="btn btn-outline" id="btn-sim-gen-id" style="font-size: 11px;">Generate
+                  ID</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dispatch & Test Buttons -->
+          <div class="form-group" style="display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary" id="btn-sim-dispatch"
+              style="padding: 10px 20px; font-size: 14px;"><i data-lucide="send"></i> Dispatch Custom Event</button>
+            <button type="button" class="btn btn-secondary" id="btn-sim-inspect"><i data-lucide="search"></i> Inspect
+              Match &amp; Parser</button>
+            <button type="button" class="btn btn-outline" id="btn-sim-clear-console"><i data-lucide="eraser"></i> Clear
+              Console Log</button>
+          </div>
+
+          <!-- Simulated Event Console -->
+          <div class="form-group" style="margin-top: 16px;">
+            <div class="label-with-switch">
+              <label>Event Inspector &amp; Dispatch Console Log</label>
+            </div>
+            <pre id="sim-console" class="box-expandable"
+              style="background: var(--bg-dark, #06080d); color: #00e5ff; font-family: 'Fira Code', 'Consolas', monospace; font-size: 12px; padding: 14px; border-radius: 8px; border: 1px solid var(--border); overflow-y: auto; white-space: pre-wrap; margin-top: 4px;">Press "Inspect Match &amp; Parser" or "Dispatch Custom Event" to simulate an event.</pre>
           </div>
         </div>
-      </div>
 
-      <!-- Right: Income Timeline Grid Graph (Detached View) -->
-      <div class="analytics-card">
-        <div class="analytics-card-header">
-          <div class="analytics-card-title"><i data-lucide="bar-chart-2"></i> Income Timeline</div>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <select id="select-trend-view-mode" class="form-control" style="font-size: 11px; padding: 2px 6px; height: 26px; width: auto;" title="Timeline Resolution">
-              <option value="week">📅 Current Week (7 Days)</option>
-              <option value="month" selected>🗓️ Current Month (Weeks)</option>
-              <option value="year">📊 Current Year (12 Months)</option>
-            </select>
+        <!-- Tab: Earning Overview & Analytics -->
+        <div class="tab-content active" id="tab-earnings">
+          <div class="panel-header-with-switch" style="margin-bottom: 14px;">
+            <div>
+              <h2 class="panel-title"><i data-lucide="line-chart"></i> Earning Overview &amp; Analytics</h2>
+              <p class="panel-desc">Real-time payment analytics, income distributions, and top donor insights from your
+                single source of truth ledger.</p>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button class="btn btn-primary" id="btn-open-record-modal" type="button"
+                style="font-size: 12px; padding: 6px 12px;">
+                <i data-lucide="plus-circle"></i> Record Manual Payment
+              </button>
+              <button class="btn btn-outline" id="btn-analytics-export-csv" type="button"
+                style="font-size: 12px; padding: 6px 12px;">
+                <i data-lucide="file-spreadsheet"></i> Export CSV
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="analytics-trend-container" id="analytics-trend-container">
-          <svg id="analytics-trend-svg" width="100%" height="220" style="overflow: visible;">
-            <!-- Bars injected by JS -->
-          </svg>
-        </div>
-      </div>
-    </div>
 
-    <!-- Full-Width Filterable Donations & Income Ledger -->
-    <div class="analytics-card" style="margin-bottom: 0;">
-      <div class="analytics-card-header" style="flex-wrap: wrap; gap: 10px;">
-        <div class="analytics-card-title">
-          <i data-lucide="receipt"></i> All Donations &amp; Income Ledger
-          <span class="preview-badge" id="ledger-count-label" style="font-size: 11px; margin-left: 6px;">0 records</span>
-        </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <label style="font-size: 11px; color: var(--text-muted);">Rows per page:</label>
-          <select id="select-ledger-limit" class="form-control" style="width: auto; padding: 3px 8px; font-size: 11px;">
-            <option value="25">25</option>
-            <option value="50" selected>50</option>
-            <option value="100">100</option>
-          </select>
-          <button class="btn btn-outline" id="btn-clear-column-filters" type="button" style="font-size: 11px; padding: 4px 8px;" title="Reset all column filters">
-            <i data-lucide="filter-x"></i> Reset Filters
-          </button>
-          <button class="btn btn-outline" id="btn-download-filtered-csv" type="button" style="font-size: 11px; padding: 4px 8px;" title="Download currently filtered ledger list as CSV">
-            <i data-lucide="download"></i> Export Filtered CSV
-          </button>
-          <div style="display: flex; gap: 2px; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2px 4px;" title="Ledger height preset">
-            <button type="button" class="btn-box-toggle" id="btn-ledger-height-sm" title="Compact view (220px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">S</button>
-            <button type="button" class="btn-box-toggle" id="btn-ledger-height-md" title="Default view (420px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px; color: var(--accent);">M</button>
-            <button type="button" class="btn-box-toggle" id="btn-ledger-height-lg" title="Expanded view (720px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">L</button>
+          <!-- Filter & Month Toolbar -->
+          <div class="analytics-filter-toolbar">
+            <div class="analytics-filter-group">
+              <label for="select-analytics-month"
+                style="font-size: 12px; font-weight: 600; color: var(--text-muted);"><i data-lucide="calendar"
+                  style="width: 13px; height: 13px; vertical-align: middle;"></i> Month:</label>
+              <select id="select-analytics-month" class="form-control"
+                style="width: auto; min-width: 140px; padding: 5px 10px; font-size: 12px;">
+                <option value="all">📅 All Time (Full History)</option>
+              </select>
+            </div>
+
+            <div class="analytics-filter-group">
+              <label for="select-analytics-provider"
+                style="font-size: 12px; font-weight: 600; color: var(--text-muted);"><i data-lucide="filter"
+                  style="width: 13px; height: 13px; vertical-align: middle;"></i> Method:</label>
+              <select id="select-analytics-provider" class="form-control"
+                style="width: auto; min-width: 130px; padding: 5px 10px; font-size: 12px;">
+                <option value="all">All Payment Methods</option>
+                <option value="phonepe">PhonePe</option>
+                <option value="gpay">Google Pay</option>
+                <option value="paytm">Paytm</option>
+                <option value="amazon">Amazon Pay</option>
+                <option value="bhim">BHIM UPI</option>
+                <option value="manual">Manual Entry</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div class="analytics-filter-group">
+              <div class="analytics-range-pills">
+                <button type="button" class="analytics-range-btn active" data-range="all">All</button>
+                <button type="button" class="analytics-range-btn" data-range="month">This Month</button>
+                <button type="button" class="analytics-range-btn" data-range="week">This Week</button>
+                <button type="button" class="analytics-range-btn" data-range="today">Today</button>
+              </div>
+            </div>
+
+            <div class="analytics-filter-group" style="flex: 1; min-width: 160px; justify-content: flex-end;">
+              <input type="text" id="input-analytics-search" class="form-control" placeholder="Search donor or note..."
+                style="font-size: 12px; padding: 5px 10px; max-width: 200px;" />
+              <button class="btn btn-secondary" id="btn-refresh-analytics" type="button"
+                style="padding: 5px 10px; font-size: 12px;" title="Refresh Analytics"><i
+                  data-lucide="rotate-cw"></i></button>
+            </div>
           </div>
-          <button type="button" class="btn-box-toggle" id="btn-ledger-expand" title="Expand / Collapse ledger height" style="padding: 5px;">
-            <i data-lucide="chevrons-up-down" style="width:14px; height:14px;"></i>
-          </button>
-        </div>
-      </div>
 
+          <!-- 5 KPI Summary Metric Cards -->
+          <div class="analytics-kpi-grid">
+            <div class="analytics-kpi-card">
+              <div class="analytics-kpi-header">
+                <span class="analytics-kpi-title">Total Revenue</span>
+                <div class="analytics-kpi-icon"><i data-lucide="indian-rupee"></i></div>
+              </div>
+              <div class="analytics-kpi-value" id="kpi-total-revenue">&#8377;0.00</div>
+              <div class="analytics-kpi-sub" id="kpi-total-revenue-sub">Gross income received</div>
+            </div>
 
-      <!-- Single-Line Filtered Stats Summary Bar -->
-      <div id="analytics-filtered-summary-bar" style="background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: var(--radius-md); padding: 8px 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px;">
-        <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
-          <span><span style="color: var(--text-muted);">Filtered Total:</span> <strong id="summary-stat-total" style="color: var(--accent); font-size: 13px;">&#8377;0.00</strong></span>
-          <span style="color: var(--border);">|</span>
-          <span><span style="color: var(--text-muted);">Transactions:</span> <strong id="summary-stat-count" style="color: var(--text-main);">0</strong></span>
-          <span style="color: var(--border);">|</span>
-          <span><span style="color: var(--text-muted);">Unique Donors:</span> <strong id="summary-stat-donors" style="color: var(--text-main);">0</strong></span>
-          <span style="color: var(--border);">|</span>
-          <span><span style="color: var(--text-muted);">Average:</span> <strong id="summary-stat-avg" style="color: var(--text-main);">&#8377;0.00</strong></span>
-        </div>
-        <div id="summary-stat-badge" style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Showing all records</div>
-      </div>
+            <div class="analytics-kpi-card">
+              <div class="analytics-kpi-header">
+                <span class="analytics-kpi-title">Total Donations</span>
+                <div class="analytics-kpi-icon"><i data-lucide="gift"></i></div>
+              </div>
+              <div class="analytics-kpi-value" id="kpi-total-count">0</div>
+              <div class="analytics-kpi-sub">Total verified transactions</div>
+            </div>
 
-      <!-- Full Table with Sticky Column Filter Headers -->
-      <div class="analytics-ledger-table-container">
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px; min-width: 720px;">
-          <thead style="position: sticky; top: 0; z-index: 10; background: var(--surface-2); box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
-            <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--text-muted); font-size: 11px;">
-              <th style="padding: 8px 10px; width: 210px; background: var(--surface-2); position: relative;" class="resizable-col">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; gap: 4px;">
-                  <span style="font-weight: 600;">Date &amp; Time</span>
-                  <select id="select-col-date-sort" class="form-control" style="font-size: 10px; padding: 2px 4px; height: 22px; width: auto;" title="Date Sort Order">
-                    <option value="desc">↓ Newest First</option>
-                    <option value="asc">↑ Oldest First</option>
+            <div class="analytics-kpi-card">
+              <div class="analytics-kpi-header">
+                <span class="analytics-kpi-title">Unique Supporters</span>
+                <div class="analytics-kpi-icon"><i data-lucide="users"></i></div>
+              </div>
+              <div class="analytics-kpi-value" id="kpi-unique-donors">0</div>
+              <div class="analytics-kpi-sub">Individual donors</div>
+            </div>
+
+            <div class="analytics-kpi-card">
+              <div class="analytics-kpi-header">
+                <span class="analytics-kpi-title">Average Donation</span>
+                <div class="analytics-kpi-icon"><i data-lucide="calculator"></i></div>
+              </div>
+              <div class="analytics-kpi-value" id="kpi-avg-amount">&#8377;0.00</div>
+              <div class="analytics-kpi-sub">Per payment contribution</div>
+            </div>
+
+            <div class="analytics-kpi-card">
+              <div class="analytics-kpi-header">
+                <span class="analytics-kpi-title">Peak Earning Day</span>
+                <div class="analytics-kpi-icon"><i data-lucide="trending-up"></i></div>
+              </div>
+              <div class="analytics-kpi-value" id="kpi-peak-day" style="font-size: 16px;">N/A</div>
+              <div class="analytics-kpi-sub" id="kpi-peak-day-sub">Highest daily revenue</div>
+            </div>
+          </div>
+
+          <!-- Interactive Visual Charts Grid -->
+          <div class="analytics-charts-grid">
+            <!-- Left: Interactive Donut Chart with Center Total -->
+            <div class="analytics-card">
+              <div class="analytics-card-header">
+                <div class="analytics-card-title"><i data-lucide="pie-chart"></i> Payment Methods Breakdown</div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <select id="select-donut-view-mode" class="form-control"
+                    style="font-size: 11px; padding: 2px 6px; height: 26px; width: auto;" title="Breakdown Timeframe">
+                    <option value="all" selected>📅 All Time (Full History)</option>
+                    <option value="week">📅 Current Week (7 Days)</option>
+                    <option value="month">🗓️ Current Month (Weeks)</option>
+                    <option value="year">📊 Current Year (12 Months)</option>
                   </select>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 3px;">
-                  <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="font-size: 10px; color: var(--text-muted); width: 28px;">From:</span>
-                    <input type="date" id="filter-col-date-from" class="form-control" style="font-size: 10.5px; padding: 1px 3px; height: 22px; flex: 1;" title="Start date" />
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="font-size: 10px; color: var(--text-muted); width: 28px;">To:</span>
-                    <input type="date" id="filter-col-date-to" class="form-control" style="font-size: 10.5px; padding: 1px 3px; height: 22px; flex: 1;" title="End date" />
+              </div>
+              <div class="analytics-donut-container">
+                <div class="analytics-donut-wrapper" id="analytics-donut-wrapper">
+                  <svg id="analytics-donut-svg" viewBox="0 0 220 220" width="220" height="220"
+                    style="overflow: visible;">
+                    <!-- Donut arcs injected by JS -->
+                  </svg>
+                  <div class="analytics-donut-center">
+                    <div class="analytics-donut-center-amount" id="donut-center-amount">&#8377;0</div>
+                    <div class="analytics-donut-center-label" id="donut-center-label">Total Received</div>
                   </div>
                 </div>
-                <div class="col-resize-handle" title="Drag to resize column width"></div>
-              </th>
-              <th style="padding: 8px 10px; min-width: 160px; background: var(--surface-2); position: relative;" class="resizable-col">
-                <div style="margin-bottom: 4px; font-weight: 600;">Donor / Supporter</div>
-                <input type="text" id="filter-col-donor" class="form-control" placeholder="Filter donor..." style="font-size: 11px; padding: 3px 6px; height: 26px;" />
-                <div class="col-resize-handle" title="Drag to resize column width"></div>
-              </th>
-              <th style="padding: 8px 10px; width: 140px; background: var(--surface-2); position: relative;" class="resizable-col">
-                <div style="margin-bottom: 4px; font-weight: 600;">Payment Method</div>
-                <select id="filter-col-provider" class="form-control" style="font-size: 11px; padding: 3px 6px; height: 26px;">
-                  <option value="all">All Methods</option>
-                  <option value="phonepe">PhonePe</option>
-                  <option value="gpay">Google Pay</option>
-                  <option value="paytm">Paytm</option>
-                  <option value="amazon">Amazon Pay</option>
-                  <option value="bhim">BHIM UPI</option>
-                  <option value="manual">Manual</option>
-                  <option value="other">Other</option>
+                <div class="analytics-donut-legend" id="analytics-donut-legend">
+                  <!-- Legend items injected by JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Income Timeline Grid Graph (Detached View) -->
+            <div class="analytics-card">
+              <div class="analytics-card-header">
+                <div class="analytics-card-title"><i data-lucide="bar-chart-2"></i> Income Timeline</div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <select id="select-trend-view-mode" class="form-control"
+                    style="font-size: 11px; padding: 2px 6px; height: 26px; width: auto;" title="Timeline Resolution">
+                    <option value="week">📅 Current Week (7 Days)</option>
+                    <option value="month" selected>🗓️ Current Month (Weeks)</option>
+                    <option value="year">📊 Current Year (12 Months)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="analytics-trend-container" id="analytics-trend-container">
+                <svg id="analytics-trend-svg" width="100%" height="220" style="overflow: visible;">
+                  <!-- Bars injected by JS -->
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Full-Width Filterable Donations & Income Ledger -->
+          <div class="analytics-card" style="margin-bottom: 0;">
+            <div class="analytics-card-header" style="flex-wrap: wrap; gap: 10px;">
+              <div class="analytics-card-title">
+                <i data-lucide="receipt"></i> All Donations &amp; Income Ledger
+                <span class="preview-badge" id="ledger-count-label" style="font-size: 11px; margin-left: 6px;">0
+                  records</span>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <label style="font-size: 11px; color: var(--text-muted);">Rows per page:</label>
+                <select id="select-ledger-limit" class="form-control"
+                  style="width: auto; padding: 3px 8px; font-size: 11px;">
+                  <option value="25">25</option>
+                  <option value="50" selected>50</option>
+                  <option value="100">100</option>
                 </select>
-                <div class="col-resize-handle" title="Drag to resize column width"></div>
-              </th>
-              <th style="padding: 8px 10px; background: var(--surface-2); position: relative;" class="resizable-col">
-                <div style="margin-bottom: 4px; font-weight: 600;">Message / Note</div>
-                <input type="text" id="filter-col-note" class="form-control" placeholder="Search message..." style="font-size: 11px; padding: 3px 6px; height: 26px;" />
-                <div class="col-resize-handle" title="Drag to resize column width"></div>
-              </th>
-              <th style="padding: 8px 10px; text-align: right; width: 160px; background: var(--surface-2); position: relative;" class="resizable-col">
-                <div style="display: flex; align-items: center; justify-content: flex-end; margin-bottom: 4px; gap: 4px;">
-                  <span style="font-weight: 600;">Amount</span>
-                  <select id="select-col-amount-sort" class="form-control" style="font-size: 10px; padding: 2px 4px; height: 22px; width: auto; text-align: left;" title="Amount Sort Order">
-                    <option value="none" selected>— None</option>
-                    <option value="desc">↓ Highest First</option>
-                    <option value="asc">↑ Lowest First</option>
-                  </select>
+                <button class="btn btn-outline" id="btn-clear-column-filters" type="button"
+                  style="font-size: 11px; padding: 4px 8px;" title="Reset all column filters">
+                  <i data-lucide="filter-x"></i> Reset Filters
+                </button>
+                <button class="btn btn-outline" id="btn-download-filtered-csv" type="button"
+                  style="font-size: 11px; padding: 4px 8px;" title="Download currently filtered ledger list as CSV">
+                  <i data-lucide="download"></i> Export Filtered CSV
+                </button>
+                <div
+                  style="display: flex; gap: 2px; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2px 4px;"
+                  title="Ledger height preset">
+                  <button type="button" class="btn-box-toggle" id="btn-ledger-height-sm" title="Compact view (220px)"
+                    style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">S</button>
+                  <button type="button" class="btn-box-toggle" id="btn-ledger-height-md" title="Default view (420px)"
+                    style="font-size: 10px; padding: 3px 6px; border-radius: 4px; color: var(--accent);">M</button>
+                  <button type="button" class="btn-box-toggle" id="btn-ledger-height-lg" title="Expanded view (720px)"
+                    style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">L</button>
                 </div>
-                <input type="number" id="filter-col-min-amount" class="form-control" placeholder="Min ₹..." style="font-size: 11px; padding: 3px 6px; height: 26px; text-align: right;" />
-                <div class="col-resize-handle" title="Drag to resize column width"></div>
-              </th>
-              <th style="padding: 8px 10px; width: 60px; text-align: center; background: var(--surface-2);">Action</th>
-            </tr>
-          </thead>
-          <tbody id="analytics-ledger-body">
-            <tr>
-              <td colspan="6" style="padding: 40px 20px; text-align: center;">
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
-                  <div class="rotation-spinner spinner-lg"></div>
-                  <div style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Loading donations &amp; analytics...</div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+                <button type="button" class="btn-box-toggle" id="btn-ledger-expand"
+                  title="Expand / Collapse ledger height" style="padding: 5px;">
+                  <i data-lucide="chevrons-up-down" style="width:14px; height:14px;"></i>
+                </button>
+              </div>
+            </div>
 
-      <!-- Pagination Footer: Compact and positioned away from bottom-right overlays -->
-      <div style="display: flex; align-items: center; justify-content: flex-start; gap: 14px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted);">
-        <div style="display: flex; align-items: center; gap: 8px; background: var(--surface-2); padding: 4px 8px; border-radius: var(--radius-md); border: 1px solid var(--border);">
-          <button type="button" class="btn btn-outline" id="btn-ledger-prev" style="padding: 4px 10px; font-size: 11.5px;" disabled>&larr; Previous</button>
-          <span id="ledger-pagination-info" style="font-weight: 600; color: var(--text-main); font-size: 11.5px; padding: 0 6px;">Page 1 of 1</span>
-          <button type="button" class="btn btn-outline" id="btn-ledger-next" style="padding: 4px 10px; font-size: 11.5px;" disabled>Next &rarr;</button>
+
+            <!-- Single-Line Filtered Stats Summary Bar -->
+            <div id="analytics-filtered-summary-bar"
+              style="background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: var(--radius-md); padding: 8px 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px;">
+              <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                <span><span style="color: var(--text-muted);">Filtered Total:</span> <strong id="summary-stat-total"
+                    style="color: var(--accent); font-size: 13px;">&#8377;0.00</strong></span>
+                <span style="color: var(--border);">|</span>
+                <span><span style="color: var(--text-muted);">Transactions:</span> <strong id="summary-stat-count"
+                    style="color: var(--text-main);">0</strong></span>
+                <span style="color: var(--border);">|</span>
+                <span><span style="color: var(--text-muted);">Unique Donors:</span> <strong id="summary-stat-donors"
+                    style="color: var(--text-main);">0</strong></span>
+                <span style="color: var(--border);">|</span>
+                <span><span style="color: var(--text-muted);">Average:</span> <strong id="summary-stat-avg"
+                    style="color: var(--text-main);">&#8377;0.00</strong></span>
+              </div>
+              <div id="summary-stat-badge" style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Showing
+                all records</div>
+            </div>
+
+            <!-- Full Table with Sticky Column Filter Headers -->
+            <div class="analytics-ledger-table-container">
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px; min-width: 720px;">
+                <thead
+                  style="position: sticky; top: 0; z-index: 10; background: var(--surface-2); box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+                  <tr
+                    style="border-bottom: 1px solid var(--border); text-align: left; color: var(--text-muted); font-size: 11px;">
+                    <th style="padding: 8px 10px; width: 210px; background: var(--surface-2); position: relative;"
+                      class="resizable-col">
+                      <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; gap: 4px;">
+                        <span style="font-weight: 600;">Date &amp; Time</span>
+                        <select id="select-col-date-sort" class="form-control"
+                          style="font-size: 10px; padding: 2px 4px; height: 22px; width: auto;" title="Date Sort Order">
+                          <option value="desc">↓ Newest First</option>
+                          <option value="asc">↑ Oldest First</option>
+                        </select>
+                      </div>
+                      <div style="display: flex; flex-direction: column; gap: 3px;">
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                          <span style="font-size: 10px; color: var(--text-muted); width: 28px;">From:</span>
+                          <input type="date" id="filter-col-date-from" class="form-control"
+                            style="font-size: 10.5px; padding: 1px 3px; height: 22px; flex: 1;" title="Start date" />
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                          <span style="font-size: 10px; color: var(--text-muted); width: 28px;">To:</span>
+                          <input type="date" id="filter-col-date-to" class="form-control"
+                            style="font-size: 10.5px; padding: 1px 3px; height: 22px; flex: 1;" title="End date" />
+                        </div>
+                      </div>
+                      <div class="col-resize-handle" title="Drag to resize column width"></div>
+                    </th>
+                    <th style="padding: 8px 10px; min-width: 160px; background: var(--surface-2); position: relative;"
+                      class="resizable-col">
+                      <div style="margin-bottom: 4px; font-weight: 600;">Donor / Supporter</div>
+                      <input type="text" id="filter-col-donor" class="form-control" placeholder="Filter donor..."
+                        style="font-size: 11px; padding: 3px 6px; height: 26px;" />
+                      <div class="col-resize-handle" title="Drag to resize column width"></div>
+                    </th>
+                    <th style="padding: 8px 10px; width: 140px; background: var(--surface-2); position: relative;"
+                      class="resizable-col">
+                      <div style="margin-bottom: 4px; font-weight: 600;">Payment Method</div>
+                      <select id="filter-col-provider" class="form-control"
+                        style="font-size: 11px; padding: 3px 6px; height: 26px;">
+                        <option value="all">All Methods</option>
+                        <option value="phonepe">PhonePe</option>
+                        <option value="gpay">Google Pay</option>
+                        <option value="paytm">Paytm</option>
+                        <option value="amazon">Amazon Pay</option>
+                        <option value="bhim">BHIM UPI</option>
+                        <option value="manual">Manual</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <div class="col-resize-handle" title="Drag to resize column width"></div>
+                    </th>
+                    <th style="padding: 8px 10px; background: var(--surface-2); position: relative;"
+                      class="resizable-col">
+                      <div style="margin-bottom: 4px; font-weight: 600;">Message / Note</div>
+                      <input type="text" id="filter-col-note" class="form-control" placeholder="Search message..."
+                        style="font-size: 11px; padding: 3px 6px; height: 26px;" />
+                      <div class="col-resize-handle" title="Drag to resize column width"></div>
+                    </th>
+                    <th
+                      style="padding: 8px 10px; text-align: right; width: 160px; background: var(--surface-2); position: relative;"
+                      class="resizable-col">
+                      <div
+                        style="display: flex; align-items: center; justify-content: flex-end; margin-bottom: 4px; gap: 4px;">
+                        <span style="font-weight: 600;">Amount</span>
+                        <select id="select-col-amount-sort" class="form-control"
+                          style="font-size: 10px; padding: 2px 4px; height: 22px; width: auto; text-align: left;"
+                          title="Amount Sort Order">
+                          <option value="none" selected>— None</option>
+                          <option value="desc">↓ Highest First</option>
+                          <option value="asc">↑ Lowest First</option>
+                        </select>
+                      </div>
+                      <input type="number" id="filter-col-min-amount" class="form-control" placeholder="Min ₹..."
+                        style="font-size: 11px; padding: 3px 6px; height: 26px; text-align: right;" />
+                      <div class="col-resize-handle" title="Drag to resize column width"></div>
+                    </th>
+                    <th style="padding: 8px 10px; width: 60px; text-align: center; background: var(--surface-2);">Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-ledger-body">
+                  <tr>
+                    <td colspan="6" style="padding: 40px 20px; text-align: center;">
+                      <div
+                        style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+                        <div class="rotation-spinner spinner-lg"></div>
+                        <div style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Loading donations
+                          &amp; analytics...</div>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination Footer: Compact and positioned away from bottom-right overlays -->
+            <div
+              style="display: flex; align-items: center; justify-content: flex-start; gap: 14px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-muted);">
+              <div
+                style="display: flex; align-items: center; gap: 8px; background: var(--surface-2); padding: 4px 8px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                <button type="button" class="btn btn-outline" id="btn-ledger-prev"
+                  style="padding: 4px 10px; font-size: 11.5px;" disabled>&larr; Previous</button>
+                <span id="ledger-pagination-info"
+                  style="font-weight: 600; color: var(--text-main); font-size: 11.5px; padding: 0 6px;">Page 1 of
+                  1</span>
+                <button type="button" class="btn btn-outline" id="btn-ledger-next"
+                  style="padding: 4px 10px; font-size: 11.5px;" disabled>Next &rarr;</button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- Tab 9: Server Logs -->
-  <div class="tab-content" id="tab-server-logs">
-    <div class="panel-header-with-switch" style="margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
-      <div>
-        <h2 class="panel-title"><i data-lucide="clipboard-list"></i> Real-Time Server Logs</h2>
-        <p class="panel-desc">Monitor live payment events, WebSocket connections, parser debug output, and historical logs.</p>
-      </div>
-      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-        <button class="btn btn-outline" id="btn-fix-firewall" type="button"
-          style="font-size: 12px; padding: 7px 12px;" title="Unblock port 2907 in Windows Firewall"><i data-lucide="shield"></i> Fix Firewall</button>
-        <button class="btn btn-outline" id="btn-clear-logs" type="button"
-          style="font-size: 12px; padding: 7px 12px; color: var(--danger); border-color: rgba(255, 82, 82, 0.3);" title="Clear current day's log file"><i data-lucide="trash-2"></i> Clear Logs</button>
-        <button class="btn btn-primary" id="btn-download-full-logs" type="button"
-          style="font-size: 12px; padding: 7px 14px;"><i data-lucide="download"></i> Download Full Log File</button>
-      </div>
-    </div>
+        <!-- Tab 9: Server Logs -->
+        <div class="tab-content" id="tab-server-logs">
+          <div class="panel-header-with-switch" style="margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
+            <div>
+              <h2 class="panel-title"><i data-lucide="clipboard-list"></i> Real-Time Server Logs</h2>
+              <p class="panel-desc">Monitor live payment events, WebSocket connections, parser debug output, and
+                historical logs.</p>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button class="btn btn-outline" id="btn-fix-firewall" type="button"
+                style="font-size: 12px; padding: 7px 12px;" title="Unblock port 2907 in Windows Firewall"><i
+                  data-lucide="shield"></i> Fix Firewall</button>
+              <button class="btn btn-outline" id="btn-clear-logs" type="button"
+                style="font-size: 12px; padding: 7px 12px; color: var(--danger); border-color: rgba(255, 82, 82, 0.3);"
+                title="Clear current day's log file"><i data-lucide="trash-2"></i> Clear Logs</button>
+              <button class="btn btn-primary" id="btn-download-full-logs" type="button"
+                style="font-size: 12px; padding: 7px 14px;"><i data-lucide="download"></i> Download Full Log
+                File</button>
+            </div>
+          </div>
 
 
-    <!-- Toolbar Filters -->
-    <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; background: var(--surface-2); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border);">
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);"><i data-lucide="calendar" style="width: 13px; height: 13px; vertical-align: -2px;"></i> Log Date:</label>
-        <select id="select-log-date" class="form-control" style="width: 180px; padding: 6px 10px; font-size: 12px;">
-          <option value="">Today (Active)</option>
-        </select>
-      </div>
+          <!-- Toolbar Filters -->
+          <div
+            style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; background: var(--surface-2); padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);"><i data-lucide="calendar"
+                  style="width: 13px; height: 13px; vertical-align: -2px;"></i> Log Date:</label>
+              <select id="select-log-date" class="form-control"
+                style="width: 180px; padding: 6px 10px; font-size: 12px;">
+                <option value="">Today (Active)</option>
+              </select>
+            </div>
 
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);"><i data-lucide="filter" style="width: 13px; height: 13px; vertical-align: -2px;"></i> Level:</label>
-        <select id="select-log-filter" class="form-control" style="width: 140px; padding: 6px 10px; font-size: 12px;">
-          <option value="ALL">ALL Levels</option>
-          <option value="INFO">INFO</option>
-          <option value="EVENT">EVENT (Raw)</option>
-          <option value="PARSE">PARSE</option>
-          <option value="DEDUP">DEDUP</option>
-          <option value="WARN">WARN</option>
-          <option value="ERROR">ERROR</option>
-        </select>
-      </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <label style="font-size: 12px; font-weight: 600; color: var(--text-muted);"><i data-lucide="filter"
+                  style="width: 13px; height: 13px; vertical-align: -2px;"></i> Level:</label>
+              <select id="select-log-filter" class="form-control"
+                style="width: 140px; padding: 6px 10px; font-size: 12px;">
+                <option value="ALL">ALL Levels</option>
+                <option value="INFO">INFO</option>
+                <option value="EVENT">EVENT (Raw)</option>
+                <option value="PARSE">PARSE</option>
+                <option value="DEDUP">DEDUP</option>
+                <option value="WARN">WARN</option>
+                <option value="ERROR">ERROR</option>
+              </select>
+            </div>
 
-      <button class="btn btn-secondary" id="btn-refresh-logs" type="button"
-        style="font-size: 12px; padding: 6px 12px;"><i data-lucide="rotate-cw"></i> Refresh</button>
-      
-      <button class="btn btn-outline" id="btn-download-filtered-logs" type="button"
-        style="font-size: 12px; padding: 6px 12px;" title="Download logs filtered by selected level"><i data-lucide="download"></i> Download Filtered</button>
+            <button class="btn btn-secondary" id="btn-refresh-logs" type="button"
+              style="font-size: 12px; padding: 6px 12px;"><i data-lucide="rotate-cw"></i> Refresh</button>
 
-      <div id="logs-status-indicator" style="margin-left: auto; font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-        <span style="width: 8px; height: 8px; border-radius: 50%; background: #00e676; display: inline-block;"></span>
-        <span id="logs-line-count">0 lines</span>
-      </div>
-    </div>
+            <button class="btn btn-outline" id="btn-download-filtered-logs" type="button"
+              style="font-size: 12px; padding: 6px 12px;" title="Download logs filtered by selected level"><i
+                data-lucide="download"></i> Download Filtered</button>
 
-    <div id="live-logs-terminal" class="box-expandable"
-      style="background: #030712; color: #f1f5f9; font-family: 'Fira Code', 'Consolas', monospace; font-size: 11.5px; padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border); overflow-y: auto; white-space: pre-wrap; margin: 0; line-height: 1.5; min-height: 480px; height: calc(100vh - 280px); max-height: 1200px;">
-      <div style="color: #64748b;">Loading server logs...</div>
-    </div>
-  </div>
+            <div id="logs-status-indicator"
+              style="margin-left: auto; font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+              <span
+                style="width: 8px; height: 8px; border-radius: 50%; background: #00e676; display: inline-block;"></span>
+              <span id="logs-line-count">0 lines</span>
+            </div>
+          </div>
 
-  <!-- Form Action Buttons Bar (Always visible at bottom of form panel) -->
-  <div class="action-bar" style="display: none;">
-    <button class="btn btn-primary" id="btn-save"><i data-lucide="save"></i> Save Settings</button>
-    <button class="btn btn-secondary" id="btn-test"><i data-lucide="zap"></i> Test Alert</button>
-    <button class="btn btn-danger" id="btn-reset"><i data-lucide="rotate-ccw"></i> Reset to Defaults</button>
-  </div>
-  </section>
+          <div id="live-logs-terminal" class="box-expandable"
+            style="background: #030712; color: #f1f5f9; font-family: 'Fira Code', 'Consolas', monospace; font-size: 11.5px; padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border); overflow-y: auto; white-space: pre-wrap; margin: 0; line-height: 1.5; min-height: 480px; height: calc(100vh - 280px); max-height: 1200px;">
+            <div style="color: #64748b;">Loading server logs...</div>
+          </div>
+        </div>
 
-  <!-- Draggable Resizer Gutter Bar -->
-  <div class="resizer-gutter" id="panel-resizer" title="Drag left or right to adjust panel sizes" style="display: none;"></div>
+        <!-- Form Action Buttons Bar (Always visible at bottom of form panel) -->
+        <div class="action-bar" style="display: none;">
+          <button class="btn btn-primary" id="btn-save"><i data-lucide="save"></i> Save Settings</button>
+          <button class="btn btn-secondary" id="btn-test"><i data-lucide="zap"></i> Test Alert</button>
+          <button class="btn btn-danger" id="btn-reset"><i data-lucide="rotate-ccw"></i> Reset to Defaults</button>
+        </div>
+      </section>
 
-  <!-- Live Preview Side Panel -->
-  <section class="preview-panel" style="display: none;">
-    <div class="preview-header">
-      <div class="preview-title">
-        <span>OBS Overlay Live Preview</span>
-        <span class="preview-badge">Real-time Sync</span>
-      </div>
-      <div class="preview-open-links">
-        <button type="button" class="btn-open-preview btn-copy-icon" id="btn-copy-current-url" title="Copy Current Overlay URL"><i data-lucide="copy"></i></button>
-        <button type="button" class="btn-open-preview btn-copy-icon" id="btn-open-new-tab" title="Open Overlay in New Tab"><i data-lucide="external-link"></i></button>
-      </div>
-    </div>
+      <!-- Draggable Resizer Gutter Bar -->
+      <div class="resizer-gutter" id="panel-resizer" title="Drag left or right to adjust panel sizes"
+        style="display: none;"></div>
 
-    <div class="preview-container">
-      <iframe id="preview-iframe" class="preview-iframe" src="/overlay/alerts"></iframe>
-    </div>
-  </section>
-  </main>
+      <!-- Live Preview Side Panel -->
+      <section class="preview-panel" style="display: none;">
+        <div class="preview-header">
+          <div class="preview-title">
+            <span>OBS Overlay Live Preview</span>
+            <span class="preview-badge">Real-time Sync</span>
+          </div>
+          <div class="preview-open-links">
+            <button type="button" class="btn-open-preview btn-copy-icon" id="btn-copy-current-url"
+              title="Copy Current Overlay URL"><i data-lucide="copy"></i></button>
+            <button type="button" class="btn-open-preview btn-copy-icon" id="btn-open-new-tab"
+              title="Open Overlay in New Tab"><i data-lucide="external-link"></i></button>
+          </div>
+        </div>
+
+        <div class="preview-container">
+          <iframe id="preview-iframe" class="preview-iframe" src="/overlay/alerts"></iframe>
+        </div>
+      </section>
+    </main>
   </div>
 
   <div id="toast" class="toast">Settings Saved!</div>
@@ -2274,15 +2482,19 @@
   <!-- Lucide Icon Picker Modal -->
   <div id="icon-picker-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card" style="max-width: 580px; width: 90%;">
-      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+      <div class="modal-header"
+        style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
         <h3 class="modal-title" style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
           <i data-lucide="grid"></i> Select Lucide Icon
         </h3>
-        <button type="button" class="btn btn-secondary" id="icon-picker-close" style="padding: 4px 8px; font-size: 12px;">✕</button>
+        <button type="button" class="btn btn-secondary" id="icon-picker-close"
+          style="padding: 4px 8px; font-size: 12px;">✕</button>
       </div>
       <div style="padding: 12px 0;">
-        <input type="text" id="icon-search-input" class="form-control" placeholder="Search 50+ icons (e.g. trophy, heart, star, game, coffee)..." style="margin-bottom: 12px;" />
-        <div id="icon-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 8px; max-height: 320px; overflow-y: auto; padding: 4px;">
+        <input type="text" id="icon-search-input" class="form-control"
+          placeholder="Search 50+ icons (e.g. trophy, heart, star, game, coffee)..." style="margin-bottom: 12px;" />
+        <div id="icon-grid"
+          style="display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr)); gap: 8px; max-height: 320px; overflow-y: auto; padding: 4px;">
           <!-- Icons injected by JS -->
         </div>
       </div>
@@ -2307,11 +2519,13 @@
         <div class="form-row" style="margin-bottom: 12px;">
           <div class="form-group" style="flex: 1;">
             <label for="input-manual-donor" style="font-weight: 600;">Donor / Supporter Name</label>
-            <input type="text" id="input-manual-donor" class="form-control" placeholder="e.g. Rahul Sharma" value="Anonymous Donor" />
+            <input type="text" id="input-manual-donor" class="form-control" placeholder="e.g. Rahul Sharma"
+              value="Anonymous Donor" />
           </div>
           <div class="form-group" style="width: 140px;">
             <label for="input-manual-amount" style="font-weight: 600;">Amount (&#8377;)</label>
-            <input type="number" id="input-manual-amount" class="form-control" placeholder="e.g. 500" min="1" step="any" value="500" />
+            <input type="number" id="input-manual-amount" class="form-control" placeholder="e.g. 500" min="1" step="any"
+              value="500" />
           </div>
         </div>
         <div class="form-group" style="margin-bottom: 12px;">
@@ -2337,7 +2551,8 @@
         </div>
         <div class="form-group" style="margin-bottom: 8px;">
           <label for="input-manual-note" style="font-weight: 600;">Optional Message / Note</label>
-          <input type="text" id="input-manual-note" class="form-control" placeholder="e.g. Offline superchat donation" />
+          <input type="text" id="input-manual-note" class="form-control"
+            placeholder="e.g. Offline superchat donation" />
         </div>
       </div>
       <div class="modal-footer">
@@ -2374,11 +2589,13 @@
           <div class="form-row" style="margin-bottom: 12px;">
             <div class="form-group" style="flex: 1;">
               <label for="input-export-start" style="font-weight: 600;">From (Month/Year)</label>
-              <input type="month" id="input-export-start" class="form-control" style="color-scheme: dark; color: #ffffff;" />
+              <input type="month" id="input-export-start" class="form-control"
+                style="color-scheme: dark; color: #ffffff;" />
             </div>
             <div class="form-group" style="flex: 1;">
               <label for="input-export-end" style="font-weight: 600;">To (Month/Year)</label>
-              <input type="month" id="input-export-end" class="form-control" style="color-scheme: dark; color: #ffffff;" />
+              <input type="month" id="input-export-end" class="form-control"
+                style="color-scheme: dark; color: #ffffff;" />
             </div>
           </div>
         </div>
@@ -2397,7 +2614,8 @@
     <div class="modal-card" style="max-width: 520px;">
       <div class="modal-header">
         <h3 class="modal-title" style="display: flex; align-items: center; gap: 6px;">
-          <i data-lucide="plus-circle" style="width: 18px; height: 18px; color: var(--accent);"></i> Create New List Widget
+          <i data-lucide="plus-circle" style="width: 18px; height: 18px; color: var(--accent);"></i> Create New List
+          Widget
         </h3>
       </div>
       <div class="modal-body" style="padding: 16px;">
@@ -2421,7 +2639,8 @@
       </div>
       <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px;">
         <button type="button" class="btn btn-secondary" id="btn-cancel-new-list">Cancel</button>
-        <button type="button" class="btn btn-primary" id="btn-confirm-new-list"><i data-lucide="check"></i> Create List</button>
+        <button type="button" class="btn btn-primary" id="btn-confirm-new-list"><i data-lucide="check"></i> Create
+          List</button>
       </div>
     </div>
   </div>
