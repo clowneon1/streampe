@@ -9,10 +9,10 @@ const winston = require('winston');
 require('winston-daily-rotate-file');
 const { Bonjour } = require('bonjour-service');
 
-const isCompiled = !process.execPath.endsWith('node') && 
-                   !process.execPath.endsWith('node.exe') && 
-                   !process.execPath.endsWith('bun') && 
-                   !process.execPath.endsWith('bun.exe');
+const isCompiled = !process.execPath.endsWith('node') &&
+  !process.execPath.endsWith('node.exe') &&
+  !process.execPath.endsWith('bun') &&
+  !process.execPath.endsWith('bun.exe');
 
 let baseDir = isCompiled ? path.dirname(process.execPath) : __dirname;
 let PUBLIC_DIR = path.join(baseDir, 'public');
@@ -27,7 +27,7 @@ if (isCompiled && (writableBaseDir.toLowerCase().includes('program files') || wr
   try {
     const appData = process.env.APPDATA || (process.platform === 'darwin' ? path.join(process.env.HOME || '', 'Library', 'Application Support') : path.join(process.env.HOME || '', '.local', 'share'));
     writableBaseDir = path.join(appData, 'com.clowneon1.streampe');
-  } catch (e) {}
+  } catch (e) { }
 }
 
 try {
@@ -35,7 +35,7 @@ try {
   if (process.env.TAURI_APP_DATA) {
     writableBaseDir = process.env.TAURI_APP_DATA;
   }
-} catch (e) {}
+} catch (e) { }
 
 const app = express();
 const server = http.createServer(app);
@@ -68,9 +68,9 @@ const storageRoot = customPaths.storageRootDir && customPaths.storageRootDir.tri
   ? path.resolve(customPaths.storageRootDir.trim())
   : writableBaseDir;
 
-const LOG_DIR      = path.join(storageRoot, 'logs');
+const LOG_DIR = path.join(storageRoot, 'logs');
 const SETTINGS_DIR = path.join(storageRoot, 'config');
-const DATA_DIR     = path.join(storageRoot, 'data');
+const DATA_DIR = path.join(storageRoot, 'data');
 
 for (const dir of [LOG_DIR, SETTINGS_DIR, DATA_DIR]) {
   try {
@@ -161,7 +161,7 @@ function getAvailableLogDates() {
         if (match) {
           const filePath = path.join(LOG_DIR, file);
           let size = 0;
-          try { size = fs.statSync(filePath).size; } catch (_) {}
+          try { size = fs.statSync(filePath).size; } catch (_) { }
           return { date: match[1], filename: file, size };
         }
         return null;
@@ -183,13 +183,13 @@ function writeLog(level, tag, message, data) {
 }
 
 const log = {
-  info  : (tag, msg, data) => writeLog('info',  tag, msg, data),
-  warn  : (tag, msg, data) => writeLog('warn',  tag, msg, data),
-  error : (tag, msg, data) => writeLog('error', tag, msg, data),
-  event : (tag, msg, data) => writeLog('event', tag, msg, data),
-  dedup : (tag, msg, data) => writeLog('dedup', tag, msg, data),
-  debug : (tag, msg, data) => writeLog('debug', tag, msg, data),
-  parse : (tag, msg, data) => writeLog('parse', tag, msg, data),
+  info: (tag, msg, data) => writeLog('info', tag, msg, data),
+  warn: (tag, msg, data) => writeLog('warn', tag, msg, data),
+  error: (tag, msg, data) => writeLog('error', tag, msg, data),
+  event: (tag, msg, data) => writeLog('event', tag, msg, data),
+  dedup: (tag, msg, data) => writeLog('dedup', tag, msg, data),
+  debug: (tag, msg, data) => writeLog('debug', tag, msg, data),
+  parse: (tag, msg, data) => writeLog('parse', tag, msg, data),
 };
 
 // ── Network & Windows Utilities ─────────────────────────────────────
@@ -233,7 +233,7 @@ function isWindowsStartupEnabled(callback) {
       if (!hasLegacy && (fs.existsSync(path.join(startupFolder, 'PaymentAlertsOBS.lnk')) || fs.existsSync(path.join(startupFolder, 'Payment Alerts for OBS.lnk')))) {
         hasLegacy = true;
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // Auto-migrate legacy startup entries to official StreamPe key
     if (hasLegacy) {
@@ -250,26 +250,41 @@ function isWindowsStartupEnabled(callback) {
 
 function getMainAppExePath() {
   const base = path.dirname(process.execPath);
+  const cwd = process.cwd();
+
   const candidates = [
-    // 1. Portable release structure (same directory)
+    // 1. Portable release structure (StreamPe.exe in same directory as process.execPath)
     path.join(base, 'StreamPe.exe'),
     path.join(base, 'streampe.exe'),
 
-    // 2. Tauri target build locations
+    // 2. Sidecar structure (server.exe inside subfolder or sidecar folder, StreamPe.exe in parent)
+    path.join(base, '..', 'StreamPe.exe'),
+    path.join(base, '..', 'streampe.exe'),
+    path.join(base, '..', '..', 'StreamPe.exe'),
+    path.join(base, '..', '..', 'streampe.exe'),
+
+    // 3. Working directory candidates
+    path.join(cwd, 'StreamPe.exe'),
+    path.join(cwd, 'streampe.exe'),
+    path.join(cwd, '..', 'StreamPe.exe'),
+    path.join(cwd, '..', 'streampe.exe'),
+
+    // 4. Tauri build target output locations
     path.join(base, '..', 'target', 'release', 'streampe.exe'),
     path.join(base, '..', 'target', 'release', 'StreamPe.exe'),
     path.join(base, '..', 'target', 'debug', 'streampe.exe'),
     path.join(base, '..', '..', 'src-tauri', 'target', 'release', 'streampe.exe'),
-    path.join(__dirname, 'src-tauri', 'target', 'release', 'streampe.exe')
+    path.join(__dirname, 'src-tauri', 'target', 'release', 'streampe.exe'),
+    path.join(__dirname, '..', 'src-tauri', 'target', 'release', 'streampe.exe')
   ];
 
   for (const cand of candidates) {
     try {
       const resolved = path.resolve(cand);
       if (fs.existsSync(resolved)) return resolved;
-    } catch (_) {}
+    } catch (_) { }
   }
-  return process.execPath;
+  return null;
 }
 
 function setWindowsStartup(enable, callback) {
@@ -281,6 +296,13 @@ function setWindowsStartup(enable, callback) {
   exec(cleanupCmd, () => {
     if (enable) {
       const exePath = getMainAppExePath();
+      if (!exePath) {
+        log.warn('Startup', 'Cannot enable Windows startup: StreamPe.exe desktop app binary not found on disk.');
+        if (callback) callback(false, 'StreamPe.exe desktop application binary not found');
+        return;
+      }
+
+      log.info('Startup', `Setting Windows Startup registry entry to StreamPe app: "${exePath}"`);
       const cmd = `reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "StreamPe" /t REG_SZ /d "\"${exePath}\"" /f`;
       exec(cmd, (err) => {
         if (callback) callback(!err, err ? err.message : null);
@@ -294,7 +316,7 @@ function setWindowsStartup(enable, callback) {
           const p = path.join(startupFolder, f);
           if (fs.existsSync(p)) fs.unlinkSync(p);
         });
-      } catch (e) {}
+      } catch (e) { }
     }
     if (callback) callback(true, null);
   });
@@ -356,47 +378,47 @@ function normaliseAmount(raw) {
   return `\u20B9${stripped}`;
 }
 
-const RE_PHONEPE_AMOUNT       = /has\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
-const RE_HAS_SENT             = /^(.+?)\s+has\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
-const RE_AMT_RECEIVED_FROM    = /(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+received\s+from\s+(.+)/i;
-const RE_PAYMENT_OF           = /payment\s+of\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+received\s+from\s+(.+)/i;
-const RE_NAME_SENT            = /^(.+?)\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
-const RE_YOU_PAID             = /you\s+(?:have\s+)?paid\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+to\s+(.+)/i;
-const RE_RECEIVED_FROM        = /received\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+from\s+(.+)/i;
-const RE_FROM_NAME            = /^from\s+(.+)/i;
-const RE_AMT_TITLE            = /(?:\u20B9|rs\.?\s*)?([\d,.]+(?:\.\d{1,2})?)\s+received/i;
-const RE_AMT_FROM_TITLE       = /(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+from\s+(.+)/i;
-const RE_AMAZON_SENDER        = /money\s+rec(?:ei)?ved\s+from\s+(.+?)\s+on\s+amazon\s+pay/i;
+const RE_PHONEPE_AMOUNT = /has\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
+const RE_HAS_SENT = /^(.+?)\s+has\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
+const RE_AMT_RECEIVED_FROM = /(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+received\s+from\s+(.+)/i;
+const RE_PAYMENT_OF = /payment\s+of\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+received\s+from\s+(.+)/i;
+const RE_NAME_SENT = /^(.+?)\s+sent\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
+const RE_YOU_PAID = /you\s+(?:have\s+)?paid\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+to\s+(.+)/i;
+const RE_RECEIVED_FROM = /received\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+from\s+(.+)/i;
+const RE_FROM_NAME = /^from\s+(.+)/i;
+const RE_AMT_TITLE = /(?:\u20B9|rs\.?\s*)?([\d,.]+(?:\.\d{1,2})?)\s+received/i;
+const RE_AMT_FROM_TITLE = /(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+from\s+(.+)/i;
+const RE_AMAZON_SENDER = /money\s+rec(?:ei)?ved\s+from\s+(.+?)\s+on\s+amazon\s+pay/i;
 
 // Google Pay (GPay) Patterns
 const RE_GPAY_PAID_YOU_SYMBOL = /^(.+?)\s+paid\s+you\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)/i;
-const RE_GPAY_PAID_YOU_WORDS  = /^(.+?)\s+paid\s+you\s+([\d,.]+(?:\.\d{1,2})?)\s+rupees/i;
-const RE_GPAY_YOU_RECEIVED    = /you\s+received\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+from\s+(.+)/i;
+const RE_GPAY_PAID_YOU_WORDS = /^(.+?)\s+paid\s+you\s+([\d,.]+(?:\.\d{1,2})?)\s+rupees/i;
+const RE_GPAY_YOU_RECEIVED = /you\s+received\s+(?:\u20B9|rs\.?\s*)([\d,.]+(?:\.\d{1,2})?)\s+from\s+(.+)/i;
 
 // Non-payment filter regex
 const RE_NON_PAYMENT = /(?:otp|verification code|one time password|security code|cashback won|scratch card|reward earned|reward points|congratulations.*reward|bank balance|available balance|account balance|bill due|bill generated|recharge successful|recharge of|check your credit score|exclusive offer|flat .* off|discount on|special offer)/i;
 
 function parsePayment(notification) {
-  const pkg      = (notification.packageName || '').trim().toLowerCase();
-  const appName  = (notification.appName     || '').trim();
-  const title    = (notification.title       || '').trim();
-  const titleBig = (notification.titleBig    || '').trim();
-  const text     = (notification.text        || '').trim();
-  const bigText  = (notification.bigText     || '').trim();
+  const pkg = (notification.packageName || '').trim().toLowerCase();
+  const appName = (notification.appName || '').trim();
+  const title = (notification.title || '').trim();
+  const titleBig = (notification.titleBig || '').trim();
+  const text = (notification.text || '').trim();
+  const bigText = (notification.bigText || '').trim();
 
   // Combine content for non-payment filtering
   const allContent = `${title} ${titleBig} ${text} ${bigText}`;
   if (RE_NON_PAYMENT.test(allContent)) {
     const isPaymentMatch = RE_GPAY_PAID_YOU_SYMBOL.test(title) || RE_GPAY_PAID_YOU_SYMBOL.test(titleBig) || RE_GPAY_PAID_YOU_SYMBOL.test(bigText) ||
-                           RE_PHONEPE_AMOUNT.test(title) || RE_PHONEPE_AMOUNT.test(text) || RE_PHONEPE_AMOUNT.test(bigText);
+      RE_PHONEPE_AMOUNT.test(title) || RE_PHONEPE_AMOUNT.test(text) || RE_PHONEPE_AMOUNT.test(bigText);
     if (!isPaymentMatch) {
       return null; // Ignore promotional, OTP, or balance alert
     }
   }
 
-  const isGPay    = pkg.includes('paisa') || pkg.includes('gpay') || appName.toLowerCase().includes('google pay') || appName.toLowerCase().includes('gpay');
+  const isGPay = pkg.includes('paisa') || pkg.includes('gpay') || appName.toLowerCase().includes('google pay') || appName.toLowerCase().includes('gpay');
   const isPhonePe = pkg.includes('phonepe') || appName.toLowerCase().includes('phonepe');
-  const isAmazon  = pkg.includes('amazon')  || appName.toLowerCase().includes('amazon');
+  const isAmazon = pkg.includes('amazon') || appName.toLowerCase().includes('amazon');
 
   const body = bigText || text;
 
@@ -432,7 +454,7 @@ function parsePayment(notification) {
   // ─ 2. Amazon Pay ───────────────────────────────────────────────
   if (isAmazon) {
     const senderM = RE_AMAZON_SENDER.exec(body);
-    const amtM    = RE_AMT_TITLE.exec(title);
+    const amtM = RE_AMT_TITLE.exec(title);
     if (senderM && amtM) {
       return { sender: cleanSender(senderM[1]), amount: normaliseAmount(amtM[1]), sourceApp: 'Amazon Pay' };
     }
@@ -444,12 +466,12 @@ function parsePayment(notification) {
   if (isPhonePe) {
     for (const candidate of [body, text, title].filter(Boolean)) {
       const hasIdx = candidate.indexOf(' has ');
-      const amtM   = RE_PHONEPE_AMOUNT.exec(candidate);
+      const amtM = RE_PHONEPE_AMOUNT.exec(candidate);
       if (hasIdx > 0 && amtM) {
         return {
-          sender    : cleanSender(candidate.substring(0, hasIdx)),
-          amount    : normaliseAmount(amtM[1]),
-          sourceApp : 'PhonePe'
+          sender: cleanSender(candidate.substring(0, hasIdx)),
+          amount: normaliseAmount(amtM[1]),
+          sourceApp: 'PhonePe'
         };
       }
     }
@@ -486,7 +508,7 @@ function parsePayment(notification) {
 
 // ── Configuration Files ───────────────────────────────────────────────
 // Schema refreshed for Goal widget opacity and saving persistence
-const ConfigSchema    = require('./public/js/lib/config-schema');
+const ConfigSchema = require('./public/js/lib/config-schema');
 const ConfigMigration = require('./public/js/lib/config-migration');
 const TemplateMatcher = require('./public/js/lib/template-matcher');
 const PaymentsCsv = require('./public/js/lib/payments-csv');
@@ -599,7 +621,7 @@ function getAvailableProfileMonths(profileName) {
     .replace(/[^a-zA-Z0-9_-]/g, '_');
   const profileDir = path.join(DATA_DIR, profile);
   if (!fs.existsSync(profileDir)) return [];
-  
+
   const months = [];
   try {
     const years = fs.readdirSync(profileDir).filter(y => /^\d{4}$/.test(y));
@@ -619,7 +641,7 @@ function getAvailableProfileMonths(profileName) {
 
 function loadDonations(profileName, monthKey) {
   const profile = profileName || (profilesStore && profilesStore.activeProfile) || 'Default';
-  
+
   // If specific month is requested
   if (monthKey && monthKey !== 'all') {
     const cacheKey = `${profile}_${monthKey}`;
@@ -640,7 +662,7 @@ function loadDonations(profileName, monthKey) {
     donationsCache[cacheKey] = [];
     return [];
   }
-  
+
   // If all history is requested
   const allMonths = getAvailableProfileMonths(profile);
   let allTxs = [];
@@ -657,7 +679,7 @@ function saveDonations(profileName, transactions) {
   try {
     const groups = {};
     const realTransactions = (transactions || []).filter(t => !t.simulated);
-    
+
     realTransactions.forEach(t => {
       let ym = PaymentsCsv.getMonthKey(t.timestamp || t.date);
       if (!ym) ym = getTodayYearMonth();
@@ -667,13 +689,13 @@ function saveDonations(profileName, transactions) {
 
     const cacheKeys = Object.keys(donationsCache).filter(k => k.startsWith(`${profile}_`));
     cacheKeys.forEach(k => delete donationsCache[k]);
-    
+
     const existingMonths = getAvailableProfileMonths(profile);
     existingMonths.forEach(ym => {
       if (!groups[ym]) {
         const filePath = getDonationsCsvPath(profile, ym);
         if (fs.existsSync(filePath)) {
-          try { fs.unlinkSync(filePath); } catch (_) {}
+          try { fs.unlinkSync(filePath); } catch (_) { }
         }
       }
     });
@@ -686,7 +708,7 @@ function saveDonations(profileName, transactions) {
       fs.writeFileSync(filePath, content, 'utf8');
       donationsCache[`${profile}_${ym}`] = txs;
     }
-    
+
     return true;
   } catch (e) {
     log.error('DonationsCSV', `Failed to save donations CSV for ${profile}: ` + e.message);
@@ -700,16 +722,16 @@ function appendDonation(profileName, tx) {
 
   let ym = PaymentsCsv.getMonthKey(tx.timestamp || tx.date);
   if (!ym) ym = getTodayYearMonth();
-  
+
   const filePath = getDonationsCsvPath(profile, ym);
   const cacheKey = `${profile}_${ym}`;
 
   try {
     const fileDir = path.dirname(filePath);
     if (!fs.existsSync(fileDir)) fs.mkdirSync(fileDir, { recursive: true });
-    
+
     const row = PaymentsCsv.formatCsvRow(tx) + '\n';
-    
+
     if (!fs.existsSync(filePath)) {
       saveDonations(profile, [tx]);
     } else {
@@ -804,7 +826,7 @@ function syncDerivedMetricsToSettings(profileName, broadcast = true, newTx = nul
   if (newTx && !newTx.simulated) {
     // Incremental sync for real-time performance (prevents heavy historical CSV file parses during streams)
     metadata = loadProfileMetadata(profile);
-    
+
     if (!metadata.goal) metadata.goal = { currentAmount: startAmount };
     if (!metadata.leaderboard) metadata.leaderboard = { supporters: {} };
     if (!metadata.recent) metadata.recent = { recentDonations: [] };
@@ -1024,23 +1046,23 @@ function processPaymentForGoalAndLeaderboard(notification) {
 }
 
 // ── Routes ───────────────────────────────────────────────────────────
-app.get('/app',                 (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'app.html')));
-app.get('/config',              (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'config.html')));
-app.get('/preview',             (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'preview.html')));
-app.get('/overlay/alerts',      (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
-app.get('/overlay/alert',       (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
-app.get('/overlay/goal',        (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'goal.html')));
-app.get('/overlay/list',        (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
-app.get('/overlay/lists',       (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
+app.get('/app', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'app.html')));
+app.get('/config', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'config.html')));
+app.get('/preview', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'preview.html')));
+app.get('/overlay/alerts', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
+app.get('/overlay/alert', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
+app.get('/overlay/goal', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'goal.html')));
+app.get('/overlay/list', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
+app.get('/overlay/lists', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
 app.get('/overlay/leaderboard', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
-app.get('/overlay/recent',      (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
+app.get('/overlay/recent', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
 app.get('/overlay/cycling-widget', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'cycling-widget.html')));
-app.get('/overlay',             (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
-app.get('/alerts',              (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
-app.get('/alert',               (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
-app.get('/goal',                (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'goal.html')));
-app.get('/leaderboard',         (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
-app.get('/list',                (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
+app.get('/overlay', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
+app.get('/alerts', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
+app.get('/alert', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'overlay.html')));
+app.get('/goal', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'goal.html')));
+app.get('/leaderboard', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
+app.get('/list', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'list.html')));
 
 // ── CSV Donations & Analytics Endpoints ──────────────────────────────
 app.get('/api/donations/months', (req, res) => {
@@ -1178,11 +1200,11 @@ function getMonthsInRange(startDateStr, endDateStr) {
   const start = new Date(startDateStr);
   const end = new Date(endDateStr);
   if (isNaN(start.getTime()) || isNaN(end.getTime())) return [];
-  
+
   const months = [];
   let current = new Date(start.getFullYear(), start.getMonth(), 1);
   const targetEnd = new Date(end.getFullYear(), end.getMonth(), 1);
-  
+
   while (current <= targetEnd) {
     const yr = current.getFullYear();
     const mo = String(current.getMonth() + 1).padStart(2, '0');
@@ -1378,7 +1400,7 @@ app.post('/api/donations/clear', (req, res) => {
     const profile = req.body?.profile || profilesStore.activeProfile;
     const profileDir = path.join(DATA_DIR, profile.replace(/[^a-zA-Z0-9_-]/g, '_'));
     if (fs.existsSync(profileDir)) {
-      try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch (_) {}
+      try { fs.rmSync(profileDir, { recursive: true, force: true }); } catch (_) { }
     }
     const cacheKeys = Object.keys(donationsCache).filter(k => k.startsWith(`${profile}_`));
     cacheKeys.forEach(k => delete donationsCache[k]);
@@ -1423,7 +1445,7 @@ app.post('/api/profiles/save', (req, res) => {
   if (!name) return res.status(400).json({ ok: false, error: 'Profile name required' });
   if (newSettings) alertSettings = ConfigMigration.migrate(newSettings);
   profilesStore.profiles[name] = alertSettings;
-  profilesStore.activeProfile  = name;
+  profilesStore.activeProfile = name;
   syncDerivedMetricsToSettings(name, false);
   saveSettings(alertSettings); saveProfilesStore(profilesStore); broadcastSettings(alertSettings);
   res.json({ ok: true, activeProfile: name, settings: alertSettings, profiles: Object.keys(profilesStore.profiles) });
@@ -1443,7 +1465,7 @@ app.post('/api/profiles/delete', (req, res) => {
   res.json({ ok: true, activeProfile: profilesStore.activeProfile, profiles: Object.keys(profilesStore.profiles) });
 });
 
-app.get('/api/config',  (req, res) => res.json(alertSettings));
+app.get('/api/config', (req, res) => res.json(alertSettings));
 app.post('/api/config', (req, res) => {
   alertSettings = applySettingsPatch(alertSettings, req.body);
   saveSettings(alertSettings);
@@ -1560,7 +1582,7 @@ function loadSystemConfig() {
     if (fs.existsSync(SYSTEM_CONFIG_FILE)) {
       return JSON.parse(fs.readFileSync(SYSTEM_CONFIG_FILE, 'utf8'));
     }
-  } catch (_) {}
+  } catch (_) { }
   return { minimizeOnClose: true, startMinimized: false };
 }
 
@@ -1568,7 +1590,7 @@ function saveSystemConfig(cfg) {
   try {
     if (!fs.existsSync(SETTINGS_DIR)) fs.mkdirSync(SETTINGS_DIR, { recursive: true });
     fs.writeFileSync(SYSTEM_CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
-  } catch (_) {}
+  } catch (_) { }
 }
 
 let systemConfig = loadSystemConfig();
@@ -1584,28 +1606,7 @@ process.on('unhandledRejection', (reason) => {
   console.error('[Node UnhandledRejection]', reason);
 });
 
-function isWindowsStartupEnabled(callback) {
-  if (process.platform !== 'win32') return callback(false);
-  exec('reg query HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v "PaymentAlertsOBS"', (err, stdout) => {
-    callback(!err && typeof stdout === 'string' && stdout.includes('PaymentAlertsOBS'));
-  });
-}
 
-function setWindowsStartup(enable, callback) {
-  if (process.platform !== 'win32') return callback(true);
-  const exePath = process.execPath;
-  if (enable) {
-    const cmd = `reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v "PaymentAlertsOBS" /t REG_SZ /d "\\"${exePath}\\"" /f`;
-    exec(cmd, (err) => {
-      callback(!err, err ? err.message : null);
-    });
-  } else {
-    const cmd = `reg delete HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v "PaymentAlertsOBS" /f`;
-    exec(cmd, (err) => {
-      callback(true);
-    });
-  }
-}
 
 app.get('/api/system/startup', (req, res) => {
   isWindowsStartupEnabled((enabled) => res.json({ enabled, isWindows: process.platform === 'win32' }));
@@ -1731,7 +1732,7 @@ public class FolderPicker {
   try {
     fs.writeFileSync(tmpScript, psScript, 'utf8');
     exec(`powershell -NoProfile -ExecutionPolicy Bypass -STA -File "${tmpScript}"`, { timeout: 60000 }, (err, stdout) => {
-      try { fs.unlinkSync(tmpScript); } catch (_) {}
+      try { fs.unlinkSync(tmpScript); } catch (_) { }
       if (err) return res.status(500).json({ ok: false, error: err.message });
       res.json({ ok: true, path: stdout.trim() });
     });
@@ -1821,8 +1822,8 @@ function broadcastSample(sample) {
   const decorated = decorateWithTemplate({
     ...sample,
     simulated: isSimulated,
-    sender   : sample.sender || (parsed ? parsed.sender : 'Test Donor'),
-    amount   : sample.amount || (parsed ? parsed.amount : '₹500.00'),
+    sender: sample.sender || (parsed ? parsed.sender : 'Test Donor'),
+    amount: sample.amount || (parsed ? parsed.amount : '₹500.00'),
     sourceApp: sample.sourceApp || (parsed ? parsed.sourceApp : sample.appName) || 'PhonePe'
   });
   const payload = JSON.stringify({ type: 'payment_notification', ...decorated });
@@ -1855,23 +1856,23 @@ app.post('/api/test', (req, res) => {
   const isSimulated = body.simulated !== undefined ? !!body.simulated : isIsolated;
   const result = broadcastSample({
     type: 'payment_notification',
-    simulated:       isSimulated,
-    packageName:     body.packageName     || 'com.phonepe.app',
-    appName:         body.appName         || 'PhonePe',
-    title:           body.title           || 'PhonePe',
-    text:            body.text            || 'D SINGH has sent Rs. 500.00 to your bank account',
-    bigText:         body.bigText         || body.text || 'D SINGH has sent Rs. 500.00 to your bank account',
-    sender:          body.sender          || '',
-    amount:          body.amount          || '',
-    sourceApp:       body.sourceApp       || '',
+    simulated: isSimulated,
+    packageName: body.packageName || 'com.phonepe.app',
+    appName: body.appName || 'PhonePe',
+    title: body.title || 'PhonePe',
+    text: body.text || 'D SINGH has sent Rs. 500.00 to your bank account',
+    bigText: body.bigText || body.text || 'D SINGH has sent Rs. 500.00 to your bank account',
+    sender: body.sender || '',
+    amount: body.amount || '',
+    sourceApp: body.sourceApp || '',
     alertTemplateId: body.alertTemplateId || null,
-    timestamp:       Date.now()
+    timestamp: Date.now()
   });
   res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId, simulated: isSimulated });
 });
 
 // ── WebSocket Helpers ───────────────────────────────────────────────────
-const obsClients     = new Set();
+const obsClients = new Set();
 const androidClients = new Set();
 
 function getActiveWsCount(clientSet) {
@@ -1891,9 +1892,9 @@ app.get('/health', (req, res) =>
 
 // ── WebSocket Handler ───────────────────────────────────────────────────
 wss.on('connection', (ws, req) => {
-  const url        = req.url ? req.url.split('?')[0] : '/';
+  const url = req.url ? req.url.split('?')[0] : '/';
   const clientType = url === '/android' ? 'android' : 'obs';
-  const remoteIp   = req.socket?.remoteAddress || '';
+  const remoteIp = req.socket?.remoteAddress || '';
 
   if (clientType === 'android') {
     const rawIp = req.socket?.remoteAddress || '';
@@ -1905,7 +1906,7 @@ wss.on('connection', (ws, req) => {
       const existingNormIp = (existing.remoteIp || '').replace(/^::ffff:/, '');
       if (existing.readyState !== 1 || (normIp && existingNormIp === normIp)) {
         androidClients.delete(existing);
-        try { existing.terminate(); } catch (_) {}
+        try { existing.terminate(); } catch (_) { }
       }
     }
     ws.remoteIp = normIp;
@@ -1917,11 +1918,11 @@ wss.on('connection', (ws, req) => {
 
     ws.on('message', (data) => {
       try {
-        const raw          = data.toString();
+        const raw = data.toString();
         const notification = JSON.parse(raw);
-        const appName      = notification.appName || notification.packageName || 'Payment App';
-        const title        = notification.title || '';
-        const text         = notification.text  || '';
+        const appName = notification.appName || notification.packageName || 'Payment App';
+        const title = notification.title || '';
+        const text = notification.text || '';
 
         if (!title && !text) return;
 
@@ -1936,18 +1937,18 @@ wss.on('connection', (ws, req) => {
         const isSimulated = isFromTester ? isIsolated : false;
         const enriched = {
           ...notification,
-          simulated : isSimulated,
+          simulated: isSimulated,
           appName,
           title,
           text,
-          sender    : parsed ? parsed.sender    : (notification.sender    || ''),
-          amount    : parsed ? parsed.amount    : (notification.amount    || ''),
-          sourceApp : parsed ? parsed.sourceApp : (notification.sourceApp || appName),
-          message   : parsed && parsed.message  ? parsed.message          : (notification.message || ''),
+          sender: parsed ? parsed.sender : (notification.sender || ''),
+          amount: parsed ? parsed.amount : (notification.amount || ''),
+          sourceApp: parsed ? parsed.sourceApp : (notification.sourceApp || appName),
+          message: parsed && parsed.message ? parsed.message : (notification.message || ''),
         };
 
         const decorated = decorateWithTemplate(enriched);
-        const payload   = JSON.stringify({ type: 'payment_notification', ...decorated });
+        const payload = JSON.stringify({ type: 'payment_notification', ...decorated });
 
         log.event('PaymentEvent', `Payment received: ${decorated.amount || '₹0'} from "${decorated.sender || 'Unknown'}" via ${decorated.sourceApp} [Template: ${decorated.alertTemplateName || 'Default'}]`, decorated);
 
@@ -1996,7 +1997,7 @@ const androidHeartbeat = setInterval(() => {
   androidClients.forEach(ws => {
     if (ws.isAlive === false || ws.readyState !== 1) {
       androidClients.delete(ws);
-      try { ws.terminate(); } catch (_) {}
+      try { ws.terminate(); } catch (_) { }
       return;
     }
     ws.isAlive = false;
@@ -2012,7 +2013,7 @@ const obsHeartbeat = setInterval(() => {
   obsClients.forEach(ws => {
     if (ws.isAlive === false || ws.readyState !== 1) {
       obsClients.delete(ws);
-      try { ws.terminate(); } catch (_) {}
+      try { ws.terminate(); } catch (_) { }
       return;
     }
     ws.isAlive = false;
@@ -2026,7 +2027,7 @@ wss.on('close', () => {
   clearInterval(androidHeartbeat);
   clearInterval(obsHeartbeat);
 });
-wss.on('error', () => {});
+wss.on('error', () => { });
 
 // HTTP and WS share the same underlying server — one port covers both.
 const PREFERRED_PORT = parseInt(process.env.PORT || '2907', 10);
@@ -2041,7 +2042,7 @@ function startMdnsDiscovery(port, retryCount = 0) {
       bonjourInstance = new Bonjour();
       // Catch any unexpected socket errors on the underlying registry
       if (bonjourInstance._server && typeof bonjourInstance._server.on === 'function') {
-        bonjourInstance._server.on('error', () => {});
+        bonjourInstance._server.on('error', () => { });
       }
     }
     const hostName = os.hostname() || 'Streamer-PC';
@@ -2071,7 +2072,7 @@ function startMdnsDiscovery(port, retryCount = 0) {
     publishedService.on('error', (err) => {
       log.warn('mDNS', `Auto-Discovery notice for "${serviceName}": ${err.message}`);
       if (err.message && err.message.includes('already in use') && retryCount < 5) {
-        try { if (publishedService) publishedService.destroy(); } catch (_) {}
+        try { if (publishedService) publishedService.destroy(); } catch (_) { }
         setTimeout(() => startMdnsDiscovery(port, retryCount + 1), 300);
       }
     });
@@ -2082,14 +2083,14 @@ function startMdnsDiscovery(port, retryCount = 0) {
 
 function stopMdnsDiscovery() {
   if (publishedService) {
-    try { publishedService.destroy(); } catch (_) {}
+    try { publishedService.destroy(); } catch (_) { }
     publishedService = null;
   }
   if (bonjourInstance) {
     try {
       bonjourInstance.unpublishAll();
       bonjourInstance.destroy();
-    } catch (_) {}
+    } catch (_) { }
     bonjourInstance = null;
     log.info('mDNS', 'Auto-Discovery service closed cleanly');
   }
