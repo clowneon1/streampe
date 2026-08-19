@@ -39,6 +39,7 @@ pc-server/public/uploads/
 dist/
 build/
 out/
+artifacts/
 *.exe
 *.tgz
 

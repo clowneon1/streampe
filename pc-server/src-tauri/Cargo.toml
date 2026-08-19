@@ -1,6 +1,6 @@
 [package]
 name = "streampe"
-version = "2.0.0"
+version = "2.1.0"
 description = "StreamPe – PC Server & Desktop App"
 authors = ["clowneon1"]
 license = "MIT"

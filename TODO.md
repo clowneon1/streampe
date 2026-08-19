@@ -10,6 +10,14 @@
 
 ## ✅ Completed
 
+### Version 2.1.0
+
+- [x] **Windows Startup Executable Path Resolution**: Fixed bug where Windows Start on Boot registry entry pointed to `StreamPe-Server.exe` (sidecar binary) instead of `StreamPe.exe` (main desktop app). `getMainAppExePath()` now scans portable release paths, parent folders, working directory, and target build locations for `StreamPe.exe`, ensuring Windows launches the main desktop app and system tray icon on boot.
+- [x] **Windows AppUserModelID & System Tray Toast Notifications**: Fixed issue where closing/minimizing the app window to the system tray in portable release mode failed to show the Toast Notification (*"App is running in the background. Access it from the system tray."*). `registerWindowsAppUserModelId()` registers `com.clowneon1.streampe` and the `StreamPe.lnk` Start Menu shortcut so Windows Action Center & Notification Manager authorize and display notifications for portable builds.
+- [x] **Component Version Bumper Skill (`bump-version`)**: Created custom workspace skill [`.agents/skills/bump-version/SKILL.md`](file:///d:/xwork/projects/payment-alerts-for-obs/.agents/skills/bump-version/SKILL.md) enabling natural language or `/bump` commands to bump PC Desktop Server (`package.json`, `Cargo.toml`, `tauri.conf.json`, `server.js`, `build-bun-sidecar.js`) and Android Companion App independently or simultaneously.
+- [x] **Release Artifact Organizer Skill (`build-release`)**: Created custom workspace skill [`.agents/skills/build-release/SKILL.md`](file:///d:/xwork/projects/payment-alerts-for-obs/.agents/skills/build-release/SKILL.md) with automated old artifact cleanup, collecting compiled release binaries into root-level `artifacts/` (`StreamPe-vX.Y.Z-Portable.zip` and `StreamPe-vX.Y.Z-Companion.apk`). Added `artifacts/` to root `.gitignore`.
+- [x] **GitHub Pages Mobile Redesign & Landing Page Enhancements**: Improved mobile responsiveness, glassmorphic navigation drawer, smooth scroll-to-top on brand logo click, floating circular GitHub CTA button with glowing star badge, and updated screenshot assets across `README.md` and landing site (`docs/`).
+
 ### Version 2.0.0 (`feature/version-2`)
 
 - [x] **21. Custom Storage Path Settings & Single Root Control** — Added a System Preferences storage configuration section (`app.html`) to control where application data is stored:
