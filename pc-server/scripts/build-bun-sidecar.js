@@ -32,7 +32,7 @@ if (!fs.existsSync(serverJs)) {
 }
 
 console.log('Compiling server.js with bun (stamping Windows metadata & icon)...');
-const cmd = `"${bunExe}" build "${serverJs}" --compile --target bun-windows-x64 --windows-title "StreamPe" --windows-publisher "clowneon1" --windows-description "StreamPe Server" --windows-copyright "Copyright (c) 2026 clowneon1" --windows-version "2.0.0.0" --windows-icon "${iconIco}" --windows-hide-console --outfile "${outExe}"`;
+const cmd = `"${bunExe}" build "${serverJs}" --compile --target bun-windows-x64 --windows-title "StreamPe" --windows-publisher "clowneon1" --windows-description "StreamPe Server" --windows-copyright "Copyright (c) 2026 clowneon1" --windows-version "2.1.0.0" --windows-icon "${iconIco}" --windows-hide-console --outfile "${outExe}"`;
 console.log('>', cmd);
 
 try {

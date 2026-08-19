@@ -2075,7 +2075,7 @@ function startMdnsDiscovery(port, retryCount = 0) {
       port: port,
       probe: false,
       txt: {
-        version: '2.0.0',
+        version: '2.1.0',
         server: 'streampe',
         hostname: hostName,
         wsPath: '/android'
