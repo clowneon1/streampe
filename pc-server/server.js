@@ -335,11 +335,28 @@ function ensureWindowsFirewallRule(callback) {
         else log.info('Firewall', 'Windows Firewall rule for port 2907 created successfully');
         if (callback) callback(!psErr, psErr ? psErr.message : null);
       });
-    } else {
-      if (callback) callback(true, null);
     }
   });
 }
+
+function registerWindowsAppUserModelId() {
+  if (process.platform !== 'win32') return;
+  const appId = 'com.clowneon1.streampe';
+  const regCmd = `reg add "HKCU\\Software\\Classes\\AppUserModelId\\${appId}" /v "DisplayName" /t REG_SZ /d "StreamPe" /f`;
+  exec(regCmd, () => {});
+
+  try {
+    const startMenuDir = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs');
+    const shortcutPath = path.join(startMenuDir, 'StreamPe.lnk');
+    const mainExe = getMainAppExePath();
+    if (mainExe && fs.existsSync(mainExe) && !fs.existsSync(shortcutPath)) {
+      const psCmd = `powershell -Command "$s=(New-Object -COM WScript.Shell).CreateShortcut('${shortcutPath}');$s.TargetPath='${mainExe}';$s.Save()"`;
+      exec(psCmd, () => {});
+    }
+  } catch (_) {}
+}
+
+registerWindowsAppUserModelId();
 
 log.info('Server', `Log directory: ${LOG_DIR} (daily rotating with 7-day retention)`);
 
