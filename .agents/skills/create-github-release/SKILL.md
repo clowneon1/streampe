@@ -7,7 +7,7 @@ description: >-
 
 # GitHub Release & Beta Draft Creator Skill
 
-This skill automates fetching the latest release tags, invoking the `build-release` skill to collect compiled binaries into `artifacts/`, and creating a GitHub release draft with uploaded release assets using the GitHub CLI (`gh`).
+This skill automates fetching previous tags, compiling git commit changelogs & release notes, invoking the `build-release` skill to organize binaries into `artifacts/`, and creating a GitHub release draft with uploaded release assets using the GitHub CLI (`gh`).
 
 ## Supported Commands & Modes
 
@@ -16,23 +16,46 @@ This skill automates fetching the latest release tags, invoking the `build-relea
 
 ---
 
-## Step-by-Step Workflow
+## Step-by-Step Execution Workflow
 
-### 1. Fetch Latest Tag & Version Context
-1. Query existing tags and GitHub releases:
+### 1. Fetch Previous Tag & Version Context
+1. Identify the previous release/beta tag using git & GitHub CLI:
    ```bash
-   git tag -l
+   git describe --tags --abbrev=0
    gh release list --limit 5
    ```
-2. Read `version` from `pc-server/package.json` (e.g., `2.1.0`) and `versionName` from `android-app/app/build.gradle`.
-3. Compute the target tag:
-   * **Production Release**: `vX.Y.Z` (e.g. `v2.1.0`)
-   * **Beta Release**: `vX.Y.Z-beta.N` (e.g. `v2.1.0-beta.1`)
+2. Read current `version` from `pc-server/package.json` (e.g. `2.1.0`) and `versionName` from `android-app/app/build.gradle` (e.g. `2.0.0`).
+3. Determine:
+   * **Previous Version Tag**: e.g., `v2.0.0` or `v2.1.0-beta.1`
+   * **New Release Tag**: e.g., `v2.1.0` (for production) or `v2.1.0-beta.1` (for beta)
 
 ---
 
-### 2. Organize Artifact Binaries (`build-release` Skill)
-Execute the `build-release` skill procedure to ensure root-level `artifacts/` contains:
+### 2. Generate Release Changelog & Notes
+1. Extract git commit log since the previous tag:
+   ```bash
+   git log <PREVIOUS_TAG>..HEAD --oneline
+   ```
+2. Read completed features & fixes from `TODO.md` under the target version section.
+3. Construct the formatted Markdown release notes body:
+   ```markdown
+   # StreamPe <NEW_TAG> Release Notes
+
+   **Upgraded from Previous Tag:** `<PREVIOUS_TAG>` ➔ `<NEW_TAG>`
+
+   ## 🚀 What's Changed & Fixed
+   * [Feature / Fix 1]
+   * [Feature / Fix 2]
+
+   ## 📦 Included Release Binaries
+   * `StreamPe-vX.Y.Z-Portable.zip` (Windows PC Desktop Server)
+   * `StreamPe-vX.Y.Z-Companion.apk` (Android Companion App)
+   ```
+
+---
+
+### 3. Organize Artifact Binaries (`build-release` Skill)
+Execute the `build-release` skill procedure to clean and populate `artifacts/`:
 ```text
 artifacts/
 ├── StreamPe-vX.Y.Z-Portable.zip
@@ -41,25 +64,26 @@ artifacts/
 
 ---
 
-### 3. Create Draft Release on GitHub (`gh release create`)
-Execute `gh release create` uploading both artifacts from `artifacts/`:
+### 4. Create Draft Release on GitHub (`gh release create`)
+Execute `gh release create` uploading both binaries with custom release notes:
 
 * **For Production Release**:
   ```bash
-  gh release create v2.1.0 artifacts/StreamPe-v2.1.0-Portable.zip artifacts/StreamPe-v2.0.0-Companion.apk --draft --title "StreamPe v2.1.0" --generate-notes
+  gh release create v2.1.0 artifacts/StreamPe-v2.1.0-Portable.zip artifacts/StreamPe-v2.0.0-Companion.apk --draft --title "StreamPe v2.1.0" --notes "<FORMATTED_NOTES>"
   ```
 
 * **For Beta Pre-Release**:
   ```bash
-  gh release create v2.1.0-beta.1 artifacts/StreamPe-v2.1.0-Portable.zip artifacts/StreamPe-v2.0.0-Companion.apk --draft --prerelease --title "StreamPe v2.1.0-beta.1" --generate-notes
+  gh release create v2.1.0-beta.1 artifacts/StreamPe-v2.1.0-Portable.zip artifacts/StreamPe-v2.0.0-Companion.apk --draft --prerelease --title "StreamPe v2.1.0-beta.1" --notes "<FORMATTED_NOTES>"
   ```
 
 ---
 
-## Output & Verification
+## Verification & Summary
 
-1. Verify `gh release create` output URL.
-2. Present a clean markdown summary displaying:
-   * Tag Name & Target Mode (Production vs Beta)
-   * Uploaded Release Binaries & File Sizes
-   * Clickable GitHub Draft URL (e.g., `https://github.com/clowneon1/streampe/releases/tag/...`)
+1. Verify `gh release create` output draft URL.
+2. Present a clean markdown summary table showing:
+   * **Target Version & Mode**: Production (`release`) vs Pre-release (`beta`)
+   * **Previous Tag Reference**: `<PREVIOUS_TAG>`
+   * **Uploaded Binaries**: File sizes (MB) & names
+   * **GitHub Draft Link**: Direct link to edit/publish the draft on GitHub
