@@ -331,34 +331,6 @@ function ensureWindowsFirewallRule(callback) {
   });
 }
 
-function registerWindowsAppUserModelId() {
-  if (process.platform !== 'win32') return;
-  const appId = 'com.clowneon1.streampe';
-  const mainExe = getMainAppExePath();
-  if (!mainExe || !fs.existsSync(mainExe)) return;
-
-  const regCmd = [
-    `reg add "HKCU\\Software\\Classes\\AppUserModelId\\${appId}" /v "DisplayName" /t REG_SZ /d "StreamPe" /f`,
-    `reg add "HKCU\\Software\\Classes\\AppUserModelId\\${appId}" /v "IconUri" /t REG_SZ /d "\"${mainExe}\"" /f`,
-    `reg add "HKCU\\Software\\Classes\\AppUserModelId\\${appId}" /v "IconBackgroundColor" /t REG_SZ /d "00000000" /f`,
-    `reg add "HKCU\\Software\\Classes\\AppUserModelId\\${appId}" /v "ShowInSettings" /t REG_DWORD /d 1 /f`,
-    `reg add "HKCU\\Software\\Classes\\${appId}" /ve /t REG_SZ /d "StreamPe" /f`,
-    `reg add "HKCU\\Software\\Classes\\${appId}\\DefaultIcon" /ve /t REG_SZ /d "\"${mainExe}\",0" /f`
-  ].join(' & ');
-
-  exec(regCmd, () => {});
-
-  try {
-    const startMenuDir = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs');
-    const shortcutPath = path.join(startMenuDir, 'StreamPe.lnk');
-    const psScript = `$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('${shortcutPath}'); $s.TargetPath = '${mainExe}'; $s.IconLocation = '${mainExe},0'; $s.Save();`.replace(/\r?\n/g, ' ');
-
-    exec(`powershell -Command "${psScript}"`, () => {});
-  } catch (_) {}
-}
-
-registerWindowsAppUserModelId();
-
 log.info('Server', `Log directory: ${LOG_DIR} (daily rotating with 7-day retention)`);
 
 // ── Payment Parser (JS) ────────────────────────────────────────────
