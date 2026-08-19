@@ -223,26 +223,18 @@ function isWindowsStartupEnabled(callback) {
 
   exec('reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"', (err, stdout) => {
     let hasStreamPe = !err && stdout && stdout.includes('StreamPe');
-    let hasLegacy = !err && stdout && (stdout.includes('PaymentAlertsOBS') || stdout.includes('Payment Alerts for OBS') || stdout.includes('Payment Alerts'));
+
+    // Clean up legacy registry keys silently without forcing startup enabled
+    if (!err && stdout && (stdout.includes('PaymentAlertsOBS') || stdout.includes('Payment Alerts') || stdout.includes('electron.app.Payment Alerts'))) {
+      exec('reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "PaymentAlertsOBS" /f 2>nul & reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "Payment Alerts for OBS" /f 2>nul & reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v "electron.app.Payment Alerts for OBS" /f 2>nul', () => {});
+    }
 
     try {
       const startupFolder = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup');
       if (!hasStreamPe && fs.existsSync(path.join(startupFolder, 'StreamPe.lnk'))) {
         hasStreamPe = true;
       }
-      if (!hasLegacy && (fs.existsSync(path.join(startupFolder, 'PaymentAlertsOBS.lnk')) || fs.existsSync(path.join(startupFolder, 'Payment Alerts for OBS.lnk')))) {
-        hasLegacy = true;
-      }
     } catch (_) { }
-
-    // Auto-migrate legacy startup entries to official StreamPe key
-    if (hasLegacy) {
-      log.info('Server', '🔄 Auto-migrating legacy autostart entry to StreamPe registry key...');
-      setWindowsStartup(true, (success) => {
-        callback(success || hasStreamPe);
-      });
-      return;
-    }
 
     callback(hasStreamPe);
   });
@@ -342,17 +334,26 @@ function ensureWindowsFirewallRule(callback) {
 function registerWindowsAppUserModelId() {
   if (process.platform !== 'win32') return;
   const appId = 'com.clowneon1.streampe';
-  const regCmd = `reg add "HKCU\\Software\\Classes\\AppUserModelId\\${appId}" /v "DisplayName" /t REG_SZ /d "StreamPe" /f`;
+  const mainExe = getMainAppExePath();
+  if (!mainExe || !fs.existsSync(mainExe)) return;
+
+  const regCmd = [
+    `reg add "HKCU\\Software\\Classes\\AppUserModelId\\${appId}" /v "DisplayName" /t REG_SZ /d "StreamPe" /f`,
+    `reg add "HKCU\\Software\\Classes\\AppUserModelId\\${appId}" /v "IconUri" /t REG_SZ /d "\"${mainExe}\"" /f`,
+    `reg add "HKCU\\Software\\Classes\\AppUserModelId\\${appId}" /v "IconBackgroundColor" /t REG_SZ /d "00000000" /f`,
+    `reg add "HKCU\\Software\\Classes\\AppUserModelId\\${appId}" /v "ShowInSettings" /t REG_DWORD /d 1 /f`,
+    `reg add "HKCU\\Software\\Classes\\${appId}" /ve /t REG_SZ /d "StreamPe" /f`,
+    `reg add "HKCU\\Software\\Classes\\${appId}\\DefaultIcon" /ve /t REG_SZ /d "\"${mainExe}\",0" /f`
+  ].join(' & ');
+
   exec(regCmd, () => {});
 
   try {
     const startMenuDir = path.join(process.env.APPDATA || '', 'Microsoft', 'Windows', 'Start Menu', 'Programs');
     const shortcutPath = path.join(startMenuDir, 'StreamPe.lnk');
-    const mainExe = getMainAppExePath();
-    if (mainExe && fs.existsSync(mainExe) && !fs.existsSync(shortcutPath)) {
-      const psCmd = `powershell -Command "$s=(New-Object -COM WScript.Shell).CreateShortcut('${shortcutPath}');$s.TargetPath='${mainExe}';$s.Save()"`;
-      exec(psCmd, () => {});
-    }
+    const psScript = `$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('${shortcutPath}'); $s.TargetPath = '${mainExe}'; $s.IconLocation = '${mainExe},0'; $s.Save();`.replace(/\r?\n/g, ' ');
+
+    exec(`powershell -Command "${psScript}"`, () => {});
   } catch (_) {}
 }
 
