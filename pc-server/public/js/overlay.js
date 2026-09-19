@@ -73,6 +73,101 @@
     applyRenderConfig(TemplateMatcher.resolve(config, 0, config.activeTemplateId));
   }
 
+  let activeTTSAudio = null;
+  let activeTTSTimeout = null;
+
+  function stopTTS() {
+    if (activeTTSTimeout) {
+      clearTimeout(activeTTSTimeout);
+      activeTTSTimeout = null;
+    }
+    if (activeTTSAudio) {
+      try {
+        activeTTSAudio.pause();
+        activeTTSAudio.currentTime = 0;
+      } catch (_) {}
+      activeTTSAudio = null;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (_) {}
+    }
+  }
+
+  function playBrowserSpeech(text, opts) {
+    if (typeof window === 'undefined' || !window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined') return;
+    try {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = opts.language || 'en-IN';
+      utter.volume = opts.volume !== undefined ? opts.volume : 1.0;
+      utter.rate = opts.rate !== undefined ? opts.rate : 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length) {
+        const targetVoice = (opts.voice || '').toLowerCase();
+        const match = voices.find(v => v.name.toLowerCase().includes(targetVoice) || v.lang === opts.language);
+        if (match) utter.voice = match;
+      }
+      window.speechSynthesis.speak(utter);
+    } catch (e) {
+      console.warn('[Overlay TTS] Browser speech error:', e.message);
+    }
+  }
+
+  function playTTS(ttsConfig, notifData) {
+    if (!ttsConfig || !ttsConfig.enabled) return;
+    const templateStr = (ttsConfig.template || '').trim();
+    if (!templateStr) return;
+
+    const ttsText = TemplateEngine.render(templateStr, notifData).trim();
+    if (!ttsText) return;
+
+    const delay = Math.max(0, parseInt(ttsConfig.delay, 10) || 0);
+    const volume = Math.max(0, Math.min(1, (ttsConfig.volume !== undefined ? ttsConfig.volume : 100) / 100));
+    const rate = Math.max(0.5, Math.min(2.0, parseFloat(ttsConfig.rate) || 1.0));
+    const voice = ttsConfig.voice || 'Aditi';
+    const language = ttsConfig.language || 'en-IN';
+    const provider = ttsConfig.provider || 'puter';
+    const engine = ttsConfig.engine || 'neural';
+    const instructions = ttsConfig.instructions || '';
+
+    stopTTS();
+
+    activeTTSTimeout = setTimeout(() => {
+      if (provider !== 'browser' && typeof window !== 'undefined' && window.puter && window.puter.ai && typeof window.puter.ai.txt2speech === 'function') {
+        const options = { voice, language, engine };
+        const geminiVoices = ['puck', 'charon', 'kore', 'fenrir', 'aoede'];
+        const xaiVoices = ['eve', 'ara', 'rex', 'sal', 'leo'];
+        const voiceLower = voice.toLowerCase();
+
+        if (geminiVoices.indexOf(voiceLower) !== -1) {
+          options.provider = 'gemini';
+          options.model = 'gemini-2.5-flash-preview-tts';
+          if (instructions) options.instructions = instructions;
+        } else if (xaiVoices.indexOf(voiceLower) !== -1) {
+          options.provider = 'xai';
+          options.output_format = 'mp3';
+        }
+
+        window.puter.ai.txt2speech(ttsText, options)
+          .then(audio => {
+            activeTTSAudio = audio;
+            audio.volume = volume;
+            audio.playbackRate = rate;
+            return audio.play();
+          })
+          .catch(err => {
+            console.warn('[Overlay TTS] Puter AI error, falling back to browser speech:', err.message);
+            playBrowserSpeech(ttsText, { language, voice, volume, rate });
+          });
+      } else {
+        playBrowserSpeech(ttsText, { language, voice, volume, rate });
+      }
+    }, delay);
+  }
+
   function playSound(url) {
     if (!url) return;
     try {
@@ -101,6 +196,7 @@
 
     container.innerHTML = '';
     if (activeAlertTimeout) clearTimeout(activeAlertTimeout);
+    stopTTS();
 
     const animType = resolved.animation.type || 'slide-up';
     const mediaPos = resolved.image.position || 'top';
@@ -154,7 +250,8 @@
       }
     }
 
-    if (resolved.sound.soundUrl) playSound(resolved.sound.soundUrl);
+    if (resolved.sound && resolved.sound.soundUrl) playSound(resolved.sound.soundUrl);
+    if (resolved.tts && resolved.tts.enabled) playTTS(resolved.tts, notifData);
 
     const displayDur = parseInt(resolved.animation.displayDuration, 10) || 5000;
     const animDur = parseInt(resolved.animation.duration, 10) || 600;
@@ -170,6 +267,7 @@
           }
         }, 30);
       }
+      stopTTS();
       if (alertBoxNode) {
         alertBoxNode.classList.remove(`anim-enter-${animType}`);
         alertBoxNode.classList.add(`anim-exit-${animType}`);

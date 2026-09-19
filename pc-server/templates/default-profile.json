@@ -39,6 +39,18 @@
       "layout": { "positionPreset": "center", "positionX": 50, "positionY": 50, "marginX": 0, "marginY": 0, "width": 400 },
       "image": { "imageUrl": "", "gifUrl": "/media/alert-diamond.gif", "position": "top", "size": 100 },
       "sound": { "soundUrl": "/sounds/notification.wav", "soundVolume": 80 },
+      "tts": {
+        "enabled": false,
+        "template": "{{sender}} sent {{amount}} rupees. {{#if message}}They said: {{message}}{{/if}}",
+        "provider": "puter",
+        "voice": "Aditi",
+        "language": "en-IN",
+        "engine": "neural",
+        "instructions": "Speak in a clear, friendly, and enthusiastic streaming tone.",
+        "rate": 1.0,
+        "volume": 100,
+        "delay": 400
+      },
       "code": {
         "enableCustomCode": false,
         "customHTML": "{{mediaHtml}}\n<div class=\"alert-content\">\n  <div class=\"alert-title\">{{title}}</div>\n  <div class=\"alert-subtitle\">{{subtitle}}</div>\n  {{#message}}<div class=\"alert-message\">\"{{message}}\"</div>{{/message}}\n</div>",
@@ -81,6 +93,18 @@
       "layout": { "positionPreset": "center", "positionX": 50, "positionY": 50, "marginX": 0, "marginY": 0, "width": 400 },
       "image": { "imageUrl": "", "gifUrl": "", "position": "top", "size": 0 },
       "sound": { "soundUrl": "", "soundVolume": 0 },
+      "tts": {
+        "enabled": false,
+        "template": "",
+        "provider": "puter",
+        "voice": "Aditi",
+        "language": "en-IN",
+        "engine": "neural",
+        "instructions": "",
+        "rate": 1.0,
+        "volume": 0,
+        "delay": 0
+      },
       "code": {
         "enableCustomCode": true,
         "customHTML": "",

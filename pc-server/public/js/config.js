@@ -26,6 +26,95 @@ document.addEventListener('DOMContentLoaded', () => {
   let suppressSync = false;
   const editors = {};
 
+  const TTS_VOICE_CATALOG = {
+    'en-IN': [
+      { id: 'Aditi', name: 'Aditi (Indian English - Female)' },
+      { id: 'Raveena', name: 'Raveena (Indian English - Female)' }
+    ],
+    'hi-IN': [
+      { id: 'Kajal', name: 'Kajal (Hindi - Female)' },
+      { id: 'Aditi', name: 'Aditi (Bilingual Hindi/English)' }
+    ],
+    'en-US': [
+      { id: 'Joanna', name: 'Joanna (US English - Female)' },
+      { id: 'Kendra', name: 'Kendra (US English - Female)' },
+      { id: 'Matthew', name: 'Matthew (US English - Male)' },
+      { id: 'Joey', name: 'Joey (US English - Male)' },
+      { id: 'Ivy', name: 'Ivy (US English - Child)' },
+      { id: 'Justin', name: 'Justin (US English - Child Male)' }
+    ],
+    'en-GB': [
+      { id: 'Amy', name: 'Amy (British - Female)' },
+      { id: 'Emma', name: 'Emma (British - Female)' },
+      { id: 'Brian', name: 'Brian (British - Male)' },
+      { id: 'Arthur', name: 'Arthur (British - Male)' }
+    ],
+    'es-ES': [
+      { id: 'Lucia', name: 'Lucia (Spanish - Female)' },
+      { id: 'Enrique', name: 'Enrique (Spanish - Male)' },
+      { id: 'Mia', name: 'Mia (Spanish Mexico - Female)' }
+    ],
+    'fr-FR': [
+      { id: 'Lea', name: 'Lea (French - Female)' },
+      { id: 'Mathieu', name: 'Mathieu (French - Male)' },
+      { id: 'Celine', name: 'Celine (French - Female)' }
+    ],
+    'de-DE': [
+      { id: 'Vicki', name: 'Vicki (German - Female)' },
+      { id: 'Daniel', name: 'Daniel (German - Male)' },
+      { id: 'Marlene', name: 'Marlene (German - Female)' }
+    ],
+    'ja-JP': [
+      { id: 'Mizuki', name: 'Mizuki (Japanese - Female)' },
+      { id: 'Takumi', name: 'Takumi (Japanese - Male)' },
+      { id: 'Kazuha', name: 'Kazuha (Japanese - Female)' }
+    ],
+    'ru-RU': [
+      { id: 'Tatyana', name: 'Tatyana (Russian - Female)' },
+      { id: 'Maxim', name: 'Maxim (Russian - Male)' }
+    ],
+    'pt-BR': [
+      { id: 'Camila', name: 'Camila (Portuguese BR - Female)' },
+      { id: 'Vitoria', name: 'Vitoria (Portuguese BR - Female)' },
+      { id: 'Ricardo', name: 'Ricardo (Portuguese BR - Male)' }
+    ]
+  };
+
+  const MULTILINGUAL_AI_VOICES = [
+    { id: 'Puck', name: 'Puck (Gemini AI - Playful & Upbeat)' },
+    { id: 'Charon', name: 'Charon (Gemini AI - Deep & Resonant)' },
+    { id: 'Kore', name: 'Kore (Gemini AI - Warm & Friendly)' },
+    { id: 'Fenrir', name: 'Fenrir (Gemini AI - Bold & Strong)' },
+    { id: 'Aoede', name: 'Aoede (Gemini AI - Melodic & Calm)' },
+    { id: 'eve', name: 'Eve (xAI Grok - Energetic)' },
+    { id: 'ara', name: 'Ara (xAI Grok - Warm)' },
+    { id: 'rex', name: 'Rex (xAI Grok - Confident)' },
+    { id: 'sal', name: 'Sal (xAI Grok - Smooth)' },
+    { id: 'leo', name: 'Leo (xAI Grok - Authoritative)' }
+  ];
+
+  function updateTTSVoiceOptions(selectedLang, currentVoice) {
+    const voiceSelect = el('tpl-tts-voice');
+    if (!voiceSelect) return;
+    const langVoices = TTS_VOICE_CATALOG[selectedLang] || TTS_VOICE_CATALOG['en-IN'];
+    const activeVoice = currentVoice || (langVoices[0] ? langVoices[0].id : 'Aditi');
+
+    let html = `<optgroup label="Voices for ${selectedLang}">`;
+    langVoices.forEach(v => {
+      html += `<option value="${TemplateEngine.escapeHtml(v.id)}"${v.id === activeVoice ? ' selected' : ''}>${TemplateEngine.escapeHtml(v.name)}</option>`;
+    });
+    html += `</optgroup><optgroup label="AI Multilingual Voices (Gemini & xAI)">`;
+    MULTILINGUAL_AI_VOICES.forEach(v => {
+      html += `<option value="${TemplateEngine.escapeHtml(v.id)}"${v.id === activeVoice ? ' selected' : ''}>${TemplateEngine.escapeHtml(v.name)}</option>`;
+    });
+    html += `</optgroup>`;
+
+    voiceSelect.innerHTML = html;
+    if (activeVoice && voiceSelect.value !== activeVoice) {
+      voiceSelect.value = activeVoice;
+    }
+  }
+
   const iframe = el('preview-iframe');
 
   function initCodeEditors() {
@@ -932,6 +1021,20 @@ document.addEventListener('DOMContentLoaded', () => {
         customCSS: val('input-custom-css', (typeof prevTplCode.customCSS === 'string') ? prevTplCode.customCSS : ConfigSchema.DEFAULT_CODE.alert.customCSS),
         customJS: val('input-custom-js', (typeof prevTplCode.customJS === 'string') ? prevTplCode.customJS : ConfigSchema.DEFAULT_CODE.alert.customJS)
       };
+
+      const prevTTS = template.tts || ConfigSchema.TTS_DEFAULTS;
+      template.tts = {
+        enabled: checked('tpl-tts-enabled', false),
+        template: val('tpl-tts-template', prevTTS.template),
+        language: val('tpl-tts-language', prevTTS.language || 'en-IN'),
+        voice: val('tpl-tts-voice', prevTTS.voice || 'Aditi'),
+        provider: val('tpl-tts-provider', prevTTS.provider || 'puter'),
+        engine: val('tpl-tts-engine', prevTTS.engine || 'neural'),
+        instructions: val('tpl-tts-instructions', prevTTS.instructions || ''),
+        rate: numVal('tpl-tts-rate', prevTTS.rate !== undefined ? prevTTS.rate : 1.0),
+        volume: numVal('tpl-tts-volume', prevTTS.volume !== undefined ? prevTTS.volume : 100),
+        delay: numVal('tpl-tts-delay', prevTTS.delay !== undefined ? prevTTS.delay : 400)
+      };
     }
 
     const goal = config.widgets.goal;
@@ -1122,6 +1225,27 @@ document.addEventListener('DOMContentLoaded', () => {
       setVal('input-custom-html', template.code.customHTML);
       setVal('input-custom-css', template.code.customCSS);
       setVal('input-custom-js', template.code.customJS);
+
+      const tts = template.tts || ConfigSchema.TTS_DEFAULTS;
+      setChecked('tpl-tts-enabled', tts.enabled);
+      setVal('tpl-tts-template', tts.template);
+      setSelectVal('tpl-tts-language', tts.language || 'en-IN');
+      updateTTSVoiceOptions(tts.language || 'en-IN', tts.voice || 'Aditi');
+      setSelectVal('tpl-tts-provider', tts.provider || 'puter');
+      setSelectVal('tpl-tts-engine', tts.engine || 'neural');
+      setVal('tpl-tts-instructions', tts.instructions || '');
+      setVal('tpl-tts-rate', tts.rate !== undefined ? tts.rate : 1.0);
+      const rateValEl = el('tpl-tts-rate-val');
+      if (rateValEl) rateValEl.textContent = (tts.rate !== undefined ? tts.rate : 1.0) + 'x';
+      setVal('tpl-tts-volume', tts.volume !== undefined ? tts.volume : 100);
+      const volValEl = el('tpl-tts-volume-val');
+      if (volValEl) volValEl.textContent = (tts.volume !== undefined ? tts.volume : 100) + '%';
+      setVal('tpl-tts-delay', tts.delay !== undefined ? tts.delay : 400);
+
+      const groupEngine = el('group-tts-engine');
+      const groupInstructions = el('group-tts-instructions');
+      if (groupEngine) groupEngine.style.display = (tts.provider === 'browser') ? 'none' : 'block';
+      if (groupInstructions) groupInstructions.style.display = (tts.provider === 'browser') ? 'none' : 'block';
     }
 
     const goal = config.widgets.goal;
@@ -2015,6 +2139,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
 
     el('chk-template-enabled').addEventListener('change', () => syncLivePreview());
+
+    on('tpl-tts-language', 'change', (e) => {
+      updateTTSVoiceOptions(e.target.value);
+      syncLivePreview();
+    });
+
+    on('tpl-tts-provider', 'change', (e) => {
+      const isBrowser = e.target.value === 'browser';
+      const groupEngine = el('group-tts-engine');
+      const groupInstructions = el('group-tts-instructions');
+      if (groupEngine) groupEngine.style.display = isBrowser ? 'none' : 'block';
+      if (groupInstructions) groupInstructions.style.display = isBrowser ? 'none' : 'block';
+      syncLivePreview();
+    });
+
+    on('tpl-tts-rate', 'input', (e) => {
+      const rateValEl = el('tpl-tts-rate-val');
+      if (rateValEl) rateValEl.textContent = e.target.value + 'x';
+      syncLivePreview();
+    });
+
+    on('tpl-tts-volume', 'input', (e) => {
+      const volValEl = el('tpl-tts-volume-val');
+      if (volValEl) volValEl.textContent = e.target.value + '%';
+      syncLivePreview();
+    });
+
+    ['tpl-tts-enabled', 'tpl-tts-template', 'tpl-tts-voice', 'tpl-tts-engine', 'tpl-tts-instructions', 'tpl-tts-delay'].forEach(id => {
+      on(id, 'change', () => syncLivePreview());
+      if (id === 'tpl-tts-template' || id === 'tpl-tts-instructions' || id === 'tpl-tts-delay') {
+        on(id, 'input', () => syncLivePreview());
+      }
+    });
   }
 
   function setupListConfigManager() {
