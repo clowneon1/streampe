@@ -125,6 +125,36 @@
       box-shadow: 0 2px 8px var(--accent-glow);
     }
 
+    /* ── Live Healthcheck Dot ── */
+    .tts-health-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      background: #ffab00; /* Orange / Amber: checking or connecting */
+      box-shadow: 0 0 6px rgba(255, 171, 0, 0.6);
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+      flex-shrink: 0;
+    }
+    .tts-health-dot.checking {
+      background: #ffab00;
+      box-shadow: 0 0 6px rgba(255, 171, 0, 0.6);
+    }
+    .tts-health-dot.online {
+      background: #00F593;
+      box-shadow: 0 0 8px rgba(0, 245, 147, 0.7);
+      animation: pulse-health-green 2.5s infinite;
+    }
+    .tts-health-dot.offline {
+      background: #EB0400;
+      box-shadow: 0 0 8px rgba(235, 4, 0, 0.7);
+    }
+    @keyframes pulse-health-green {
+      0% { box-shadow: 0 0 3px rgba(0, 245, 147, 0.5); }
+      50% { box-shadow: 0 0 9px rgba(0, 245, 147, 0.9); }
+      100% { box-shadow: 0 0 3px rgba(0, 245, 147, 0.5); }
+    }
+
     /* 2-Column Split Studio Layout */
     .studio-layout {
       display: grid;
@@ -186,6 +216,21 @@
       color: var(--text-muted);
       padding: 1px 7px;
       border-radius: var(--radius-pill);
+    }
+
+    /* Active Voice Box in Playground (styled identically to preset boxes) */
+    .active-voice-box {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      user-select: none;
     }
 
     /* Search Input Box */
@@ -752,16 +797,6 @@
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
-    .resolved-badge-pill {
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      background: rgba(0, 245, 147, 0.12);
-      color: var(--success);
-      border: 1px solid rgba(0, 245, 147, 0.25);
-      padding: 1px 6px;
-      border-radius: var(--radius-pill);
-    }
     .resolved-text {
       font-size: 12px;
       font-weight: 500;
@@ -958,7 +993,10 @@
 
     <!-- Engine Switcher Tabs -->
     <div class="engine-switcher">
-      <button class="engine-tab active" id="engineNeuralBtn" onclick="selectEngine('neural')">Edge Neural AI</button>
+      <button class="engine-tab active" id="engineNeuralBtn" onclick="selectEngine('neural')" style="display: inline-flex; align-items: center; gap: 6px;">
+        <span class="tts-health-dot" id="edgeHealthDot" title="Edge Neural TTS: Checking connection..."></span>
+        <span>Edge Neural AI</span>
+      </button>
       <button class="engine-tab" id="engineLocalBtn" onclick="selectEngine('local')">Local Offline</button>
     </div>
   </div>
@@ -974,7 +1012,7 @@
         <div class="card-header-row">
           <span class="card-title">
             <i data-lucide="mic" style="width: 13px; height: 13px; color: var(--accent);"></i>
-            Voice Character Roster
+            Voices
           </span>
           <span class="badge-count" id="voiceCountBadge">7 Voices</span>
         </div>
@@ -1088,7 +1126,19 @@
             <i data-lucide="message-square" style="width: 13px; height: 13px; color: var(--accent);"></i>
             Speech Message Template
           </span>
-          <span id="char-counter" style="font-size: 11px; color: var(--success); font-weight: 700; font-family: 'Fira Code', monospace;">68 / 200 chars</span>
+          <span id="char-counter" style="font-size: 11px; color: var(--accent-light); font-weight: 700; font-family: 'Fira Code', monospace;">68 / 200 chars</span>
+        </div>
+
+        <!-- Active Voice (styled like preset box) -->
+        <div class="preset-chips-wrap">
+          <span style="font-size: 11px; color: var(--text-dim); font-weight: 600; margin-right: 2px;">Active Voice:</span>
+          <div class="preset-chips">
+            <div class="active-voice-box">
+              <i data-lucide="mic" style="width: 11px; height: 11px; color: var(--accent-light);"></i>
+              <span id="activeVoiceName">Neerja</span>
+              <span id="activeVoiceTag" style="color: var(--text-dim); font-weight: 400; font-size: 10.5px;">• Indian (Hindi/English)</span>
+            </div>
+          </div>
         </div>
 
         <!-- Variable Inserter Bar -->
@@ -1124,7 +1174,6 @@
               <i data-lucide="volume-2" style="width: 12px; height: 12px;"></i>
               Live Resolved Sample (What TTS Speaks)
             </span>
-            <span class="resolved-badge-pill">Preview</span>
           </div>
           <div id="resolved-speech-display" class="resolved-text">Loading preview...</div>
         </div>
@@ -1218,6 +1267,8 @@
 
     let edgeVoiceCatalog = EDGE_VOICE_LIST;
     let systemVoicesList = [];
+    let currentAudio = null;
+    let playbackIntervalId = null;
 
     const SAMPLE_EVENTS = [
       { sender: 'Rahul Sharma', amount: '₹500', amountValue: 500, sourceApp: 'Google Pay', appName: 'Google Pay', message: 'Bhai maza aa gaya, super stream!' },
@@ -1227,8 +1278,8 @@
       { sender: 'Sneha Rao', amount: '₹200', amountValue: 200, sourceApp: 'PhonePe', appName: 'PhonePe', message: 'Keep playing bhai!' }
     ];
 
-    let currentAudio = null;
-    let playbackIntervalId = null;
+    // Global App Constants
+    const MAX_TTS_CHARS = 200;
 
     // DOM Elements
     const voiceSearchInput = document.getElementById('voiceSearchInput');
@@ -1257,18 +1308,51 @@
     const engineNeuralBtn = document.getElementById('engineNeuralBtn');
     const engineLocalBtn = document.getElementById('engineLocalBtn');
 
+    function updateEdgeHealthStatus(status, tooltip) {
+      const dot = document.getElementById('edgeHealthDot');
+      if (!dot) return;
+
+      let statusClass = 'checking';
+      if (status === true || status === 'online') {
+        statusClass = 'online';
+      } else if (status === false || status === 'offline') {
+        statusClass = 'offline';
+      } else if (status === 'checking' || status === 'warning') {
+        statusClass = 'checking';
+      }
+
+      dot.className = `tts-health-dot ${statusClass}`;
+      if (tooltip) {
+        dot.title = tooltip;
+      } else {
+        if (statusClass === 'online') {
+          dot.title = 'Edge Neural TTS: Online & Connected';
+        } else if (statusClass === 'offline') {
+          dot.title = 'Edge Neural TTS: Offline / Unreachable';
+        } else {
+          dot.title = 'Edge Neural TTS: Checking connection...';
+        }
+      }
+    }
+
     async function loadAllEdgeVoices() {
+      updateEdgeHealthStatus('checking', 'Edge Neural TTS: Checking connection...');
       try {
         const res = await fetch('/api/tts/voices');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data && Array.isArray(data.voices) && data.voices.length > 0) {
           edgeVoiceCatalog = data.voices;
+          updateEdgeHealthStatus('online', `Edge Neural AI Online (${data.voices.length} voices ready)`);
           if (state.engine === 'neural') {
             renderVoiceRoster();
           }
+        } else {
+          updateEdgeHealthStatus('offline', 'Edge Neural TTS: No voices returned from server');
         }
       } catch (e) {
         console.warn('Could not fetch remote voices catalog, using fallback.', e);
+        updateEdgeHealthStatus('offline', `Edge Neural TTS Unreachable: ${e.message}`);
       }
     }
 
@@ -1411,6 +1495,14 @@
       currentVoiceNameLabel.textContent = `${state.selectedVoiceName} Tuning`;
       currentVoiceNameLabel.title = state.selectedVoiceName;
 
+      const activeVoiceName = document.getElementById('activeVoiceName');
+      const activeVoiceTag = document.getElementById('activeVoiceTag');
+      if (activeVoiceName) activeVoiceName.textContent = state.selectedVoiceName;
+      if (activeVoiceTag) {
+        const tag = state.selectedVoiceAccent || (state.engine === 'neural' ? 'Neural AI' : 'Local Synthesizer');
+        activeVoiceTag.textContent = tag ? `• ${tag}` : '';
+      }
+
       renderVoiceRoster();
       renderLiveSpeech();
     }
@@ -1473,11 +1565,11 @@
           rendered = template;
         }
       }
-      rendered = (rendered || '').trim().slice(0, 200);
+      rendered = (rendered || '').trim().slice(0, MAX_TTS_CHARS);
       resolvedSpeechDisplay.textContent = rendered || '(Empty Speech Template)';
       
-      charCounter.textContent = `${rendered.length} / 200 chars`;
-      charCounter.style.color = rendered.length >= 190 ? 'var(--danger)' : 'var(--success)';
+      charCounter.textContent = `${rendered.length} / ${MAX_TTS_CHARS} chars`;
+      charCounter.style.color = rendered.length >= (MAX_TTS_CHARS - 10) ? 'var(--danger)' : 'var(--accent-light)';
 
       // Duration estimation
       const wordCount = rendered ? rendered.trim().split(/\s+/).length : 0;
@@ -1683,6 +1775,7 @@
       currentAudio = audio;
 
       audio.onloadedmetadata = () => {
+        updateEdgeHealthStatus('online', 'Edge Neural AI active & synthesizing');
         setPlayingState(true, source);
         const totalSec = audio.duration || 3.0;
         audioTotalTime.textContent = `0:0${Math.round(totalSec)}`;
@@ -1702,6 +1795,7 @@
       };
 
       audio.onerror = () => {
+        updateEdgeHealthStatus('offline', 'Edge Neural TTS: Audio synthesis request failed');
         if (fallbackText) playLocalTTS(fallbackText, source);
         else stopAll();
       };
@@ -1847,6 +1941,7 @@
     });
 
     // Initial setup
+    if (ttsText) ttsText.setAttribute('maxlength', MAX_TTS_CHARS);
     loadAllEdgeVoices();
     selectVoice(getCurrentSelectedVoiceId());
     updateTuningSummary();

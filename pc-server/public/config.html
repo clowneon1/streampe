@@ -9,7 +9,9 @@
   <link rel="shortcut icon" type="image/png" href="/icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="/css/config.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css" />
@@ -61,14 +63,19 @@
 <body>
 
   <!-- Full Screen Dashboard Boot Loader -->
-  <div id="dashboard-boot-loader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; background: #131315; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s ease, visibility 0.4s ease;">
+  <div id="dashboard-boot-loader"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 99999; background: #131315; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s ease, visibility 0.4s ease;">
     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;">
-      <div style="width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, rgba(145, 70, 255, 0.15), rgba(0, 244, 254, 0.15)); border: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
-        <img src="/icon.png" alt="StreamPe Logo" style="width: 38px; height: 38px; object-fit: contain; border-radius: 8px;" />
+      <div
+        style="width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, rgba(145, 70, 255, 0.15), rgba(0, 244, 254, 0.15)); border: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
+        <img src="/icon.png" alt="StreamPe Logo"
+          style="width: 38px; height: 38px; object-fit: contain; border-radius: 8px;" />
       </div>
       <div style="font-size: 18px; font-weight: 700; color: #ffffff; letter-spacing: -0.02em;">StreamPe Dashboard</div>
       <div style="display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 12px;">
-        <div class="rotation-spinner spinner-sm" style="width: 14px; height: 14px; border: 2px solid rgba(145, 70, 255, 0.2); border-top-color: #9146ff; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+        <div class="rotation-spinner spinner-sm"
+          style="width: 14px; height: 14px; border: 2px solid rgba(145, 70, 255, 0.2); border-top-color: #9146ff; border-radius: 50%; animation: spin 0.8s linear infinite;">
+        </div>
         <span>Initializing configuration &amp; analytics...</span>
       </div>
     </div>
@@ -110,10 +117,12 @@
         <button class="tab-btn" data-tab="server-logs">
           <span class="icon"><i data-lucide="clipboard-list"></i></span> Logs
         </button>
-        <button class="tab-btn" data-tab="updates" id="btn-sidebar-nav-updates" type="button" style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
+        <button class="tab-btn" data-tab="updates" id="btn-sidebar-nav-updates" type="button"
+          style="display: flex; align-items: center; justify-content: flex-start; width: 100%;">
           <span class="icon"><i data-lucide="sparkles" style="color: var(--accent);"></i></span>
           <span>Updates</span>
-          <span id="nav-update-pill" style="display: none; margin-left: auto; background: var(--accent); color: #050811; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;">NEW</span>
+          <span id="nav-update-pill"
+            style="display: none; margin-left: auto; background: var(--accent); color: #050811; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;">NEW</span>
         </button>
       </nav>
 
@@ -150,8 +159,7 @@
       <!-- Centralized Earnings Data CSV Card in Sidebar -->
       <div class="sidebar-donations-data-card"
         style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin: 12px 14px 0 14px;">
-        <div
-          style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
           <span style="display: flex; align-items: center; gap: 6px;">
             <i data-lucide="table" style="width: 15px; height: 15px; color: var(--cyan);"></i>
             <span style="font-size: 13.5px; font-weight: 700; color: #ffffff;">Earnings</span>
@@ -368,7 +376,8 @@
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="mic"
-                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Narration Settings</span>
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Narration
+                Settings</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
@@ -386,24 +395,31 @@
                 <div class="form-row">
                   <div class="form-group">
                     <label for="tpl-tts-volume">TTS Volume</label>
-                    <input type="number" id="tpl-tts-volume" class="form-control" min="0" max="100" step="1" value="100" />
+                    <input type="number" id="tpl-tts-volume" class="form-control" min="0" max="100" step="1"
+                      value="100" />
                   </div>
 
                   <div class="form-group">
                     <label for="tpl-tts-delay">Speech Delay ms</label>
-                    <input type="number" id="tpl-tts-delay" class="form-control" min="0" max="10000" step="50" value="400" />
+                    <input type="number" id="tpl-tts-delay" class="form-control" min="0" max="10000" step="50"
+                      value="400" />
                   </div>
                 </div>
 
                 <div class="form-group" style="margin-top: 6px;">
-                  <button type="button" id="btn-open-tts-studio" class="btn btn-secondary" style="width: 100%; height: 42px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <i data-lucide="sparkles" style="width: 15px; height: 15px; color: var(--accent);"></i> Open Voice Studio &amp; Preview
+                  <button type="button" id="btn-open-tts-studio" class="btn btn-secondary"
+                    style="width: 100%; height: 42px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i data-lucide="sparkles" style="width: 15px; height: 15px; color: var(--accent);"></i>
+                    <span>Open Voice Studio</span>
                   </button>
                 </div>
 
                 <!-- Hidden inputs for seamless form data binding -->
                 <textarea id="tpl-tts-template" style="display: none;"></textarea>
-                <select id="tpl-tts-provider" style="display: none;"><option value="edge">edge</option><option value="local">local</option></select>
+                <select id="tpl-tts-provider" style="display: none;">
+                  <option value="edge">edge</option>
+                  <option value="local">local</option>
+                </select>
                 <select id="tpl-tts-voice" style="display: none;"></select>
                 <input type="number" id="tpl-tts-rate" style="display: none;" value="1.0" />
                 <input type="number" id="tpl-tts-pitch" style="display: none;" value="0" />
@@ -727,22 +743,26 @@
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="code"
-                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Custom Code</span>
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Custom
+                Code</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
               <div class="warning-callout" style="margin-top: 0;">
                 <span class="warning-icon"><i data-lucide="alert-triangle"></i></span>
                 <div>
-                  <strong>Security Warning:</strong> Custom HTML, CSS, and JavaScript functions are executed directly in OBS / browser sources.
+                  <strong>Security Warning:</strong> Custom HTML, CSS, and JavaScript functions are executed directly in
+                  OBS / browser sources.
                 </div>
               </div>
 
-              <div style="display: flex; flex-direction: column; gap: 14px; padding: 14px 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 8px;">
+              <div
+                style="display: flex; flex-direction: column; gap: 14px; padding: 14px 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 8px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                   <div>
                     <div style="font-weight: 600; font-size: 13.5px; color: #ffffff;">Enable Custom Alert Code</div>
-                    <div style="font-size: 12px; color: var(--text-dim);">Override visual theme with custom HTML, CSS &amp; JS</div>
+                    <div style="font-size: 12px; color: var(--text-dim);">Override visual theme with custom HTML, CSS
+                      &amp; JS</div>
                   </div>
                   <label class="switch-container">
                     <input type="checkbox" id="chk-enable-custom-code" />
@@ -880,8 +900,10 @@
               <div class="form-group">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                   <label for="input-goal-fill-color2" style="margin-bottom: 0;">Secondary Gradient Color</label>
-                  <label class="checkbox-row" style="margin-bottom: 0; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-muted);">
-                    <input type="checkbox" id="chk-goal-use-gradient" checked style="width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer;" />
+                  <label class="checkbox-row"
+                    style="margin-bottom: 0; font-size: 11.5px; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-muted);">
+                    <input type="checkbox" id="chk-goal-use-gradient" checked
+                      style="width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer;" />
                     <span>Enable</span>
                   </label>
                 </div>
@@ -1084,22 +1106,26 @@
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
               <span><i data-lucide="code"
-                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Custom Code</span>
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Advanced Custom
+                Code</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
               <div class="warning-callout" style="margin-top: 0;">
                 <span class="warning-icon"><i data-lucide="alert-triangle"></i></span>
                 <div>
-                  <strong>Security Warning:</strong> Custom HTML, CSS, and JavaScript functions are executed directly in OBS / browser sources.
+                  <strong>Security Warning:</strong> Custom HTML, CSS, and JavaScript functions are executed directly in
+                  OBS / browser sources.
                 </div>
               </div>
 
-              <div style="display: flex; flex-direction: column; gap: 14px; padding: 14px 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 8px;">
+              <div
+                style="display: flex; flex-direction: column; gap: 14px; padding: 14px 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 8px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                   <div>
                     <div style="font-weight: 600; font-size: 13.5px; color: #ffffff;">Enable Custom Goal Code</div>
-                    <div style="font-size: 12px; color: var(--text-dim);">Override goal bar styling with custom HTML, CSS &amp; JS</div>
+                    <div style="font-size: 12px; color: var(--text-dim);">Override goal bar styling with custom HTML,
+                      CSS &amp; JS</div>
                   </div>
                   <label class="switch-container">
                     <input type="checkbox" id="chk-enable-goal-custom-code" />
@@ -1475,11 +1501,13 @@
                 </div>
               </div>
 
-              <div style="display: flex; flex-direction: column; gap: 14px; padding: 14px 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 8px;">
+              <div
+                style="display: flex; flex-direction: column; gap: 14px; padding: 14px 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 8px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                   <div>
                     <div style="font-weight: 600; font-size: 13.5px; color: #ffffff;">Enable Custom List Code</div>
-                    <div style="font-size: 12px; color: var(--text-dim);">Override list/feed layout with custom HTML, CSS &amp; JS</div>
+                    <div style="font-size: 12px; color: var(--text-dim);">Override list/feed layout with custom HTML,
+                      CSS &amp; JS</div>
                   </div>
                   <label class="switch-container">
                     <input type="checkbox" id="chk-enable-list-custom-code" />
@@ -1781,11 +1809,13 @@
                 </div>
               </div>
 
-              <div style="display: flex; flex-direction: column; gap: 14px; padding: 14px 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 8px;">
+              <div
+                style="display: flex; flex-direction: column; gap: 14px; padding: 14px 16px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 8px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                   <div>
                     <div style="font-weight: 600; font-size: 13.5px; color: #ffffff;">Enable Custom Cycling Code</div>
-                    <div style="font-size: 12px; color: var(--text-dim);">Override cycling banner theme with custom HTML, CSS &amp; JS</div>
+                    <div style="font-size: 12px; color: var(--text-dim);">Override cycling banner theme with custom
+                      HTML, CSS &amp; JS</div>
                   </div>
                   <label class="switch-container">
                     <input type="checkbox" id="chk-enable-cycling-custom-code" />
@@ -1912,16 +1942,19 @@
                 <i data-lucide="line-chart" style="color: var(--accent);"></i>
                 <span>Earnings Overview &amp; Analytics</span>
               </h2>
-              <p class="panel-desc">Real-time payment analytics, income distributions, and supporter transactions from your ledger.</p>
+              <p class="panel-desc">Real-time payment analytics, income distributions, and supporter transactions from
+                your ledger.</p>
             </div>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
               <button class="btn btn-record-payment" id="btn-open-record-modal" type="button">
                 <i data-lucide="plus-circle"></i> Add Payment
               </button>
-              <button class="btn btn-backup-action" id="btn-analytics-export-csv" type="button" title="Download CSV / ZIP backup">
+              <button class="btn btn-backup-action" id="btn-analytics-export-csv" type="button"
+                title="Download CSV / ZIP backup">
                 <i data-lucide="download"></i> Export
               </button>
-              <button class="btn btn-backup-action" id="btn-analytics-import" type="button" title="Upload CSV / ZIP backup">
+              <button class="btn btn-backup-action" id="btn-analytics-import" type="button"
+                title="Upload CSV / ZIP backup">
                 <i data-lucide="upload"></i> Import
               </button>
               <input type="file" id="input-backup-file" accept=".zip,.csv" style="display: none;" />
@@ -2067,7 +2100,8 @@
                     <option value="month" selected>🗓️ Current Month (Weeks)</option>
                     <option value="year">📊 Current Year (12 Months)</option>
                   </select>
-                  <button type="button" class="btn-copy-icon" id="btn-open-timeline-modal" title="Expand Income Timeline in Popup Modal" style="width: 26px; height: 26px;">
+                  <button type="button" class="btn-copy-icon" id="btn-open-timeline-modal"
+                    title="Expand Income Timeline in Popup Modal" style="width: 26px; height: 26px;">
                     <i data-lucide="maximize-2" style="width: 12px; height: 12px;"></i>
                   </button>
                 </div>
@@ -2104,8 +2138,7 @@
                   style="font-size: 11px; padding: 4px 8px;" title="Download currently filtered ledger list as CSV">
                   <i data-lucide="download"></i> Export Filtered CSV
                 </button>
-                <button type="button" class="btn-expand-toggle" id="btn-ledger-expand"
-                  title="Expand table height">
+                <button type="button" class="btn-expand-toggle" id="btn-ledger-expand" title="Expand table height">
                   <i data-lucide="maximize-2" style="width:13px; height:13px;"></i>
                 </button>
               </div>
@@ -2219,7 +2252,9 @@
                         style="font-size: 12px; padding: 4px 8px; height: 28px; text-align: right;" />
                       <div class="col-resize-handle" title="Drag to resize column width"></div>
                     </th>
-                    <th style="padding: 10px 10px; width: 60px; text-align: center; background: var(--surface-2); font-weight: 500; color: var(--text-muted);">Action
+                    <th
+                      style="padding: 10px 10px; width: 60px; text-align: center; background: var(--surface-2); font-weight: 500; color: var(--text-muted);">
+                      Action
                     </th>
                   </tr>
                 </thead>
@@ -2228,7 +2263,8 @@
                     <td colspan="7">
                       <div class="table-loading-container">
                         <div class="rotation-spinner spinner-lg"></div>
-                        <div style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Loading earnings &amp; analytics...</div>
+                        <div style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Loading earnings &amp;
+                          analytics...</div>
                       </div>
                     </td>
                   </tr>
@@ -2325,99 +2361,137 @@
 
         <!-- ── TAB: In-App Updates ──────────────────────────────────────── -->
         <div class="tab-content" id="tab-updates">
-          <div class="section-title" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+          <div class="section-title"
+            style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
             <div>
-              <h2 style="margin: 0; font-size: 20px; font-weight: 700; color: #f1f5f9; display: flex; align-items: center; gap: 10px;">
+              <h2
+                style="margin: 0; font-size: 20px; font-weight: 700; color: #f1f5f9; display: flex; align-items: center; gap: 10px;">
                 <i data-lucide="sparkles" style="color: var(--accent); width: 22px; height: 22px;"></i> Software Updates
               </h2>
               <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-muted);">
                 Stay up to date with the latest features, improvements, and fixes for StreamPe.
               </p>
             </div>
-            <button type="button" class="btn btn-outline" id="btn-tab-check-updates" style="font-size: 13px; padding: 8px 14px; display: flex; align-items: center; gap: 6px;">
+            <button type="button" class="btn btn-outline" id="btn-tab-check-updates"
+              style="font-size: 13px; padding: 8px 14px; display: flex; align-items: center; gap: 6px;">
               <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Check for Updates
             </button>
           </div>
 
           <!-- Version Comparison & Status Hero Card -->
-          <div id="updates-hero-card" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+          <div id="updates-hero-card"
+            style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px;">
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
               <div style="display: flex; align-items: center; gap: 16px;">
-                <div style="width: 52px; height: 52px; border-radius: 12px; background: rgba(0, 229, 255, 0.1); border: 1px solid rgba(0, 229, 255, 0.3); display: flex; align-items: center; justify-content: center;">
-                  <i data-lucide="shield-check" id="updates-status-icon" style="width: 26px; height: 26px; color: var(--accent);"></i>
+                <div
+                  style="width: 52px; height: 52px; border-radius: 12px; background: rgba(0, 229, 255, 0.1); border: 1px solid rgba(0, 229, 255, 0.3); display: flex; align-items: center; justify-content: center;">
+                  <i data-lucide="shield-check" id="updates-status-icon"
+                    style="width: 26px; height: 26px; color: var(--accent);"></i>
                 </div>
                 <div>
-                  <div id="updates-status-headline" style="font-size: 17px; font-weight: 700; color: #f1f5f9;">Checking for updates...</div>
-                  <div id="updates-status-subtext" style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Comparing current version with GitHub releases</div>
+                  <div id="updates-status-headline" style="font-size: 17px; font-weight: 700; color: #f1f5f9;">Checking
+                    for updates...</div>
+                  <div id="updates-status-subtext" style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+                    Comparing current version with GitHub releases</div>
                 </div>
               </div>
 
               <!-- Version Badges -->
-              <div style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.3); padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border);">
-                <div style="font-size: 13px; color: var(--text-muted);">Current: <strong id="tab-update-current-ver" style="color: var(--text);">v2.1.0</strong></div>
+              <div
+                style="display: flex; align-items: center; gap: 12px; background: rgba(0, 0, 0, 0.3); padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border);">
+                <div style="font-size: 13px; color: var(--text-muted);">Current: <strong id="tab-update-current-ver"
+                    style="color: var(--text);">v2.1.0</strong></div>
                 <i data-lucide="arrow-right" style="width: 14px; height: 14px; color: var(--accent);"></i>
-                <div style="font-size: 13px; color: var(--accent);">Latest: <strong id="tab-update-latest-ver">v2.2.0</strong></div>
+                <div style="font-size: 13px; color: var(--accent);">Latest: <strong
+                    id="tab-update-latest-ver">v2.2.0</strong></div>
               </div>
             </div>
 
             <!-- Download Action Buttons -->
-            <div id="tab-update-actions-section" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div id="tab-update-actions-section"
+              style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
               <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                <a id="btn-tab-download-zip" href="https://github.com/clowneon1/streampe/releases/latest" target="_blank" class="btn btn-primary" style="font-size: 13px; padding: 10px 20px; display: flex; align-items: center; gap: 8px; font-weight: 700;">
+                <a id="btn-tab-download-zip" href="https://github.com/clowneon1/streampe/releases/latest"
+                  target="_blank" class="btn btn-primary"
+                  style="font-size: 13px; padding: 10px 20px; display: flex; align-items: center; gap: 8px; font-weight: 700;">
                   <i data-lucide="download" style="width: 16px; height: 16px;"></i> Download Latest Release (.zip)
                 </a>
               </div>
-              <a id="btn-tab-view-github" href="https://github.com/clowneon1/streampe/releases/latest" target="_blank" class="btn btn-outline" style="font-size: 12px; padding: 8px 14px; display: flex; align-items: center; gap: 6px;">
+              <a id="btn-tab-view-github" href="https://github.com/clowneon1/streampe/releases/latest" target="_blank"
+                class="btn btn-outline"
+                style="font-size: 12px; padding: 8px 14px; display: flex; align-items: center; gap: 6px;">
                 <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> View on GitHub
               </a>
             </div>
           </div>
 
           <!-- Step-by-Step Update Guide -->
-          <div style="background: rgba(0, 229, 255, 0.03); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 12px; padding: 18px 20px; margin-bottom: 20px;">
-            <div style="font-size: 13.5px; font-weight: 700; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-              <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> How to update your StreamPe installation:
+          <div
+            style="background: rgba(0, 229, 255, 0.03); border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 12px; padding: 18px 20px; margin-bottom: 20px;">
+            <div
+              style="font-size: 13.5px; font-weight: 700; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> How to update your StreamPe
+              installation:
             </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
+            <div
+              style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
               <div style="display: flex; gap: 10px;">
-                <span style="width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--accent); flex-shrink: 0;">1</span>
+                <span
+                  style="width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--accent); flex-shrink: 0;">1</span>
                 <span>Click <strong>Download Latest Release (.zip)</strong> above.</span>
               </div>
               <div style="display: flex; gap: 10px;">
-                <span style="width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--accent); flex-shrink: 0;">2</span>
+                <span
+                  style="width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--accent); flex-shrink: 0;">2</span>
                 <span>Close StreamPe on your PC.</span>
               </div>
               <div style="display: flex; gap: 10px;">
-                <span style="width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--accent); flex-shrink: 0;">3</span>
+                <span
+                  style="width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--accent); flex-shrink: 0;">3</span>
                 <span>Extract &amp; replace all files in your StreamPe folder.</span>
               </div>
               <div style="display: flex; gap: 10px;">
-                <span style="width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--accent); flex-shrink: 0;">4</span>
+                <span
+                  style="width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--accent); flex-shrink: 0;">4</span>
                 <span>Launch <strong>StreamPe.exe</strong>. All your settings &amp; history remain safe!</span>
               </div>
             </div>
           </div>
 
           <!-- Release Notes & Changelog Card -->
-          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
-              <div style="font-size: 15px; font-weight: 700; color: #f1f5f9; display: flex; align-items: center; gap: 8px;">
+          <div
+            style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+            <div
+              style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+              <div
+                style="font-size: 15px; font-weight: 700; color: #f1f5f9; display: flex; align-items: center; gap: 8px;">
                 <i data-lucide="file-text" style="width: 16px; height: 16px; color: var(--accent);"></i>
                 <span id="tab-update-release-title">What's New in this Release</span>
               </div>
               <div style="display: flex; align-items: center; gap: 10px;">
                 <span id="tab-update-published-date" style="font-size: 12px; color: var(--text-muted);"></span>
-                <div style="display: flex; gap: 2px; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2px 4px;" title="Changelog box height preset">
-                  <button type="button" class="btn-box-toggle" id="btn-update-notes-height-sm" title="Compact view (260px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">S</button>
-                  <button type="button" class="btn-box-toggle" id="btn-update-notes-height-md" title="Default view (460px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px; color: var(--accent);">M</button>
-                  <button type="button" class="btn-box-toggle" id="btn-update-notes-height-lg" title="Expanded view (760px)" style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">L</button>
+                <div
+                  style="display: flex; gap: 2px; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2px 4px;"
+                  title="Changelog box height preset">
+                  <button type="button" class="btn-box-toggle" id="btn-update-notes-height-sm"
+                    title="Compact view (260px)"
+                    style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">S</button>
+                  <button type="button" class="btn-box-toggle" id="btn-update-notes-height-md"
+                    title="Default view (460px)"
+                    style="font-size: 10px; padding: 3px 6px; border-radius: 4px; color: var(--accent);">M</button>
+                  <button type="button" class="btn-box-toggle" id="btn-update-notes-height-lg"
+                    title="Expanded view (760px)"
+                    style="font-size: 10px; padding: 3px 6px; border-radius: 4px;">L</button>
                 </div>
-                <button type="button" class="btn-box-toggle" id="btn-update-notes-expand" title="Expand / Collapse height" style="padding: 5px;">
+                <button type="button" class="btn-box-toggle" id="btn-update-notes-expand"
+                  title="Expand / Collapse height" style="padding: 5px;">
                   <i data-lucide="chevrons-up-down" style="width:14px; height:14px;"></i>
                 </button>
               </div>
             </div>
-            <div id="tab-update-release-notes" class="box-expandable" style="background: #030712; border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-size: 12.5px; line-height: 1.6; color: #cbd5e1; white-space: pre-wrap; font-family: 'Fira Code', 'Consolas', monospace; height: 460px; overflow-y: auto; transition: height 0.2s ease;">
+            <div id="tab-update-release-notes" class="box-expandable"
+              style="background: #030712; border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-size: 12.5px; line-height: 1.6; color: #cbd5e1; white-space: pre-wrap; font-family: 'Fira Code', 'Consolas', monospace; height: 460px; overflow-y: auto; transition: height 0.2s ease;">
               Loading release notes from GitHub...
             </div>
           </div>
@@ -2635,7 +2709,8 @@
       </div>
       <div class="modal-body" style="padding: 16px 20px;">
         <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
-          Upload a <strong>ZIP Backup Bundle (.zip)</strong> or standalone <strong>CSV File (.csv)</strong> to restore transactions and donor aliases into your active profile.
+          Upload a <strong>ZIP Backup Bundle (.zip)</strong> or standalone <strong>CSV File (.csv)</strong> to restore
+          transactions and donor aliases into your active profile.
         </p>
         <div class="form-group" style="margin-bottom: 12px;">
           <label for="select-import-mode" style="font-weight: 600;">Import Action / Mode</label>
@@ -2646,7 +2721,8 @@
         </div>
         <div class="form-group" style="margin-bottom: 12px;">
           <label for="input-import-file-picker" style="font-weight: 600;">Select Backup File (.zip or .csv)</label>
-          <input type="file" id="input-import-file-picker" class="form-control" accept=".zip,.csv" style="padding: 6px;" />
+          <input type="file" id="input-import-file-picker" class="form-control" accept=".zip,.csv"
+            style="padding: 6px;" />
         </div>
       </div>
       <div class="modal-footer">
@@ -2682,7 +2758,8 @@
             <!-- Injected by JS -->
           </svg>
         </div>
-        <div style="margin-top: 14px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+        <div
+          style="margin-top: 14px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
           <span>Hover over any bar to inspect daily transaction counts and earnings.</span>
           <span id="modal-trend-total" style="font-weight: 700; color: var(--accent); font-size: 13px;"></span>
         </div>
@@ -2758,7 +2835,8 @@
           <button class="btn btn-outline" id="btn-studio-format" type="button" title="Format Code (Prettier)">
             <i data-lucide="align-left"></i> Format
           </button>
-          <button class="btn btn-secondary" id="btn-studio-reset" type="button" title="Reset this language to shipped default template">
+          <button class="btn btn-secondary" id="btn-studio-reset" type="button"
+            title="Reset this language to shipped default template">
             <i data-lucide="rotate-ccw"></i> Reset
           </button>
           <button class="btn btn-outline" id="btn-studio-toggle-preview" type="button" title="Toggle Live Preview Pane">
@@ -2805,11 +2883,13 @@
         <div class="code-studio-preview-column" id="code-studio-preview-column">
           <div class="code-studio-preview-header">
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span class="live-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #00F593; display: inline-block;"></span>
+              <span class="live-dot"
+                style="width: 8px; height: 8px; border-radius: 50%; background: #00F593; display: inline-block;"></span>
               <span style="font-size: 12px; font-weight: 600; color: var(--text-main);">Live Sandbox Preview</span>
             </div>
             <div style="display: flex; gap: 6px;">
-              <button class="btn btn-outline" id="btn-studio-trigger-test" type="button" style="font-size: 11px; padding: 2px 8px;">
+              <button class="btn btn-outline" id="btn-studio-trigger-test" type="button"
+                style="font-size: 11px; padding: 2px 8px;">
                 <i data-lucide="zap"></i> Trigger Test
               </button>
             </div>
@@ -2840,12 +2920,16 @@
   <!-- ── Fullscreen Voice Studio & TTS Preview Modal ── -->
   <div id="modal-tts-studio" class="code-studio-modal" style="display: none;">
     <div class="code-studio-backdrop" id="tts-studio-backdrop"></div>
-    <div class="code-studio-window" style="max-width: 1200px; width: 94vw; height: 90vh; max-height: 880px; background: #090a10; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85);">
+    <div class="code-studio-window"
+      style="max-width: 1200px; width: 94vw; height: 90vh; max-height: 880px; background: #090a10; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85);">
       <!-- Studio Header -->
-      <div class="code-studio-header" style="background: #11121a; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 0 20px; height: 56px;">
+      <div class="code-studio-header"
+        style="background: #11121a; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 0 20px; height: 56px;">
         <div class="code-studio-title-area">
-          <div class="code-studio-badge" style="background: rgba(145, 70, 255, 0.18); color: #d5baff; border: 1px solid rgba(145, 70, 255, 0.4); font-weight: 700;">VOICE LAB</div>
-          <h3 class="code-studio-title" style="color: #f8fafc; font-size: 15px; font-weight: 700;">TTS Voice Studio &amp; Preview</h3>
+          <div class="code-studio-badge"
+            style="background: rgba(145, 70, 255, 0.18); color: #d5baff; border: 1px solid rgba(145, 70, 255, 0.4); font-weight: 700;">
+            VOICE LAB</div>
+          <h3 class="code-studio-title" style="color: #f8fafc; font-size: 15px; font-weight: 700;">TTS Voice Studio</h3>
         </div>
         <div class="code-studio-actions">
           <button class="code-studio-close-btn" id="btn-tts-studio-close" type="button" title="Close (ESC)">
@@ -2855,7 +2939,8 @@
       </div>
       <!-- Studio Body (IFrame hosting /tts-preview.html) -->
       <div style="flex: 1; position: relative; width: 100%; height: calc(100% - 56px); background: #090a10;">
-        <iframe id="tts-studio-iframe" src="/tts-preview.html" style="width: 100%; height: 100%; border: none; display: block;"></iframe>
+        <iframe id="tts-studio-iframe" src="/tts-preview.html"
+          style="width: 100%; height: 100%; border: none; display: block;"></iframe>
       </div>
     </div>
   </div>
@@ -2863,11 +2948,16 @@
   <!-- Fixed Floating Footer -->
   <footer class="footer-love-badge">
     <div style="display: flex; align-items: center; gap: 8px;">
-      <span>Made with <span style="color: var(--live-red);">❤️</span> by <a href="https://github.com/clowneon1" target="_blank" style="font-weight: 700; color: #ffffff;">clowneon1</a></span>
+      <span>Made with <span style="color: var(--live-red);">❤️</span> by <a href="https://github.com/clowneon1"
+          target="_blank" style="font-weight: 700; color: #ffffff;">clowneon1</a></span>
       <span style="color: var(--border);">|</span>
-      <a href="https://partially-practical.codepenguin.in" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted);"><i data-lucide="message-square" style="width: 12px; height: 12px;"></i> Discord</a>
+      <a href="https://partially-practical.codepenguin.in" target="_blank"
+        style="display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted);"><i
+          data-lucide="message-square" style="width: 12px; height: 12px;"></i> Discord</a>
       <span style="color: var(--border);">|</span>
-      <a href="https://github.com/clowneon1/streampe" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; color: #ffb703;"><i data-lucide="star" style="width: 12px; height: 12px; fill: #ffb703;"></i> Star</a>
+      <a href="https://github.com/clowneon1/streampe" target="_blank"
+        style="display: inline-flex; align-items: center; gap: 4px; color: #ffb703;"><i data-lucide="star"
+          style="width: 12px; height: 12px; fill: #ffb703;"></i> Star</a>
     </div>
   </footer>
 

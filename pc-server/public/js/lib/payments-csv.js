@@ -117,7 +117,7 @@
     if (val !== undefined && val !== null) {
       const str = String(val).trim();
       if (str) {
-        // 1. YYYY-MM-DD or YYYY-M-D (4-digit year, optional time suffix)
+        // 1. YYYY-MM-DD or YYYY-M-D (4-digit year at start, optional time suffix)
         const isoMatch = str.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T\s].*)?$/);
         if (isoMatch) {
           const yr = isoMatch[1];
@@ -125,31 +125,53 @@
           const da = String(isoMatch[3]).padStart(2, '0');
           return `${yr}-${mo}-${da}`;
         }
-        // 2. DD-MM-YYYY or DD/MM/YYYY or DD.MM.YYYY (2 or 4 digit year)
-        const dmyMatch = str.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})(?:[T\s].*)?$/);
-        if (dmyMatch) {
-          const p1 = parseInt(dmyMatch[1], 10);
-          const p2 = parseInt(dmyMatch[2], 10);
-          let yrStr = dmyMatch[3];
-          if (yrStr.length === 2) {
-            yrStr = String(2000 + parseInt(yrStr, 10));
-          }
+        // 2. 4-digit year at end: DD-MM-YYYY or MM-DD-YYYY
+        const dmy4Match = str.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?:[T\s].*)?$/);
+        if (dmy4Match) {
+          const p1 = parseInt(dmy4Match[1], 10);
+          const p2 = parseInt(dmy4Match[2], 10);
+          const yrStr = dmy4Match[3];
           let da = p1;
           let mo = p2;
           if (p1 <= 12 && p2 > 12) {
-            // MM-DD-YYYY format
             mo = p1;
             da = p2;
           }
           return `${yrStr}-${String(mo).padStart(2, '0')}-${String(da).padStart(2, '0')}`;
         }
-        // 3. YY-MM-DD (2-digit year at start)
-        const ymdShortMatch = str.match(/^(\d{2})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T\s].*)?$/);
-        if (ymdShortMatch) {
-          const yr = String(2000 + parseInt(ymdShortMatch[1], 10));
-          const mo = String(ymdShortMatch[2]).padStart(2, '0');
-          const da = String(ymdShortMatch[3]).padStart(2, '0');
-          return `${yr}-${mo}-${da}`;
+        // 3. 2-digit year combinations: DD-MM-YY, MM-DD-YY, or YY-MM-DD
+        const shortMatch = str.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T\s].*)?$/);
+        if (shortMatch) {
+          const p1 = parseInt(shortMatch[1], 10);
+          const p2 = parseInt(shortMatch[2], 10);
+          const p3 = parseInt(shortMatch[3], 10);
+          let yr, mo, da;
+
+          if (p1 <= 12 && p2 > 12) {
+            // MM-DD-YY
+            mo = p1;
+            da = p2;
+            yr = 2000 + p3;
+          } else if (p1 > 12 && p3 > 12) {
+            // Both p1 and p3 > 12 (e.g. 24-08-25 vs 25-08-24):
+            // The smaller number is the 2-digit year (e.g. 24 -> 2024), larger is day (e.g. 25)
+            const yearNum = Math.min(p1, p3);
+            const dayNum = Math.max(p1, p3);
+            yr = 2000 + yearNum;
+            mo = p2;
+            da = dayNum;
+          } else if (p1 > 12 && p3 <= 12) {
+            // DD-MM-YY (e.g. 25-08-04)
+            da = p1;
+            mo = p2;
+            yr = 2000 + p3;
+          } else {
+            // Default YY-MM-DD (e.g. 24-08-05)
+            yr = 2000 + p1;
+            mo = p2;
+            da = p3;
+          }
+          return `${yr}-${String(mo).padStart(2, '0')}-${String(da).padStart(2, '0')}`;
         }
         // 4. Textual dates e.g. "15 Aug 2026", "August 15, 2026", "15-Aug-2026", "15-Aug-24"
         const parsed = new Date(str);

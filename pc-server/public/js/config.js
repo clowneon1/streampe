@@ -2292,26 +2292,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     el('chk-template-enabled').addEventListener('change', () => syncLivePreview());
 
-    on('tpl-tts-language', 'change', (e) => {
-      updateTTSVoiceOptions(e.target.value);
-      syncLivePreview();
-    });
-
-    on('tpl-tts-provider', 'change', (e) => {
-      const isBrowser = e.target.value === 'browser';
-      const groupEngine = el('group-tts-engine');
-      const groupInstructions = el('group-tts-instructions');
-      if (groupEngine) groupEngine.style.display = isBrowser ? 'none' : 'block';
-      if (groupInstructions) groupInstructions.style.display = isBrowser ? 'none' : 'block';
-      syncLivePreview();
-    });
-
-    on('tpl-tts-rate', 'input', (e) => {
-      const rateValEl = el('tpl-tts-rate-val');
-      if (rateValEl) rateValEl.textContent = e.target.value + 'x';
-      syncLivePreview();
-    });
-
     ['tpl-tts-enabled', 'tpl-tts-template', 'tpl-tts-provider', 'tpl-tts-voice', 'tpl-tts-rate', 'tpl-tts-pitch', 'tpl-tts-volume', 'tpl-tts-delay'].forEach(id => {
       on(id, 'change', () => syncLivePreview());
       on(id, 'input', () => syncLivePreview());

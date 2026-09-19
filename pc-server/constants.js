@@ -1,7 +1,7 @@
 const path = require('path');
 
 const APP_NAME = 'StreamPe';
-const APP_VERSION = '2.3.0';
+const APP_VERSION = '2.4.1';
 const DEFAULT_PORT = 2907;
 const FALLBACK_PORTS = [DEFAULT_PORT, 8876, 2708, 9091, 1001, 0];
 const UDP_DISCOVERY_PORT = 58025;

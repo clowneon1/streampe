@@ -558,7 +558,7 @@
 
   const TTS_DEFAULTS = {
     enabled: false,
-    template: '{{sender}} ne {{amount}} rupees bheje. {{#if message}}{{message}}{{/if}}',
+    template: '{{sender}} ne {{amountValue}} rupees bheje.',
     provider: 'edge',
     voice: 'en-IN-NeerjaNeural',
     rate: 1.0,

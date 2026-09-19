@@ -261,7 +261,7 @@
       version: ConfigSchema.CONFIG_VERSION,
       activeWidget: src.activeWidget,
       activeTemplateId: defaultTemplate.id,
-      alertTemplates: [defaultTemplate, blankFallback],
+      alertTemplates: [defaultTemplate],
       widgets: {
         alert: alertWidget,
         goal: goalWidget,

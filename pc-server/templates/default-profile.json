@@ -11,7 +11,11 @@
       "isDefault": false,
       "priority": 0,
       "amountFilters": [],
-      "canvas": { "preset": "1080p", "width": 1920, "height": 1080 },
+      "canvas": {
+        "preset": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
       "text": {
         "titleTemplate": "{{sender}} sent {{amount}}",
         "subtitleTemplate": "{{sourceApp}} payment received",
@@ -35,13 +39,32 @@
         "borderWidth": 4,
         "padding": 20
       },
-      "animation": { "type": "slide-up", "duration": 600, "displayDuration": 5000 },
-      "layout": { "positionPreset": "center", "positionX": 50, "positionY": 50, "marginX": 0, "marginY": 0, "width": 400 },
-      "image": { "imageUrl": "", "gifUrl": "/media/alert-diamond.gif", "position": "top", "size": 100 },
-      "sound": { "soundUrl": "/sounds/notification.wav", "soundVolume": 80 },
+      "animation": {
+        "type": "slide-up",
+        "duration": 600,
+        "displayDuration": 5000
+      },
+      "layout": {
+        "positionPreset": "center",
+        "positionX": 50,
+        "positionY": 50,
+        "marginX": 0,
+        "marginY": 0,
+        "width": 400
+      },
+      "image": {
+        "imageUrl": "",
+        "gifUrl": "/media/alert-diamond.gif",
+        "position": "top",
+        "size": 100
+      },
+      "sound": {
+        "soundUrl": "/sounds/notification.wav",
+        "soundVolume": 80
+      },
       "tts": {
         "enabled": false,
-        "template": "{{sender}} ne {{amount}} rupees bheje. {{#if message}}{{message}}{{/if}}",
+        "template": "{{sender}} ne {{amountValue}} rupees bheje.",
         "provider": "edge",
         "voice": "en-IN-NeerjaNeural",
         "rate": 1.0,
@@ -64,7 +87,11 @@
       "isDefault": true,
       "priority": -100,
       "amountFilters": [],
-      "canvas": { "preset": "1080p", "width": 1920, "height": 1080 },
+      "canvas": {
+        "preset": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
       "text": {
         "titleTemplate": "",
         "subtitleTemplate": "",
@@ -88,10 +115,29 @@
         "borderWidth": 0,
         "padding": 0
       },
-      "animation": { "type": "slide-up", "duration": 0, "displayDuration": 0 },
-      "layout": { "positionPreset": "center", "positionX": 50, "positionY": 50, "marginX": 0, "marginY": 0, "width": 400 },
-      "image": { "imageUrl": "", "gifUrl": "", "position": "top", "size": 0 },
-      "sound": { "soundUrl": "", "soundVolume": 0 },
+      "animation": {
+        "type": "slide-up",
+        "duration": 0,
+        "displayDuration": 0
+      },
+      "layout": {
+        "positionPreset": "center",
+        "positionX": 50,
+        "positionY": 50,
+        "marginX": 0,
+        "marginY": 0,
+        "width": 400
+      },
+      "image": {
+        "imageUrl": "",
+        "gifUrl": "",
+        "position": "top",
+        "size": 0
+      },
+      "sound": {
+        "soundUrl": "",
+        "soundVolume": 0
+      },
       "tts": {
         "enabled": false,
         "template": "",
@@ -114,7 +160,11 @@
   "widgets": {
     "alert": {
       "enabled": true,
-      "canvas": { "preset": "1080p", "width": 1920, "height": 1080 },
+      "canvas": {
+        "preset": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
       "text": {
         "titleTemplate": "{{sender}} sent {{amount}}",
         "subtitleTemplate": "{{sourceApp}} payment received",
@@ -138,9 +188,25 @@
         "borderWidth": 4,
         "padding": 20
       },
-      "animation": { "type": "slide-up", "duration": 600, "displayDuration": 5000 },
-      "layout": { "positionPreset": "center", "positionX": 50, "positionY": 50, "marginX": 0, "marginY": 0, "width": 400 },
-      "code": { "enableCustomCode": false, "customHTML": "", "customCSS": "", "customJS": "" }
+      "animation": {
+        "type": "slide-up",
+        "duration": 600,
+        "displayDuration": 5000
+      },
+      "layout": {
+        "positionPreset": "center",
+        "positionX": 50,
+        "positionY": 50,
+        "marginX": 0,
+        "marginY": 0,
+        "width": 400
+      },
+      "code": {
+        "enableCustomCode": false,
+        "customHTML": "",
+        "customCSS": "",
+        "customJS": ""
+      }
     },
     "goal": {
       "enabled": true,
@@ -149,7 +215,11 @@
       "startAmount": 0,
       "targetAmount": 5000,
       "endDate": "2026-12-31",
-      "canvas": { "preset": "1080p", "width": 1920, "height": 1080 },
+      "canvas": {
+        "preset": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
       "text": {
         "titleTemplate": "Payment Goal",
         "subtitleTemplate": "Target: ₹{{targetAmount}}",
@@ -181,8 +251,19 @@
         "fillColor2": "#d5baff",
         "effect": "none"
       },
-      "animation": { "type": "fade-in", "duration": 400, "displayDuration": 5000 },
-      "layout": { "positionPreset": "center", "positionX": 50, "positionY": 50, "marginX": 0, "marginY": 0, "width": 600 },
+      "animation": {
+        "type": "fade-in",
+        "duration": 400,
+        "displayDuration": 5000
+      },
+      "layout": {
+        "positionPreset": "center",
+        "positionX": 50,
+        "positionY": 50,
+        "marginX": 0,
+        "marginY": 0,
+        "width": 600
+      },
       "code": {
         "enableCustomCode": false,
         "customHTML": "<div class=\"goal-card\">\n  <div class=\"goal-header\">\n    <div class=\"goal-title-group\">\n      <div class=\"goal-title\">{{title}}</div>\n      {{#subtitle}}<div class=\"goal-subtitle\">{{subtitle}}</div>{{/subtitle}}\n    </div>\n    {{#endDate}}<div class=\"goal-end-date\">Ends: {{endDate}}</div>{{/endDate}}\n  </div>\n  <div class=\"goal-bar-wrapper\">\n    <div class=\"goal-bar-fill\" style=\"width: {{percent}};\"></div>\n    <div class=\"goal-bar-text\">\n      <span>{{currentAmount}} ({{percent}})</span>\n      <span>{{targetAmount}}</span>\n    </div>\n  </div>\n</div>",
@@ -195,7 +276,11 @@
       "title": "Top Supporters",
       "maxEntries": 5,
       "showAmounts": true,
-      "canvas": { "preset": "1080p", "width": 1920, "height": 1080 },
+      "canvas": {
+        "preset": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
       "text": {
         "titleTemplate": "Top Supporters",
         "subtitleTemplate": "Leaderboard",
@@ -220,8 +305,19 @@
         "padding": 16,
         "rowBgColor": "#18181b"
       },
-      "animation": { "type": "fade-in", "duration": 400, "displayDuration": 5000 },
-      "layout": { "positionPreset": "center", "positionX": 50, "positionY": 50, "marginX": 0, "marginY": 0, "width": 450 },
+      "animation": {
+        "type": "fade-in",
+        "duration": 400,
+        "displayDuration": 5000
+      },
+      "layout": {
+        "positionPreset": "center",
+        "positionX": 50,
+        "positionY": 50,
+        "marginX": 0,
+        "marginY": 0,
+        "width": 450
+      },
       "code": {
         "enableCustomCode": false,
         "customHTML": "<div class=\"lb-card\">\n  <div class=\"lb-header\">\n    <svg class=\"widget-title-icon\" viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"#9146ff\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 9H4.5a2.5 2.5 0 0 1 0-5H6\"></path><path d=\"M18 9h1.5a2.5 2.5 0 0 0 0-5H18\"></path><path d=\"M4 22h16\"></path><path d=\"M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22\"></path><path d=\"M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22\"></path><path d=\"M18 2H6v7a6 6 0 0 0 12 0V2Z\"></path></svg>\n    <div class=\"lb-title\">{{title}}</div>\n  </div>\n  <div class=\"lb-list\">\n    <!-- Rows are injected by the renderer -->\n  </div>\n</div>",
@@ -234,7 +330,11 @@
       "title": "Recent Donations",
       "maxEntries": 5,
       "showAmounts": true,
-      "canvas": { "preset": "1080p", "width": 1920, "height": 1080 },
+      "canvas": {
+        "preset": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
       "text": {
         "titleTemplate": "Recent Donations",
         "subtitleTemplate": "Last {{count}} payments",
@@ -259,8 +359,19 @@
         "padding": 16,
         "rowBgColor": "#18181b"
       },
-      "animation": { "type": "fade-in", "duration": 400, "displayDuration": 5000 },
-      "layout": { "positionPreset": "center", "positionX": 50, "positionY": 50, "marginX": 0, "marginY": 0, "width": 450 },
+      "animation": {
+        "type": "fade-in",
+        "duration": 400,
+        "displayDuration": 5000
+      },
+      "layout": {
+        "positionPreset": "center",
+        "positionX": 50,
+        "positionY": 50,
+        "marginX": 0,
+        "marginY": 0,
+        "width": 450
+      },
       "code": {
         "enableCustomCode": false,
         "customHTML": "<div class=\"lb-card\">\n  <div class=\"lb-header\">\n    <svg class=\"widget-title-icon\" viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"#9146ff\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"></path><path d=\"M3 3v5h5\"></path><path d=\"M12 7v5l4 2\"></path></svg>\n    <div class=\"lb-title\">{{title}}</div>\n  </div>\n  <div class=\"lb-list\">\n    <!-- Rows are injected by the renderer -->\n  </div>\n</div>",
@@ -277,10 +388,26 @@
       "transitionOutDuration": 400,
       "transitionEffect": "slide-up",
       "items": [
-        { "type": "top_supporter", "label": "Top Supporter", "mediaType": "icon", "icon": "trophy", "imageUrl": "" },
-        { "type": "recent_donation", "label": "Recent Donation", "mediaType": "icon", "icon": "history", "imageUrl": "" }
+        {
+          "type": "top_supporter",
+          "label": "Top Supporter",
+          "mediaType": "icon",
+          "icon": "trophy",
+          "imageUrl": ""
+        },
+        {
+          "type": "recent_donation",
+          "label": "Recent Donation",
+          "mediaType": "icon",
+          "icon": "history",
+          "imageUrl": ""
+        }
       ],
-      "canvas": { "preset": "1080p", "width": 1920, "height": 1080 },
+      "canvas": {
+        "preset": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
       "text": {
         "titleTemplate": "",
         "subtitleTemplate": "",
@@ -313,8 +440,19 @@
         "mediaBgColor": "rgba(145, 70, 255, 0.15)",
         "mediaRadius": 6
       },
-      "animation": { "type": "fade-in", "duration": 400, "displayDuration": 5000 },
-      "layout": { "positionPreset": "center", "positionX": 50, "positionY": 50, "marginX": 0, "marginY": 0, "width": 350 },
+      "animation": {
+        "type": "fade-in",
+        "duration": 400,
+        "displayDuration": 5000
+      },
+      "layout": {
+        "positionPreset": "center",
+        "positionX": 50,
+        "positionY": 50,
+        "marginX": 0,
+        "marginY": 0,
+        "width": 350
+      },
       "code": {
         "enableCustomCode": false,
         "customHTML": "<div class=\"cycling-card effect-in-{{transitionIn}}\">\n  <div class=\"cycling-icon\">{{mediaHtml}}</div>\n  <div class=\"cycling-content\">\n    <div class=\"cycling-label\">{{label}}</div>\n    <div class=\"cycling-text\">{{text}}</div>\n  </div>\n</div>",
@@ -333,8 +471,16 @@
       "title": "Top Supporters",
       "maxEntries": 5,
       "showAmounts": true,
-      "filter": { "provider": "all", "minAmount": 0, "timeRange": "all" },
-      "canvas": { "preset": "1080p", "width": 1920, "height": 1080 },
+      "filter": {
+        "provider": "all",
+        "minAmount": 0,
+        "timeRange": "all"
+      },
+      "canvas": {
+        "preset": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
       "text": {
         "titleTemplate": "Top Supporters",
         "subtitleTemplate": "",
@@ -360,9 +506,25 @@
         "padding": 16,
         "rowBgColor": "#18181b"
       },
-      "animation": { "type": "fade-in", "duration": 400, "displayDuration": 5000 },
-      "layout": { "positionPreset": "center", "positionX": 50, "positionY": 50, "marginX": 0, "marginY": 0, "width": 450 },
-      "code": { "enableCustomCode": false, "customHTML": "", "customCSS": "", "customJS": "" }
+      "animation": {
+        "type": "fade-in",
+        "duration": 400,
+        "displayDuration": 5000
+      },
+      "layout": {
+        "positionPreset": "center",
+        "positionX": 50,
+        "positionY": 50,
+        "marginX": 0,
+        "marginY": 0,
+        "width": 450
+      },
+      "code": {
+        "enableCustomCode": false,
+        "customHTML": "",
+        "customCSS": "",
+        "customJS": ""
+      }
     },
     {
       "id": "list_default_2",
@@ -373,8 +535,16 @@
       "title": "Recent Donations",
       "maxEntries": 5,
       "showAmounts": true,
-      "filter": { "provider": "all", "minAmount": 0, "timeRange": "all" },
-      "canvas": { "preset": "1080p", "width": 1920, "height": 1080 },
+      "filter": {
+        "provider": "all",
+        "minAmount": 0,
+        "timeRange": "all"
+      },
+      "canvas": {
+        "preset": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
       "text": {
         "titleTemplate": "Recent Donations",
         "subtitleTemplate": "",
@@ -400,9 +570,25 @@
         "padding": 16,
         "rowBgColor": "#18181b"
       },
-      "animation": { "type": "fade-in", "duration": 400, "displayDuration": 5000 },
-      "layout": { "positionPreset": "center", "positionX": 50, "positionY": 50, "marginX": 0, "marginY": 0, "width": 450 },
-      "code": { "enableCustomCode": false, "customHTML": "", "customCSS": "", "customJS": "" }
+      "animation": {
+        "type": "fade-in",
+        "duration": 400,
+        "displayDuration": 5000
+      },
+      "layout": {
+        "positionPreset": "center",
+        "positionX": 50,
+        "positionY": 50,
+        "marginX": 0,
+        "marginY": 0,
+        "width": 450
+      },
+      "code": {
+        "enableCustomCode": false,
+        "customHTML": "",
+        "customCSS": "",
+        "customJS": ""
+      }
     }
   ],
   "filter": {
