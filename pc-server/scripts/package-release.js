@@ -119,10 +119,11 @@ if (!fs.existsSync(pcServerDist)) fs.mkdirSync(pcServerDist, { recursive: true }
 safeCleanDir(rootDist);
 if (!fs.existsSync(artifactsDir)) fs.mkdirSync(artifactsDir, { recursive: true });
 
-// Assemble portable folder
-const portableFolderName = `StreamPe-v${version}-Portable`;
-const portableDir = path.join(pcServerDist, portableFolderName);
-safeCleanDir(portableDir);
+// Assemble portable folder under a staging directory so the ZIP contains a clean 'StreamPe' root folder
+const stageDir = path.join(pcServerDist, 'stage');
+const portableDir = path.join(stageDir, 'StreamPe');
+safeCleanDir(stageDir);
+fs.mkdirSync(portableDir, { recursive: true });
 
 // Copy main exe (try both streampe.exe and payment-alerts-obs.exe for transition safety)
 const mainExeCandidates = [
@@ -169,16 +170,16 @@ if (fs.existsSync(paymentRules)) {
   fs.copyFileSync(paymentRules, path.join(portableDir, 'payment-rules.json'));
 }
 
-// Create ZIP from portable folder using PowerShell Compress-Archive
+// Create ZIP from portable folder using PowerShell Compress-Archive (preserving StreamPe/ folder structure)
 const zipDstName = `StreamPe-v${version}-Portable.zip`;
 const zipDst = path.join(pcServerDist, zipDstName);
 console.log(`Creating ${zipDstName}...`);
 
 try {
-  execSync(`powershell -Command "Compress-Archive -Path '${portableDir}\\*' -DestinationPath '${zipDst}' -Force"`, {
+  execSync(`powershell -Command "Compress-Archive -Path '${portableDir}' -DestinationPath '${zipDst}' -Force"`, {
     stdio: 'inherit'
   });
-  try { fs.rmSync(portableDir, { recursive: true, force: true }); } catch (_) { }
+  try { fs.rmSync(stageDir, { recursive: true, force: true }); } catch (_) { }
 } catch (e) {
   console.warn('Zip creation warning:', e.message);
 }
