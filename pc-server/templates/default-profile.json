@@ -5,9 +5,9 @@
   "templates": [
     {
       "id": "tpl_default_diamond",
-      "name": "Diamond Pulse (Default)",
+      "name": "Default Alert",
       "enabled": true,
-      "isDefault": true,
+      "isDefault": false,
       "priority": 0,
       "amountFilters": [],
       "canvas": { "preset": "1080p", "width": 1920, "height": 1080 },
@@ -43,6 +43,48 @@
         "customHTML": "{{mediaHtml}}\n<div class=\"alert-content\">\n  <div class=\"alert-title\">{{title}}</div>\n  <div class=\"alert-subtitle\">{{subtitle}}</div>\n  {{#message}}<div class=\"alert-message\">\"{{message}}\"</div>{{/message}}\n</div>",
         "customCSS": "/* StreamPe Alert Box */\n.alert-box {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  width: 100%;\n  background: rgba(19, 19, 21, calc(var(--bg-opacity, 85) / 100));\n  border: 1px solid rgba(255, 255, 255, 0.12);\n  border-left: var(--border-width, 4px) solid var(--accent-color, #9146ff);\n  border-radius: var(--border-radius, 8px);\n  padding: var(--padding, 20px);\n  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(145, 70, 255, 0.22);\n  backdrop-filter: blur(14px);\n  -webkit-backdrop-filter: blur(14px);\n  font-family: 'Inter', -apple-system, sans-serif;\n}\n\n/* Media Positioning */\n.alert-box.media-pos-top { flex-direction: column; }\n.alert-box.media-pos-left { flex-direction: row; text-align: left; gap: 16px; }\n.alert-box.media-pos-right { flex-direction: row-reverse; text-align: right; gap: 16px; }\n.alert-box.media-pos-bottom { flex-direction: column-reverse; }\n\n/* Media Elements */\n.alert-media { max-width: var(--media-size, 100px); max-height: var(--media-size, 100px); object-fit: contain; border-radius: 6px; }\n\n/* Typography */\n.alert-title { font-size: 1.1em; font-weight: 800; margin-bottom: 4px; color: var(--text-color, #ffffff); letter-spacing: -0.01em; }\n.alert-subtitle { font-size: 0.75em; color: var(--accent-color, #d5baff); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }\n.alert-message { font-size: 0.85em; margin-top: 10px; color: rgba(255, 255, 255, 0.85); font-style: italic; background: rgba(255, 255, 255, 0.05); padding: 6px 12px; border-radius: 4px; }\n\n/* Animations */\n@keyframes slideUpIn {\n  0% { opacity: 0; transform: translateY(60px) scale(0.96); }\n  100% { opacity: 1; transform: translateY(0) scale(1); }\n}\n.anim-enter-slide-up { animation: slideUpIn var(--anim-duration, 600ms) cubic-bezier(0.16, 1, 0.3, 1) forwards; }",
         "customJS": "console.log('[Alert]', notifData.sender, notifData.amount);"
+      }
+    },
+    {
+      "id": "tpl_blank_fallback",
+      "name": "Blank Fallback",
+      "enabled": true,
+      "isDefault": true,
+      "priority": -100,
+      "amountFilters": [],
+      "canvas": { "preset": "1080p", "width": 1920, "height": 1080 },
+      "text": {
+        "titleTemplate": "",
+        "subtitleTemplate": "",
+        "fontFamily": "Inter",
+        "fontSize": 24,
+        "fontSizeUnit": "px",
+        "fontWeight": 700,
+        "fontStyle": "normal",
+        "color": "#ffffff",
+        "textAlign": "center",
+        "textTransform": "none",
+        "letterSpacing": 0,
+        "letterSpacingUnit": "px",
+        "lineHeight": 1.3
+      },
+      "style": {
+        "backgroundColor": "#131315",
+        "backgroundOpacity": 0,
+        "accentColor": "#9146ff",
+        "borderRadius": 8,
+        "borderWidth": 0,
+        "padding": 0
+      },
+      "animation": { "type": "slide-up", "duration": 0, "displayDuration": 0 },
+      "layout": { "positionPreset": "center", "positionX": 50, "positionY": 50, "marginX": 0, "marginY": 0, "width": 400 },
+      "image": { "imageUrl": "", "gifUrl": "", "position": "top", "size": 0 },
+      "sound": { "soundUrl": "", "soundVolume": 0 },
+      "code": {
+        "enableCustomCode": true,
+        "customHTML": "",
+        "customCSS": "",
+        "customJS": ""
       }
     }
   ],

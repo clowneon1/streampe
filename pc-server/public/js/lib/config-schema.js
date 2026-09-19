@@ -891,15 +891,27 @@
     },
 
     createDefaultConfig() {
-      const template = this.createTemplate({ id: 'default', name: 'Default Alert', isDefault: true });
+      const defaultTemplate = this.createTemplate({ id: 'default', name: 'Default Alert', isDefault: false });
+      const blankFallback = this.createTemplate({
+        id: 'blank-fallback',
+        name: 'Blank Fallback',
+        isDefault: true,
+        priority: -100,
+        amountFilters: [],
+        text: { titleTemplate: '', subtitleTemplate: '' },
+        style: { backgroundOpacity: 0, borderWidth: 0, padding: 0 },
+        image: { imageUrl: '', gifUrl: '', size: 0 },
+        sound: { soundUrl: '', soundVolume: 0 },
+        code: { enableCustomCode: true, customHTML: '', customCSS: '', customJS: '' }
+      });
       const topSupporters = this.createListConfig('top-supporters', { id: 'top-supporters', name: 'Top Supporters', isDefault: true, isBuiltin: true });
       const recentDonations = this.createListConfig('recent-donations', { id: 'recent-donations', name: 'Recent Donations', isDefault: true, isBuiltin: true });
 
       return {
         version: CONFIG_VERSION,
         activeWidget: 'alert',
-        activeTemplateId: template.id,
-        alertTemplates: [template],
+        activeTemplateId: defaultTemplate.id,
+        alertTemplates: [defaultTemplate, blankFallback],
         activeListConfigId: topSupporters.id,
         listConfigs: [topSupporters, recentDonations],
         widgets: {
