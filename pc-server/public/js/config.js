@@ -809,13 +809,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!select) return;
     const active = currentTemplate();
     const activeId = active ? active.id : config.activeTemplateId;
-    select.innerHTML = config.alertTemplates.map(t => {
+    const newOptionsHtml = config.alertTemplates.map(t => {
       const flags = [t.isDefault ? 'fallback' : '', t.enabled ? '' : 'disabled']
         .filter(Boolean).join(', ');
       const label = TemplateEngine.escapeHtml(t.name) + (flags ? ` (${flags})` : '');
       return `<option value="${TemplateEngine.escapeHtml(t.id)}"${t.id === activeId ? ' selected' : ''}>${label}</option>`;
     }).join('');
-    if (activeId) select.value = activeId;
+    if (select.innerHTML !== newOptionsHtml) {
+      select.innerHTML = newOptionsHtml;
+    }
+    if (activeId && select.value !== activeId) {
+      select.value = activeId;
+    }
 
     const summary = el('template-summary');
     if (summary) {
@@ -855,12 +860,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const lists = Array.isArray(config.listConfigs) ? config.listConfigs : [];
     const active = currentListConfig();
     const activeId = active ? active.id : config.activeListConfigId;
-    select.innerHTML = lists.map(l => {
+    const newHtml = lists.map(l => {
       const typeLabel = l.type === 'recent' ? 'Recent Feed' : 'Leaderboard';
       const flags = [typeLabel, l.enabled ? '' : 'disabled'].filter(Boolean).join(', ');
       return `<option value="${TemplateEngine.escapeHtml(l.id)}"${l.id === activeId ? ' selected' : ''}>${TemplateEngine.escapeHtml(l.name)} (${flags})</option>`;
     }).join('');
-    if (activeId) select.value = activeId;
+    if (select.innerHTML !== newHtml) {
+      select.innerHTML = newHtml;
+    }
+    if (activeId && select.value !== activeId) {
+      select.value = activeId;
+    }
 
     const badge = el('badge-list-url');
     if (badge && active) {
@@ -917,9 +927,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const prevTplCode = template.code || ConfigSchema.DEFAULT_CODE.alert;
       template.code = {
         enableCustomCode: checked('chk-enable-custom-code', false),
-        customHTML: (typeof prevTplCode.customHTML === 'string') ? prevTplCode.customHTML : ConfigSchema.DEFAULT_CODE.alert.customHTML,
-        customCSS: (typeof prevTplCode.customCSS === 'string') ? prevTplCode.customCSS : ConfigSchema.DEFAULT_CODE.alert.customCSS,
-        customJS: (typeof prevTplCode.customJS === 'string') ? prevTplCode.customJS : ConfigSchema.DEFAULT_CODE.alert.customJS
+        customHTML: val('input-custom-html', (typeof prevTplCode.customHTML === 'string') ? prevTplCode.customHTML : ConfigSchema.DEFAULT_CODE.alert.customHTML),
+        customCSS: val('input-custom-css', (typeof prevTplCode.customCSS === 'string') ? prevTplCode.customCSS : ConfigSchema.DEFAULT_CODE.alert.customCSS),
+        customJS: val('input-custom-js', (typeof prevTplCode.customJS === 'string') ? prevTplCode.customJS : ConfigSchema.DEFAULT_CODE.alert.customJS)
       };
     }
 
@@ -1494,7 +1504,6 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ name: targetName, settings: config })
       });
       const data = await res.json();
-      console.log('[Server IO] Save response:', data);
       if (data.ok && data.settings) {
         config = ConfigMigration.migrate(data.settings);
         if (data.profiles) await loadProfilesList(data.activeProfile);
@@ -1512,17 +1521,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const select = el('select-profile');
     if (!select) return;
     try {
-      console.log('[Profiles] Requesting profile list from /api/profiles...');
       const res = await fetch('/api/profiles');
       const data = await res.json();
-      console.log('[Profiles] Received profiles data:', data);
       if (!data || !data.profiles) return;
       const profileNames = Array.isArray(data.profiles)
         ? data.profiles
         : Object.keys(data.profiles);
       const active = activeProfile || data.activeProfile || profileNames[0] || 'Default';
       window.__activeProfile = active;
-      console.log('[Profiles] Populating select dropdown with profiles:', profileNames, '| Active:', active);
       select.innerHTML = profileNames.map(name =>
         `<option value="${TemplateEngine.escapeHtml(name)}"${name === active ? ' selected' : ''}>${TemplateEngine.escapeHtml(name)}</option>`
       ).join('');
@@ -1919,13 +1925,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function setupTemplateManager() {
     const select = el('select-template');
     if (select) {
-      select.addEventListener('change', (e) => {
+      const handleTemplateChange = (e) => {
         const nextId = (e && e.target && e.target.value) || select.value;
-        if (!nextId) return;
+        if (!nextId || nextId === config.activeTemplateId) return;
         readFormValues();
         config.activeTemplateId = nextId;
         populateForm(config);
-      });
+      };
+      select.addEventListener('change', handleTemplateChange);
+      select.addEventListener('input', handleTemplateChange);
     }
 
     const withTemplate = (fn) => async () => {
@@ -2011,9 +2019,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function setupListConfigManager() {
     const select = el('select-active-list');
     if (select) {
-      select.addEventListener('change', () => {
+      const handleListChange = () => {
+        const nextId = select.value;
+        if (!nextId || nextId === config.activeListConfigId) return;
         readFormValues();
-        config.activeListConfigId = select.value;
+        config.activeListConfigId = nextId;
         populateForm(config);
         if (iframe && iframe.contentWindow) {
           const tab = document.querySelector('.tab-btn.active')?.dataset?.tab;
@@ -2021,7 +2031,9 @@ document.addEventListener('DOMContentLoaded', () => {
             iframe.src = `/overlay/list?id=${currentListConfig().id}`;
           }
         }
-      });
+      };
+      select.addEventListener('change', handleListChange);
+      select.addEventListener('input', handleListChange);
     }
 
     on('select-list-max', 'change', (e) => {
@@ -4442,7 +4454,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Boot ─────────────────────────────────────────────────────
   async function initDashboard() {
-    console.log('[Config] Starting dashboard boot sequence...');
     initCodeEditors();
     CodeStudio.init();
     setupTabs();
@@ -4466,10 +4477,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let activeProf = 'Default';
     try {
-      console.log('[Config] Fetching settings from /api/settings...');
       const res = await fetch('/api/settings');
       const data = await res.json();
-      console.log('[Config] Loaded settings payload:', data);
       activeProf = data.activeProfile || 'Default';
       window.__activeProfile = activeProf;
       await loadProfilesList(activeProf);
@@ -4486,8 +4495,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       await refreshEarningsAnalytics();
     }
-
-    console.log('[Config] Dashboard boot sequence completed with active profile:', activeProf);
 
     // Dismiss boot loader dynamically after all loads complete, with a standard 500ms backoff buffer for smooth icon/font painting
     setTimeout(() => {

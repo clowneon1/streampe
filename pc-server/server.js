@@ -2798,20 +2798,23 @@ app.post('/api/logs/clear', (req, res) => {
 function broadcastSample(sample) {
   const parsed = parsePayment(sample);
   const isSimulated = sample.simulated !== undefined ? !!sample.simulated : true;
+  const sampleClean = { ...sample };
+  delete sampleClean.settings;
   const decorated = decorateWithTemplate({
-    ...sample,
+    ...sampleClean,
     simulated: isSimulated,
     sender: sample.sender || (parsed ? parsed.sender : 'Test Donor'),
     amount: sample.amount || (parsed ? parsed.amount : '₹500.00'),
     sourceApp: sample.sourceApp || (parsed ? parsed.sourceApp : sample.appName) || 'PhonePe'
   }, '', sample.settings || null);
+  delete decorated.settings;
   const payload = JSON.stringify({ type: 'payment_notification', ...decorated });
   let count = 0;
   obsClients.forEach(ws => {
     if (ws.readyState === 1) { ws.send(payload); count++; }
   });
   processPaymentForGoalAndLeaderboard(decorated);
-  log.event('TestEvent', `Sample alert triggered (simulated=${isSimulated}): ₹${decorated.amount || '0'} from "${decorated.sender || 'Test'}"`, decorated);
+  log.event('TestEvent', `Sample alert triggered (simulated=${isSimulated}): ₹${decorated.amount || '0'} from "${decorated.sender || 'Test'}" [Template: ${decorated.alertTemplateName || 'Default'}]`);
   return { count, templateId: decorated.alertTemplateId, templateName: decorated.alertTemplateName, simulated: isSimulated };
 }
 
@@ -2914,7 +2917,7 @@ wss.on('connection', (ws, req) => {
         const decorated = decorateWithTemplate(enriched);
         const payload = JSON.stringify({ type: 'payment_notification', ...decorated });
 
-        log.event('PaymentEvent', `Payment received: ${decorated.amount || '₹0'} from "${decorated.sender || 'Unknown'}" via ${decorated.sourceApp} [Template: ${decorated.alertTemplateName || 'Default'}]`, decorated);
+        log.event('PaymentEvent', `Payment received: ${decorated.amount || '₹0'} from "${decorated.sender || 'Unknown'}" via ${decorated.sourceApp} [Template: ${decorated.alertTemplateName || 'Default'}]`);
 
         obsClients.forEach(client => {
           if (client.readyState === 1) {
