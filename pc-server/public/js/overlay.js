@@ -66,17 +66,21 @@
     customStyleEl.textContent = code.enableCustomCode !== false ? (code.customCSS || '') : '';
   }
 
-  /** Store a new config and apply default settings render (no forced template). */
+  /** Store a new config and apply default settings render with active template. */
   function applySettings(newSettings) {
     if (!newSettings) return;
     config = StorageHelper.mergeWithDefaults(newSettings);
-    applyRenderConfig(TemplateMatcher.resolve(config, 0));
+    applyRenderConfig(TemplateMatcher.resolve(config, 0, config.activeTemplateId));
   }
 
   function playSound(url) {
     if (!url) return;
     try {
-      if (activeAudio) { activeAudio.pause(); activeAudio.currentTime = 0; }
+      if (activeAudio) {
+        activeAudio.pause();
+        activeAudio.currentTime = 0;
+        activeAudio = null;
+      }
       activeAudio = new Audio(url);
       activeAudio.volume = activeVolume;
       activeAudio.play().catch(err => console.warn('[Overlay] Sound play blocked or failed:', err.message));
@@ -92,7 +96,7 @@
     const amount = TemplateMatcher.parseAmount(
       notifData.amountValue !== undefined ? notifData.amountValue : notifData.amount
     );
-    const resolved = TemplateMatcher.resolve(config, amount, notifData.alertTemplateId);
+    const resolved = TemplateMatcher.resolve(config, amount, notifData.alertTemplateId || config.activeTemplateId);
     applyRenderConfig(resolved);
 
     container.innerHTML = '';
@@ -101,7 +105,7 @@
     const animType = resolved.animation.type || 'slide-up';
     const mediaPos = resolved.image.position || 'top';
 
-    const mediaUrl = resolved.image.gifUrl || resolved.image.imageUrl;
+    const mediaUrl = resolved.image.imageUrl || resolved.image.gifUrl || '';
     const mediaHtml = mediaUrl
       ? `<img class="alert-media" src="${TemplateEngine.escapeHtml(mediaUrl)}" alt="Alert Media" />`
       : '';
@@ -171,13 +175,15 @@
         alertBoxNode.classList.add(`anim-exit-${animType}`);
       }
       setTimeout(() => {
-        container.innerHTML = '';
+        if (container.contains(alertBoxNode)) container.innerHTML = '';
       }, animDur);
     }, displayDur);
   }
 
-  // ── WebSocket client ───────────────────────────────────────
+  // ── WebSocket Handler ─────────────────────────────────────────
   let ws = null;
+  const isIframePreview = window.parent && window.parent !== window;
+
   function connectWebSocket() {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     try {
@@ -193,7 +199,11 @@
           const msg = JSON.parse(event.data);
           if (msg.type === 'SETTINGS_UPDATED') applySettings(msg.payload);
           else if (msg.type === 'config') applySettings(msg.config);
-          else if (msg.type === 'payment_notification' || msg.type === 'notification') triggerAlert(msg);
+          else if (msg.type === 'payment_notification' || msg.type === 'notification') {
+            // If running inside dashboard live preview iframe, ignore broadcasted duplicate test alerts
+            if (isIframePreview && msg.simulated) return;
+            triggerAlert(msg);
+          }
         } catch (e) {
           console.error('[Overlay] Message parse error:', e);
         }
@@ -210,20 +220,24 @@
     if (data.type === 'SETTINGS_UPDATED') {
       applySettings(data.payload);
     } else if (data.type === 'TRIGGER_TEST_ALERT') {
-      triggerAlert(data.data || {
+      const sample = data.data || {
         sender: 'Rahul Kumar',
         amount: '₹500',
         sourceApp: 'Google Pay',
         message: 'Coffee Payment Received',
         timestamp: Date.now()
-      });
+      };
+      if (!sample.alertTemplateId && config.activeTemplateId) {
+        sample.alertTemplateId = config.activeTemplateId;
+      }
+      triggerAlert(sample);
     }
   });
 
   document.addEventListener('DOMContentLoaded', async () => {
     applySettings(await StorageHelper.loadServer());
     connectWebSocket();
-    if (window.parent && window.parent !== window) {
+    if (isIframePreview) {
       window.parent.postMessage({ type: 'OVERLAY_READY', overlay: 'alert' }, '*');
     }
   });

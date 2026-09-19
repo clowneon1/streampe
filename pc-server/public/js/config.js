@@ -807,18 +807,20 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderTemplateList() {
     const select = el('select-template');
     if (!select) return;
+    const active = currentTemplate();
+    const activeId = active ? active.id : config.activeTemplateId;
     select.innerHTML = config.alertTemplates.map(t => {
       const flags = [t.isDefault ? 'fallback' : '', t.enabled ? '' : 'disabled']
         .filter(Boolean).join(', ');
       const label = TemplateEngine.escapeHtml(t.name) + (flags ? ` (${flags})` : '');
-      return `<option value="${TemplateEngine.escapeHtml(t.id)}"${t.id === config.activeTemplateId ? ' selected' : ''}>${label}</option>`;
+      return `<option value="${TemplateEngine.escapeHtml(t.id)}"${t.id === activeId ? ' selected' : ''}>${label}</option>`;
     }).join('');
+    if (activeId) select.value = activeId;
 
     const summary = el('template-summary');
     if (summary) {
-      const t = currentTemplate();
-      summary.textContent = t
-        ? `${config.alertTemplates.length} template(s). "${t.name}" matches: ${describeFilters(t)}.`
+      summary.textContent = active
+        ? `${config.alertTemplates.length} template(s). "${active.name}" matches: ${describeFilters(active)}.`
         : '';
     }
 
@@ -851,13 +853,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const select = el('select-active-list');
     if (!select) return;
     const lists = Array.isArray(config.listConfigs) ? config.listConfigs : [];
+    const active = currentListConfig();
+    const activeId = active ? active.id : config.activeListConfigId;
     select.innerHTML = lists.map(l => {
       const typeLabel = l.type === 'recent' ? 'Recent Feed' : 'Leaderboard';
       const flags = [typeLabel, l.enabled ? '' : 'disabled'].filter(Boolean).join(', ');
-      return `<option value="${TemplateEngine.escapeHtml(l.id)}"${l.id === config.activeListConfigId ? ' selected' : ''}>${TemplateEngine.escapeHtml(l.name)} (${flags})</option>`;
+      return `<option value="${TemplateEngine.escapeHtml(l.id)}"${l.id === activeId ? ' selected' : ''}>${TemplateEngine.escapeHtml(l.name)} (${flags})</option>`;
     }).join('');
+    if (activeId) select.value = activeId;
 
-    const active = currentListConfig();
     const badge = el('badge-list-url');
     if (badge && active) {
       badge.textContent = `/overlay/list?id=${active.id}`;
@@ -878,15 +882,16 @@ document.addEventListener('DOMContentLoaded', () => {
         subtitleTemplate: val('input-subtitle-template', template.text.subtitleTemplate)
       });
       template.canvas = readCanvas(TEXT_PREFIXES.template, template.canvas);
+      const mediaVal = val('input-image-url', '').trim();
       template.image = {
-        imageUrl: val('input-image-url', ''),
-        gifUrl: template.image.gifUrl,
-        position: val('select-media-position', template.image.position),
-        size: numVal('input-media-size', template.image.size)
+        imageUrl: mediaVal,
+        gifUrl: '',
+        position: val('select-media-position', template.image?.position || 'top'),
+        size: numVal('input-media-size', template.image?.size || 100)
       };
       template.sound = {
-        soundUrl: val('input-sound-url', ''),
-        soundVolume: numVal('input-sound-volume', template.sound.soundVolume)
+        soundUrl: val('input-sound-url', '').trim(),
+        soundVolume: numVal('input-sound-volume', template.sound?.soundVolume !== undefined ? template.sound.soundVolume : 80)
       };
       template.style = Object.assign({}, template.style, {
         backgroundColor: val('input-bg-color-hex') || val('input-bg-color', template.style.backgroundColor),
@@ -1914,16 +1919,18 @@ document.addEventListener('DOMContentLoaded', () => {
   function setupTemplateManager() {
     const select = el('select-template');
     if (select) {
-      select.addEventListener('change', () => {
+      select.addEventListener('change', (e) => {
+        const nextId = (e && e.target && e.target.value) || select.value;
+        if (!nextId) return;
         readFormValues();
-        config.activeTemplateId = select.value;
+        config.activeTemplateId = nextId;
         populateForm(config);
       });
     }
 
-    const withTemplate = (fn) => () => {
+    const withTemplate = (fn) => async () => {
       readFormValues();
-      fn(currentTemplate());
+      await fn(currentTemplate());
       populateForm(config);
     };
 
@@ -1947,7 +1954,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       config.alertTemplates.push(created);
       config.activeTemplateId = created.id;
-      populateForm(config);
       showToast('<i data-lucide="sparkles"></i> Created template "' + created.name + '"');
     }));
 
@@ -1961,7 +1967,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (name) {
         template.name = name;
-        populateForm(config);
+        showToast('<i data-lucide="check"></i> Template renamed to "' + name + '"');
       }
     }));
 
@@ -1996,7 +2002,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!confirmed) return;
       config.alertTemplates = config.alertTemplates.filter(t => t.id !== template.id);
       config.activeTemplateId = config.alertTemplates[0].id;
-      populateForm(config);
       showToast('<i data-lucide="trash-2"></i> Template deleted');
     }));
 
@@ -2224,7 +2229,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await fetch('/api/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...testData, alertTemplateId: resolved.templateId })
+        body: JSON.stringify({ ...testData, alertTemplateId: resolved.templateId, settings: config })
       });
     } catch (e) {
       console.warn('[Config] Live overlay test trigger error:', e.message);
@@ -2281,7 +2286,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const loadedTemplate = currentTemplate();
       const testData = {
         ...sampleAlert(),
-        alertTemplateId: loadedTemplate ? loadedTemplate.id : null
+        alertTemplateId: loadedTemplate ? loadedTemplate.id : null,
+        settings: config
       };
       if (iframe && iframe.contentWindow) {
         iframe.contentWindow.postMessage({
@@ -2784,7 +2790,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch('/api/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(rawNotif)
+          body: JSON.stringify({ ...rawNotif, settings: config })
         });
         const data = await res.json();
         if (c) {

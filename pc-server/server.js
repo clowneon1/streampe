@@ -1459,13 +1459,14 @@ function broadcastSettings(settings) {
 // ── Amount filter ─────────────────────────────────────────────────────
 const parseAmountNum = (rawAmount) => TemplateMatcher.parseAmount(rawAmount);
 
-function decorateWithTemplate(event, profile = '') {
+function decorateWithTemplate(event, profile = '', liveSettings = null) {
+  const currentSettings = liveSettings || alertSettings;
   const amount = parseAmountNum(event.amount);
   const rawSender = event.rawSender || event.sender || 'Anonymous';
   const targetProf = profile || (profilesStore && profilesStore.activeProfile) || 'Default';
-  const formattedSender = aliasesStore.formatDonorName(rawSender, alertSettings, targetProf);
+  const formattedSender = aliasesStore.formatDonorName(rawSender, currentSettings, targetProf);
   if (event.alertTemplateId) {
-    const template = alertSettings.alertTemplates.find(t => t.id === event.alertTemplateId);
+    const template = currentSettings.alertTemplates && currentSettings.alertTemplates.find(t => t.id === event.alertTemplateId);
     return {
       ...event,
       rawSender: rawSender,
@@ -1475,7 +1476,7 @@ function decorateWithTemplate(event, profile = '') {
       alertTemplateName: template ? template.name : ''
     };
   }
-  const template = TemplateMatcher.select(alertSettings.alertTemplates, amount);
+  const template = TemplateMatcher.select(currentSettings.alertTemplates, amount);
   return {
     ...event,
     rawSender: rawSender,
@@ -2803,7 +2804,7 @@ function broadcastSample(sample) {
     sender: sample.sender || (parsed ? parsed.sender : 'Test Donor'),
     amount: sample.amount || (parsed ? parsed.amount : '₹500.00'),
     sourceApp: sample.sourceApp || (parsed ? parsed.sourceApp : sample.appName) || 'PhonePe'
-  });
+  }, '', sample.settings || null);
   const payload = JSON.stringify({ type: 'payment_notification', ...decorated });
   let count = 0;
   obsClients.forEach(ws => {
@@ -2832,6 +2833,9 @@ app.post('/api/test', (req, res) => {
   const body = req.body || {};
   const isIsolated = alertSettings.simulation ? alertSettings.simulation.isolatedMode !== false : true;
   const isSimulated = body.simulated !== undefined ? !!body.simulated : isIsolated;
+  if (body.settings) {
+    broadcastSettings(body.settings);
+  }
   const result = broadcastSample({
     type: 'payment_notification',
     simulated: isSimulated,
@@ -2844,6 +2848,7 @@ app.post('/api/test', (req, res) => {
     amount: body.amount || '',
     sourceApp: body.sourceApp || '',
     alertTemplateId: body.alertTemplateId || null,
+    settings: body.settings || null,
     timestamp: Date.now()
   });
   res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId, simulated: isSimulated });
