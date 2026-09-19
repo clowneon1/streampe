@@ -75,6 +75,23 @@
 
   let activeTTSAudio = null;
   let activeTTSTimeout = null;
+  let activeTTSBlobUrl = null;
+
+  // Unlock Web Audio context on user interaction for browsers with strict autoplay policies
+  function unlockAudio() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+      }
+    } catch (_) {}
+  }
+  ['click', 'keydown', 'touchstart', 'pointerdown'].forEach(evt => {
+    window.addEventListener(evt, unlockAudio, { once: true, passive: true });
+  });
 
   function stopTTS() {
     if (activeTTSTimeout) {
@@ -100,72 +117,85 @@
     try {
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = opts.language || 'en-IN';
       utter.volume = opts.volume !== undefined ? opts.volume : 1.0;
       utter.rate = opts.rate !== undefined ? opts.rate : 1.0;
+      if (opts.pitch !== undefined) utter.pitch = opts.pitch;
 
       const voices = window.speechSynthesis.getVoices();
-      if (voices && voices.length) {
-        const targetVoice = (opts.voice || '').toLowerCase();
-        const match = voices.find(v => v.name.toLowerCase().includes(targetVoice) || v.lang === opts.language);
+      if (voices && voices.length && opts.voice) {
+        const targetVoice = opts.voice.toLowerCase();
+        const match = voices.find(v => v.name.toLowerCase().includes(targetVoice));
         if (match) utter.voice = match;
       }
+      console.log(`[Overlay:TTS] Speaking via browser speech synthesis (Voice: "${utter.voice ? utter.voice.name : 'Default'}", Rate: ${utter.rate}x, Pitch: ${utter.pitch})`);
       window.speechSynthesis.speak(utter);
     } catch (e) {
-      console.warn('[Overlay TTS] Browser speech error:', e.message);
+      console.warn('[Overlay:TTS] Browser speech synthesis error:', e.message);
     }
   }
 
-  function playTTS(ttsConfig, notifData) {
-    if (!ttsConfig || !ttsConfig.enabled) return;
-    const templateStr = (ttsConfig.template || '').trim();
-    if (!templateStr) return;
-
-    const ttsText = TemplateEngine.render(templateStr, notifData).trim();
-    if (!ttsText) return;
-
-    const delay = Math.max(0, parseInt(ttsConfig.delay, 10) || 0);
-    const volume = Math.max(0, Math.min(1, (ttsConfig.volume !== undefined ? ttsConfig.volume : 100) / 100));
+  /**
+   * Download Microsoft Edge Neural audio via fetch before displaying the alert overlay.
+   * Resolves only when the full MP3 payload is downloaded into memory and decoded as an Audio object.
+   */
+  async function downloadNeuralTTSAudio(ttsText, ttsConfig) {
+    const voice = ttsConfig.voice || 'en-IN-NeerjaNeural';
     const rate = Math.max(0.5, Math.min(2.0, parseFloat(ttsConfig.rate) || 1.0));
-    const voice = ttsConfig.voice || 'Aditi';
-    const language = ttsConfig.language || 'en-IN';
-    const provider = ttsConfig.provider || 'puter';
-    const engine = ttsConfig.engine || 'neural';
-    const instructions = ttsConfig.instructions || '';
+    const pitch = parseInt(ttsConfig.pitch, 10) || 0;
+    const url = `/api/tts/edge?text=${encodeURIComponent(ttsText)}&voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}&pitch=${encodeURIComponent(pitch)}`;
 
-    stopTTS();
+    console.log(`[Overlay:TTS] ⏳ Downloading Edge Neural speech: voice="${voice}", rate=${rate}x, pitch=${pitch}Hz | Text: "${ttsText}"`);
+    const startTime = performance.now();
 
-    activeTTSTimeout = setTimeout(() => {
-      if (provider !== 'browser' && typeof window !== 'undefined' && window.puter && window.puter.ai && typeof window.puter.ai.txt2speech === 'function') {
-        const options = { voice, language, engine };
-        const geminiVoices = ['puck', 'charon', 'kore', 'fenrir', 'aoede'];
-        const xaiVoices = ['eve', 'ara', 'rex', 'sal', 'leo'];
-        const voiceLower = voice.toLowerCase();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout guard
 
-        if (geminiVoices.indexOf(voiceLower) !== -1) {
-          options.provider = 'gemini';
-          options.model = 'gemini-2.5-flash-preview-tts';
-          if (instructions) options.instructions = instructions;
-        } else if (xaiVoices.indexOf(voiceLower) !== -1) {
-          options.provider = 'xai';
-          options.output_format = 'mp3';
-        }
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
 
-        window.puter.ai.txt2speech(ttsText, options)
-          .then(audio => {
-            activeTTSAudio = audio;
-            audio.volume = volume;
-            audio.playbackRate = rate;
-            return audio.play();
-          })
-          .catch(err => {
-            console.warn('[Overlay TTS] Puter AI error, falling back to browser speech:', err.message);
-            playBrowserSpeech(ttsText, { language, voice, volume, rate });
-          });
-      } else {
-        playBrowserSpeech(ttsText, { language, voice, volume, rate });
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}: ${res.statusText}`);
       }
-    }, delay);
+
+      const blob = await res.blob();
+      if (!blob || blob.size === 0) {
+        throw new Error('Received empty audio payload from server');
+      }
+
+      const elapsed = Math.round(performance.now() - startTime);
+      console.log(`[Overlay:TTS] ⚡ Downloaded audio payload (${blob.size} bytes) in ${elapsed}ms. Initializing audio element.`);
+
+      if (activeTTSBlobUrl) {
+        try { URL.revokeObjectURL(activeTTSBlobUrl); } catch (_) {}
+      }
+
+      activeTTSBlobUrl = URL.createObjectURL(blob);
+      const audio = new Audio(activeTTSBlobUrl);
+
+      // Preload metadata to capture duration for dynamic alert display extension
+      await new Promise((resolve) => {
+        let resolved = false;
+        const finish = () => {
+          if (!resolved) {
+            resolved = true;
+            resolve();
+          }
+        };
+        audio.onloadedmetadata = finish;
+        audio.oncanplaythrough = finish;
+        audio.onerror = finish;
+        setTimeout(finish, 500);
+        audio.load();
+      });
+
+      return audio;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const elapsed = Math.round(performance.now() - startTime);
+      console.warn(`[Overlay:TTS] ⚠️ Edge audio download failed in ${elapsed}ms: ${err.message}`);
+      throw err;
+    }
   }
 
   function playSound(url) {
@@ -178,20 +208,65 @@
       }
       activeAudio = new Audio(url);
       activeAudio.volume = activeVolume;
-      activeAudio.play().catch(err => console.warn('[Overlay] Sound play blocked or failed:', err.message));
+      console.log(`[Overlay:Sound] 🔊 Playing alert chime (Volume: ${Math.round(activeVolume * 100)}%): ${url}`);
+      const playPromise = activeAudio.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(err => console.warn('[Overlay:Sound] ⚠️ Sound play was blocked or failed:', err.message));
+      }
     } catch (e) {
-      console.warn('[Overlay] Sound initialization error:', e.message);
+      console.warn('[Overlay:Sound] Sound initialization error:', e.message);
     }
   }
 
-  function triggerAlert(notifData) {
-    const container = document.getElementById('overlay-container');
-    if (!container) return;
+  /**
+   * Main alert entrypoint.
+   * If Edge TTS is enabled, downloads the audio first.
+   * - If response succeeds: audio is ready in memory -> fires the alert overlay.
+   * - If response fails / times out: fires the alert overlay immediately with local speech fallback.
+   */
+  async function triggerAlert(notifData) {
+    console.log('[Overlay] 🔔 Triggering alert for payment:', notifData);
 
     const amount = TemplateMatcher.parseAmount(
       notifData.amountValue !== undefined ? notifData.amountValue : notifData.amount
     );
     const resolved = TemplateMatcher.resolve(config, amount, notifData.alertTemplateId || config.activeTemplateId);
+
+    // Resolve TTS message and prefetch audio if enabled
+    const ttsConfig = resolved.tts;
+    let preloadedAudio = null;
+    let ttsText = '';
+    const isTTSEnabled = ttsConfig && ttsConfig.enabled;
+
+    if (isTTSEnabled) {
+      const templateStr = (ttsConfig.template || '').trim();
+      if (templateStr) {
+        ttsText = TemplateEngine.render(templateStr, notifData).trim().slice(0, 300);
+      }
+    }
+
+    if (isTTSEnabled && ttsText && (!ttsConfig.provider || ttsConfig.provider === 'edge')) {
+      console.log(`[Overlay:TTS] Edge TTS enabled. Downloading audio before showing alert overlay...`);
+      try {
+        preloadedAudio = await downloadNeuralTTSAudio(ttsText, ttsConfig);
+        console.log(`[Overlay:TTS] ✅ Audio download complete! Firing alert overlay now.`);
+      } catch (err) {
+        console.warn(`[Overlay:TTS] ⚠️ Edge TTS download failed (${err.message}). Firing alert overlay immediately with local speech fallback.`);
+      }
+    } else if (isTTSEnabled && ttsText && ttsConfig.provider === 'local') {
+      console.log(`[Overlay:TTS] Local System Speech enabled. Firing alert overlay immediately.`);
+    }
+
+    displayAlert(resolved, notifData, preloadedAudio, ttsText);
+  }
+
+  /**
+   * Render and animate the visual alert onto the DOM, play chime and scheduled TTS audio.
+   */
+  function displayAlert(resolved, notifData, preloadedAudio, ttsText) {
+    const container = document.getElementById('overlay-container');
+    if (!container) return;
+
     applyRenderConfig(resolved);
 
     container.innerHTML = '';
@@ -250,13 +325,53 @@
       }
     }
 
-    if (resolved.sound && resolved.sound.soundUrl) playSound(resolved.sound.soundUrl);
-    if (resolved.tts && resolved.tts.enabled) playTTS(resolved.tts, notifData);
+    // 1. Play alert chime sound
+    if (resolved.sound && resolved.sound.soundUrl) {
+      playSound(resolved.sound.soundUrl);
+    }
 
-    const displayDur = parseInt(resolved.animation.displayDuration, 10) || 5000;
+    // 2. Play scheduled TTS speech
+    const ttsConfig = resolved.tts;
+    const delay = Math.max(0, parseInt(ttsConfig ? ttsConfig.delay : 0, 10) || 0);
+    const volume = Math.max(0, Math.min(1, (ttsConfig && ttsConfig.volume !== undefined ? ttsConfig.volume : 100) / 100));
+    const rate = Math.max(0.5, Math.min(2.0, parseFloat(ttsConfig ? ttsConfig.rate : 1.0) || 1.0));
+    const pitch = parseInt(ttsConfig ? ttsConfig.pitch : 0, 10) || 0;
+    const voice = (ttsConfig && ttsConfig.voice) || 'en-IN-NeerjaNeural';
+
+    if (ttsConfig && ttsConfig.enabled && ttsText) {
+      if (preloadedAudio) {
+        activeTTSAudio = preloadedAudio;
+        preloadedAudio.volume = volume;
+        activeTTSTimeout = setTimeout(() => {
+          console.log(`[Overlay:TTS] Playing preloaded Edge Neural audio (Volume: ${Math.round(volume * 100)}%, Delay: ${delay}ms)`);
+          preloadedAudio.play().catch(e => {
+            console.warn('[Overlay:TTS] Audio play error, falling back to local speech:', e.message);
+            playBrowserSpeech(ttsText, { voice, volume, rate, pitch });
+          });
+        }, delay);
+      } else {
+        // Local speech synthesis or fallback
+        activeTTSTimeout = setTimeout(() => {
+          console.log(`[Overlay:TTS] Playing local speech synthesis (Voice: ${voice}, Rate: ${rate}x, Pitch: ${pitch}, Delay: ${delay}ms)`);
+          playBrowserSpeech(ttsText, { voice, volume, rate, pitch });
+        }, delay);
+      }
+    }
+
+    // 3. Dynamic display duration calculation: ensure alert does not disappear before TTS finishes
+    let displayDur = parseInt(resolved.animation.displayDuration, 10) || 5000;
+    if (preloadedAudio && preloadedAudio.duration && isFinite(preloadedAudio.duration)) {
+      const requiredTime = delay + Math.ceil(preloadedAudio.duration * 1000) + 800;
+      if (requiredTime > displayDur) {
+        console.log(`[Overlay] Dynamically extending alert display duration from ${displayDur}ms to ${requiredTime}ms to match TTS audio length`);
+        displayDur = requiredTime;
+      }
+    }
+
     const animDur = parseInt(resolved.animation.duration, 10) || 600;
 
     activeAlertTimeout = setTimeout(() => {
+      console.log('[Overlay] Alert display duration elapsed. Exiting alert.');
       if (activeAudio) {
         const fadeOut = setInterval(() => {
           if (activeAudio && activeAudio.volume > 0.05) {

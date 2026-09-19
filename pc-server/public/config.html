@@ -292,6 +292,7 @@
                 <div class="variable-pills">
                   <span class="var-pill" data-var="sender">{{sender}}</span>
                   <span class="var-pill" data-var="amount">{{amount}}</span>
+                  <span class="var-pill" data-var="amountValue">{{amountValue}}</span>
                   <span class="var-pill" data-var="sourceApp">{{sourceApp}}</span>
                   <span class="var-pill" data-var="message">{{message}}</span>
                   <span class="var-pill" data-var="timestamp">{{timestamp}}</span>
@@ -363,103 +364,49 @@
             </div>
           </details>
 
-          <!-- Collapsible Section: Text to Speech (TTS) -->
+          <!-- Collapsible Section: Narration Settings -->
           <details class="collapsible-advanced" style="margin-top: 16px;">
             <summary class="collapsible-summary">
-              <span><i data-lucide="volume-2"
-                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Text to Speech
-                (TTS)</span>
+              <span><i data-lucide="mic"
+                  style="width: 14px; height: 14px; vertical-align: middle; margin-right: 6px;"></i> Narration Settings</span>
               <span><i data-lucide="chevron-down"></i></span>
             </summary>
             <div class="collapsible-content">
               <div class="form-group checkbox-group" style="margin-bottom: 14px;">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                   <input type="checkbox" id="tpl-tts-enabled" />
-                  <span style="font-weight: 600;">Enable Text to Speech Voice Alert</span>
+                  <span style="font-weight: 600;">Enable Narration &amp; Voice Alerts</span>
                 </label>
                 <p class="panel-desc" style="margin-top: 4px; margin-left: 24px;">
-                  Read donor names, donation amounts, and custom messages aloud using AI voices.
+                  Read donor names, donation amounts, and custom messages aloud using studio AI voices.
                 </p>
               </div>
 
               <div id="tts-controls-wrapper">
-                <div class="form-group">
-                  <label for="tpl-tts-template">Speech Message Template</label>
-                  <textarea id="tpl-tts-template" class="form-control" rows="2"
-                    placeholder="{{sender}} sent {{amount}} rupees. {{#if message}}They said: {{message}}{{/if}}"></textarea>
-                  <div class="variable-pills" style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
-                    <span class="pills-label">Insert:</span>
-                    <span class="var-pill" data-var="sender" data-target-input="tpl-tts-template">{{sender}}</span>
-                    <span class="var-pill" data-var="amount" data-target-input="tpl-tts-template">{{amount}}</span>
-                    <span class="var-pill" data-var="message" data-target-input="tpl-tts-template">{{message}}</span>
-                    <span class="var-pill" data-var="sourceApp" data-target-input="tpl-tts-template">{{sourceApp}}</span>
-                  </div>
-                </div>
-
                 <div class="form-row">
                   <div class="form-group">
-                    <label for="tpl-tts-language">Language &amp; Accent</label>
-                    <select id="tpl-tts-language" class="form-control">
-                      <option value="en-IN" selected>Indian English (en-IN)</option>
-                      <option value="hi-IN">Hindi (hi-IN)</option>
-                      <option value="en-US">English - US (en-US)</option>
-                      <option value="en-GB">English - UK (en-GB)</option>
-                      <option value="es-ES">Spanish (es-ES)</option>
-                      <option value="fr-FR">French (fr-FR)</option>
-                      <option value="de-DE">German (de-DE)</option>
-                      <option value="ja-JP">Japanese (ja-JP)</option>
-                      <option value="ru-RU">Russian (ru-RU)</option>
-                      <option value="pt-BR">Portuguese - Brazil (pt-BR)</option>
-                    </select>
+                    <label for="tpl-tts-volume">TTS Volume</label>
+                    <input type="number" id="tpl-tts-volume" class="form-control" min="0" max="100" step="1" value="100" />
                   </div>
 
                   <div class="form-group">
-                    <label for="tpl-tts-voice">Voice Character</label>
-                    <select id="tpl-tts-voice" class="form-control"></select>
+                    <label for="tpl-tts-delay">Speech Delay ms</label>
+                    <input type="number" id="tpl-tts-delay" class="form-control" min="0" max="10000" step="50" value="400" />
                   </div>
                 </div>
 
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="tpl-tts-provider">Voice Engine / Provider</label>
-                    <select id="tpl-tts-provider" class="form-control">
-                      <option value="puter" selected>Puter AI (Cloud - Free)</option>
-                      <option value="browser">Browser Native (Offline)</option>
-                    </select>
-                  </div>
-
-                  <div class="form-group" id="group-tts-engine">
-                    <label for="tpl-tts-engine">Model Quality</label>
-                    <select id="tpl-tts-engine" class="form-control">
-                      <option value="neural" selected>Neural (High Quality)</option>
-                      <option value="standard">Standard</option>
-                      <option value="generative">Generative (Advanced)</option>
-                    </select>
-                  </div>
+                <div class="form-group" style="margin-top: 6px;">
+                  <button type="button" id="btn-open-tts-studio" class="btn btn-secondary" style="width: 100%; height: 42px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i data-lucide="sparkles" style="width: 15px; height: 15px; color: var(--accent);"></i> Open Voice Studio &amp; Preview
+                  </button>
                 </div>
 
-                <div class="form-group" id="group-tts-instructions">
-                  <label for="tpl-tts-instructions">Speaking Mood &amp; Instructions (Optional)</label>
-                  <input type="text" id="tpl-tts-instructions" class="form-control"
-                    placeholder="e.g. Speak in a clear, friendly, and enthusiastic streaming tone" />
-                </div>
-
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="tpl-tts-rate">Speech Speed (<span id="tpl-tts-rate-val">1.0x</span>)</label>
-                    <input type="range" id="tpl-tts-rate" class="form-control" min="0.5" max="2.0" step="0.05" value="1.0" />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="tpl-tts-volume">TTS Volume (<span id="tpl-tts-volume-val">100%</span>)</label>
-                    <input type="range" id="tpl-tts-volume" class="form-control" min="0" max="100" step="1" value="100" />
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label for="tpl-tts-delay">Speech Delay (ms after alert chime)</label>
-                  <input type="number" id="tpl-tts-delay" class="form-control" min="0" max="10000" step="50" value="400" />
-                </div>
+                <!-- Hidden inputs for seamless form data binding -->
+                <textarea id="tpl-tts-template" style="display: none;"></textarea>
+                <select id="tpl-tts-provider" style="display: none;"><option value="edge">edge</option><option value="local">local</option></select>
+                <select id="tpl-tts-voice" style="display: none;"></select>
+                <input type="number" id="tpl-tts-rate" style="display: none;" value="1.0" />
+                <input type="number" id="tpl-tts-pitch" style="display: none;" value="0" />
               </div>
             </div>
           </details>
@@ -2890,6 +2837,29 @@
     </div>
   </div>
 
+  <!-- ── Fullscreen Voice Studio & TTS Preview Modal ── -->
+  <div id="modal-tts-studio" class="code-studio-modal" style="display: none;">
+    <div class="code-studio-backdrop" id="tts-studio-backdrop"></div>
+    <div class="code-studio-window" style="max-width: 1200px; width: 94vw; height: 90vh; max-height: 880px; background: #090a10; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85);">
+      <!-- Studio Header -->
+      <div class="code-studio-header" style="background: #11121a; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 0 20px; height: 56px;">
+        <div class="code-studio-title-area">
+          <div class="code-studio-badge" style="background: rgba(145, 70, 255, 0.18); color: #d5baff; border: 1px solid rgba(145, 70, 255, 0.4); font-weight: 700;">VOICE LAB</div>
+          <h3 class="code-studio-title" style="color: #f8fafc; font-size: 15px; font-weight: 700;">TTS Voice Studio &amp; Preview</h3>
+        </div>
+        <div class="code-studio-actions">
+          <button class="code-studio-close-btn" id="btn-tts-studio-close" type="button" title="Close (ESC)">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+      </div>
+      <!-- Studio Body (IFrame hosting /tts-preview.html) -->
+      <div style="flex: 1; position: relative; width: 100%; height: calc(100% - 56px); background: #090a10;">
+        <iframe id="tts-studio-iframe" src="/tts-preview.html" style="width: 100%; height: 100%; border: none; display: block;"></iframe>
+      </div>
+    </div>
+  </div>
+
   <!-- Fixed Floating Footer -->
   <footer class="footer-love-badge">
     <div style="display: flex; align-items: center; gap: 8px;">
@@ -2911,7 +2881,6 @@
   <script src="https://unpkg.com/prettier@2.8.8/parser-postcss.js"></script>
   <script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script>
 
-  <script src="https://js.puter.com/v2/"></script>
   <script src="/js/lib/handlebars.min.js"></script>
   <script src="/js/template-engine.js"></script>
   <script src="/js/lib/canvas-presets.js"></script>

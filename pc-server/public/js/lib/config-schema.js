@@ -558,15 +558,14 @@
 
   const TTS_DEFAULTS = {
     enabled: false,
-    template: '{{sender}} sent {{amount}} rupees. {{#if message}}They said: {{message}}{{/if}}',
-    provider: 'puter',
-    voice: 'Aditi',
-    language: 'en-IN',
-    engine: 'neural',
-    instructions: '',
+    template: '{{sender}} ne {{amount}} rupees bheje. {{#if message}}{{message}}{{/if}}',
+    provider: 'edge',
+    voice: 'en-IN-NeerjaNeural',
     rate: 1.0,
+    pitch: 0,
     volume: 100,
-    delay: 400
+    delay: 400,
+    maxChars: 200
   };
 
   const TEMPLATE_DEFAULTS = {

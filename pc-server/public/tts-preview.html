@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StreamPe Voice Lab &amp; TTS Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="/js/lib/handlebars.min.js"></script>
+  <script src="/js/template-engine.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      /* ── StreamPe Core Design System Tokens (from config.css / DESIGN.md) ── */
+      --bg: #131315;
+      --bg-darker: #0e0e10;
+      --surface: #131315;
+      --surface-1: #18181b;
+      --surface-2: #201f21;
+      --surface-3: #2a2a2c;
+      --surface-4: #353437;
+      --surface-bright: #39393b;
+
+      --border: #26262c;
+      --border-light: rgba(255, 255, 255, 0.06);
+      --border-accent: rgba(145, 70, 255, 0.4);
+
+      --accent: #9146ff;              /* StreamPe / Twitch Purple */
+      --accent-hover: #7a26e7;
+      --accent-light: #d5baff;
+      --accent-glow: rgba(145, 70, 255, 0.25);
+      --accent-gradient: linear-gradient(135deg, #9146ff 0%, #7026e7 100%);
+
+      --live-red: #EB0400;
+      --danger: #ff4d4f;
+      --danger-bg: rgba(235, 4, 0, 0.12);
+
+      --success: #00F593;
+      --success-bg: rgba(0, 245, 147, 0.12);
+      --warning: #ffb703;
+
+      --text-main: #e5e1e4;
+      --text-muted: #adadb8;
+      --text-dim: #71717a;
+
+      --radius-lg: 8px;
+      --radius-md: 6px;
+      --radius-sm: 4px;
+      --radius-pill: 9999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      padding: 14px 18px;
+      gap: 12px;
+      height: 100vh;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg-darker); }
+    ::-webkit-scrollbar-thumb { background: var(--surface-4); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4b4455; }
+
+    /* Top Subheader Banner */
+    .lab-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .lab-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .engine-switcher {
+      display: flex;
+      align-items: center;
+      background: var(--surface-2);
+      padding: 3px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      gap: 2px;
+    }
+    .engine-tab {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .engine-tab:hover {
+      color: var(--text-main);
+    }
+    .engine-tab.active {
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    /* 2-Column Split Studio Layout */
+    .studio-layout {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 14px;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .col-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      gap: 12px;
+    }
+
+    .card-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-count {
+      font-size: 10.5px;
+      font-family: 'Fira Code', monospace;
+      font-weight: 600;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 1px 7px;
+      border-radius: var(--radius-pill);
+    }
+
+    /* Search Input Box */
+    .search-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      flex-shrink: 0;
+    }
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      width: 14px;
+      height: 14px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      height: 34px;
+      background: var(--bg-darker);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-main);
+      padding: 0 32px 0 32px;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .search-input:focus {
+      border-color: var(--border-accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+    .search-input::placeholder {
+      color: var(--text-dim);
+    }
+    .btn-clear-search {
+      position: absolute;
+      right: 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+    }
+    .btn-clear-search:hover {
+      color: var(--text-main);
+    }
+
+    /* Filter Pills */
+    .filter-pills {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      flex-shrink: 0;
+    }
+    .filter-pill {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 3px 9px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .filter-pill:hover {
+      background: var(--surface-3);
+      color: var(--text-main);
+      border-color: var(--border-accent);
+    }
+    .filter-pill.active {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    /* Local Windows Voice Settings Prompt Banner */
+    .local-settings-banner {
+      background: var(--surface-2);
+      border: 1px dashed var(--border-accent);
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .local-banner-text {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .local-banner-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .btn-local-action {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 10.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .btn-local-action:hover {
+      background: var(--surface-4);
+      border-color: var(--accent);
+      color: var(--accent-light);
+    }
+    .btn-local-action.secondary {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-muted);
+    }
+    .btn-local-action.secondary:hover {
+      background: var(--surface-3);
+      color: var(--text-main);
+    }
+
+    /* Voice Cards Roster - Flex expand up to bottom tuning box */
+    .voice-roster-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1 1 0;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 3px;
+      margin-bottom: 4px;
+    }
+
+    .voice-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .voice-card:hover {
+      background: var(--surface-3);
+      border-color: #3f3e46;
+    }
+    .voice-card.active {
+      background: rgba(145, 70, 255, 0.1);
+      border: 1.5px solid var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .voice-card-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      flex: 1;
+    }
+    .voice-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      background: rgba(145, 70, 255, 0.15);
+      border: 1px solid rgba(145, 70, 255, 0.3);
+      color: var(--accent-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .voice-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 0;
+    }
+    .voice-name-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .voice-name {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+    .tag-accent {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      background: rgba(145, 70, 255, 0.18);
+      color: var(--accent-light);
+      border: 1px solid rgba(145, 70, 255, 0.35);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
+    }
+    .tag-gender {
+      font-size: 9.5px;
+      font-weight: 500;
+      padding: 1px 5px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-3);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .voice-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 280px;
+    }
+
+    .voice-card-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .btn-sample {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .btn-sample:hover {
+      background: var(--surface-4);
+      border-color: var(--accent);
+      color: var(--accent-light);
+    }
+    .voice-check-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: transparent;
+      transition: all 0.15s ease;
+    }
+    .voice-card.active .voice-check-dot {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    /* Selected Voice Fine-Tuning Box - Pinned to bottom */
+    .tuning-box {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+      margin-top: auto;
+    }
+    .tuning-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .tuning-voice-info {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .tuning-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 150px;
+    }
+    .tuning-summary-badge {
+      font-size: 10px;
+      font-family: 'Fira Code', monospace;
+      color: var(--accent-light);
+      background: rgba(145, 70, 255, 0.15);
+      border: 1px solid rgba(145, 70, 255, 0.3);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+    }
+
+    .tuning-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding-top: 4px;
+    }
+    .control-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .control-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .control-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .mini-input-wrap {
+      display: inline-flex;
+      align-items: center;
+      background: var(--bg-darker);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1px 5px 1px 6px;
+      gap: 2px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .mini-input-wrap:focus-within {
+      border-color: var(--border-accent);
+      box-shadow: 0 0 0 1.5px var(--accent-glow);
+    }
+    .control-num-input {
+      width: 36px;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--accent-light);
+      font-family: 'Fira Code', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: right;
+      padding: 0;
+      -moz-appearance: textfield;
+    }
+    .control-num-input::-webkit-outer-spin-button,
+    .control-num-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .mini-suffix {
+      font-size: 10.5px;
+      font-family: 'Fira Code', monospace;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+    .range-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 5px;
+      background: var(--surface-4);
+      border-radius: 999px;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 14px;
+      width: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 8px var(--accent-glow);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    .range-hints {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9.5px;
+      color: var(--text-dim);
+    }
+
+    /* ── Right Column: Speech Template & Playground Layout ── */
+    .template-card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      overflow-y: auto;
+      gap: 10px;
+    }
+
+    /* Variable inserter bar */
+    .var-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 6px 10px;
+    }
+    .var-bar-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .var-chips {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .var-chip {
+      background: rgba(145, 70, 255, 0.12);
+      border: 1px solid rgba(145, 70, 255, 0.28);
+      color: var(--accent-light);
+      padding: 3px 8px;
+      font-size: 11px;
+      font-family: 'Fira Code', monospace;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .var-chip:hover {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    /* Presets */
+    .preset-chips-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .preset-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+    }
+    .preset-chip-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .preset-chip-btn:hover {
+      background: var(--surface-3);
+      color: var(--text-main);
+      border-color: var(--border-accent);
+      transform: translateY(-1px);
+    }
+
+    /* Textarea */
+    textarea {
+      width: 100%;
+      background: var(--bg-darker);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-family: 'Fira Code', monospace;
+      resize: vertical;
+      min-height: 52px;
+      line-height: 1.45;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    textarea:focus {
+      border-color: var(--border-accent);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    /* Resolved Live Output Box */
+    .resolved-box {
+      background: rgba(145, 70, 255, 0.04);
+      border: 1px dashed rgba(145, 70, 255, 0.28);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .resolved-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .resolved-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent-light);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .resolved-badge-pill {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(0, 245, 147, 0.12);
+      color: var(--success);
+      border: 1px solid rgba(0, 245, 147, 0.25);
+      padding: 1px 6px;
+      border-radius: var(--radius-pill);
+    }
+    .resolved-text {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-main);
+      line-height: 1.4;
+      min-height: 16px;
+      word-break: break-word;
+    }
+
+    /* ── Full Line Audio Visualizer Bar with Play Button ── */
+    .audio-visualizer-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .visualizer-top-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+    .btn-inline-play {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+    .btn-inline-play:hover {
+      background: var(--surface-4);
+      color: var(--accent-light);
+      border-color: var(--accent);
+    }
+    .btn-inline-play.is-playing {
+      color: #ffffff;
+      border-color: var(--accent);
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .waveform-track {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      flex: 1;
+      height: 22px;
+      overflow: hidden;
+      padding: 0 4px;
+    }
+    @keyframes barPulse {
+      0%, 100% { height: 3px; }
+      50% { height: 18px; }
+    }
+    .wave-bar {
+      width: 3px;
+      height: 3px;
+      background: var(--surface-4);
+      border-radius: 2px;
+      transition: height 0.15s ease, background-color 0.15s;
+    }
+    .wave-bar.playing {
+      background: var(--accent-light);
+      animation: barPulse 0.85s ease-in-out infinite;
+    }
+    .wave-bar:nth-child(2n) { animation-delay: 0.1s; }
+    .wave-bar:nth-child(3n) { animation-delay: 0.25s; }
+    .wave-bar:nth-child(4n) { animation-delay: 0.4s; }
+    .wave-bar:nth-child(5n) { animation-delay: 0.15s; }
+    .wave-bar:nth-child(7n) { animation-delay: 0.35s; }
+
+    .visualizer-time-wrap {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10.5px;
+      font-family: 'Fira Code', monospace;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    /* Progress bar */
+    .progress-track {
+      width: 100%;
+      height: 3px;
+      background: var(--surface-4);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.08s linear;
+    }
+
+    /* Primary Generate & Play Preview Button */
+    .btn-play-preview {
+      width: 100%;
+      background: var(--surface-2);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      font-size: 12.5px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      height: 36px;
+    }
+    .btn-play-preview:hover {
+      background: var(--surface-3);
+      border-color: var(--accent);
+      box-shadow: 0 2px 10px var(--accent-glow);
+    }
+    .btn-play-preview.is-playing {
+      background: rgba(145, 70, 255, 0.15);
+      border-color: var(--accent);
+      color: var(--accent-light);
+    }
+
+    /* Studio Modal Footer */
+    .lab-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .btn-reset {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.15s;
+    }
+    .btn-reset:hover {
+      color: var(--text-main);
+    }
+
+    .btn-apply-accent {
+      background: var(--accent-gradient);
+      color: #ffffff;
+      border: none;
+      padding: 8px 18px;
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      font-size: 12.5px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 36px;
+      box-shadow: 0 2px 12px var(--accent-glow);
+    }
+    .btn-apply-accent:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(145, 70, 255, 0.45);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Subheader -->
+  <div class="lab-banner">
+    <div class="lab-subtitle">
+      <i data-lucide="sparkles" style="width: 14px; height: 14px; color: var(--accent);"></i>
+      Test speech templates with real stream variables &amp; fine-tune voice acoustics
+    </div>
+
+    <!-- Engine Switcher Tabs -->
+    <div class="engine-switcher">
+      <button class="engine-tab active" id="engineNeuralBtn" onclick="selectEngine('neural')">Edge Neural AI</button>
+      <button class="engine-tab" id="engineLocalBtn" onclick="selectEngine('local')">Local Offline</button>
+    </div>
+  </div>
+
+  <!-- 2-Column Split Studio Layout -->
+  <div class="studio-layout">
+
+    <!-- ================= LEFT COLUMN: VOICE ROSTER & ACOUSTICS ================= -->
+    <div class="col-panel">
+      
+      <!-- Card 1: Voice Character Roster & Pinned Tuning Box -->
+      <div class="card">
+        <div class="card-header-row">
+          <span class="card-title">
+            <i data-lucide="mic" style="width: 13px; height: 13px; color: var(--accent);"></i>
+            Voice Character Roster
+          </span>
+          <span class="badge-count" id="voiceCountBadge">7 Voices</span>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-input-wrap">
+          <i data-lucide="search" class="search-icon"></i>
+          <input type="text" id="voiceSearchInput" class="search-input" placeholder="Search voices (e.g. Hindi, Neerja, Female, US)..." autocomplete="off" />
+          <button type="button" id="btnClearSearch" class="btn-clear-search" style="display: none;" onclick="clearVoiceSearch()" title="Clear search">
+            <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+          </button>
+        </div>
+
+        <!-- Filter Pills Container (Populated dynamically) -->
+        <div class="filter-pills" id="filterPillsContainer">
+          <button class="filter-pill active" data-filter="all">All Voices</button>
+          <button class="filter-pill" data-filter="indian">Indian &amp; Regional</button>
+          <button class="filter-pill" data-filter="english">English (US/UK)</button>
+          <button class="filter-pill" data-filter="global">Global AI</button>
+          <button class="filter-pill" data-filter="female">Female</button>
+          <button class="filter-pill" data-filter="male">Male</button>
+        </div>
+
+        <!-- Local Windows Voice Settings Prompt Banner (shown in Local Offline mode) -->
+        <div class="local-settings-banner" id="localSettingsBanner" style="display: none;">
+          <div class="local-banner-text">
+            <i data-lucide="hard-drive" style="width: 14px; height: 14px; color: var(--accent);"></i>
+            <span>Want more offline voices? Install free voice packs from Windows.</span>
+          </div>
+          <div class="local-banner-actions">
+            <button class="btn-local-action" onclick="openWindowsSpeechSettings()" type="button" title="Open Windows Speech Settings">
+              <i data-lucide="external-link" style="width: 11px; height: 11px;"></i>
+              <span>Add Windows Voices</span>
+            </button>
+            <button class="btn-local-action secondary" onclick="populateLocalVoices(true)" type="button" title="Refresh local voice list">
+              <i data-lucide="rotate-cw" style="width: 11px; height: 11px;"></i>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamically Expanding Scrollable Voice Cards List -->
+        <div class="voice-roster-list" id="voiceCardRoster">
+          <!-- Populated dynamically by JS -->
+        </div>
+
+        <!-- Permanently Pinned Bottom Tuning Box -->
+        <div class="tuning-box">
+          <div class="tuning-header">
+            <div class="tuning-voice-info">
+              <i data-lucide="sliders" style="width: 13px; height: 13px; color: var(--accent);"></i>
+              <span class="tuning-title" id="currentVoiceNameLabel">Neerja Tuning</span>
+            </div>
+            <span class="tuning-summary-badge" id="tuningSummary">1.05x • Normal Pitch</span>
+          </div>
+
+          <!-- Sliders & Direct Number Inputs Grid -->
+          <div class="tuning-grid">
+            <!-- Speech Speed -->
+            <div class="control-item">
+              <div class="control-label-row">
+                <span class="control-label">Speed:</span>
+                <div class="mini-input-wrap">
+                  <input type="number" id="speedInput" min="0.5" max="2.0" step="0.05" value="1.05" class="control-num-input" oninput="onSpeedInputChange(this.value)" />
+                  <span class="mini-suffix">x</span>
+                </div>
+              </div>
+              <div class="range-wrap">
+                <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.05" value="1.05" oninput="onSpeedSliderChange(this.value)"/>
+                <div class="range-hints">
+                  <span>0.5x</span>
+                  <span>1.0x</span>
+                  <span>2.0x</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pitch Offset -->
+            <div class="control-item">
+              <div class="control-label-row">
+                <span class="control-label">Pitch:</span>
+                <div class="mini-input-wrap">
+                  <input type="number" id="pitchInput" min="-20" max="20" step="1" value="0" class="control-num-input" oninput="onPitchInputChange(this.value)" />
+                  <span class="mini-suffix">%</span>
+                </div>
+              </div>
+              <div class="range-wrap">
+                <input type="range" id="pitchSlider" min="-20" max="20" step="1" value="0" oninput="onPitchSliderChange(this.value)"/>
+                <div class="range-hints">
+                  <span>-20%</span>
+                  <span>0%</span>
+                  <span>+20%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ================= RIGHT COLUMN: TEMPLATE & PLAYGROUND ================= -->
+    <div class="col-panel">
+      
+      <!-- Card 2: Well-Spaced Speech Template & Variables -->
+      <div class="template-card">
+        
+        <div class="card-header-row">
+          <span class="card-title">
+            <i data-lucide="message-square" style="width: 13px; height: 13px; color: var(--accent);"></i>
+            Speech Message Template
+          </span>
+          <span id="char-counter" style="font-size: 11px; color: var(--success); font-weight: 700; font-family: 'Fira Code', monospace;">68 / 200 chars</span>
+        </div>
+
+        <!-- Variable Inserter Bar -->
+        <div class="var-bar">
+          <span class="var-bar-label">Insert Token:</span>
+          <div class="var-chips">
+            <button class="var-chip" onclick="insertVariable('{{sender}}')">+ {{sender}}</button>
+            <button class="var-chip" onclick="insertVariable('{{amount}}')">+ {{amount}}</button>
+            <button class="var-chip" onclick="insertVariable('{{amountValue}}')">+ {{amountValue}}</button>
+            <button class="var-chip" onclick="insertVariable('{{sourceApp}}')">+ {{sourceApp}}</button>
+            <button class="var-chip" onclick="insertVariable('{{message}}')">+ {{message}}</button>
+          </div>
+        </div>
+
+        <!-- Sample Presets -->
+        <div class="preset-chips-wrap">
+          <span style="font-size: 11px; color: var(--text-dim); font-weight: 600; margin-right: 2px;">Presets:</span>
+          <div class="preset-chips">
+            <button class="preset-chip-btn" onclick="setPreset('{{sender}} ne {{amountValue}} rupaye bheje {{sourceApp}} se! Bhai maza aa gaya, super stream!')">Hinglish (Numeric)</button>
+            <button class="preset-chip-btn" onclick="setPreset('{{sender}} sent {{amount}} via {{sourceApp}}. Thank you so much for supporting!')">English Mix</button>
+            <button class="preset-chip-btn" onclick="setPreset('{{sender}} ne {{amountValue}} rupaye bheje. Bahut badiya stream bhai!')">Pure Hindi</button>
+            <button class="preset-chip-btn" onclick="setPreset('{{sender}} donated {{amount}}! Big shoutout to our top supporter!')">Shoutout</button>
+          </div>
+        </div>
+
+        <!-- Textarea -->
+        <textarea id="tts-text" rows="2" maxlength="200" oninput="renderLiveSpeech()" placeholder="Write alert speech template...">{{sender}} ne {{amountValue}} rupaye bheje {{sourceApp}} se! Bhai maza aa gaya, super stream!</textarea>
+
+        <!-- Live Resolved Speech Output -->
+        <div class="resolved-box">
+          <div class="resolved-label-row">
+            <span class="resolved-label">
+              <i data-lucide="volume-2" style="width: 12px; height: 12px;"></i>
+              Live Resolved Sample (What TTS Speaks)
+            </span>
+            <span class="resolved-badge-pill">Preview</span>
+          </div>
+          <div id="resolved-speech-display" class="resolved-text">Loading preview...</div>
+        </div>
+
+        <!-- Full Line Audio Visualizer with Play Cached Voice Button -->
+        <div class="audio-visualizer-card">
+          <div class="visualizer-top-row">
+            <button id="btn-replay-cached" class="btn-inline-play" onclick="replayCachedTTS()" title="Play Audio (Cached)">
+              <i data-lucide="play" id="icon-replay-btn" style="width: 12px; height: 12px; fill: currentColor;"></i>
+            </button>
+            <div class="waveform-track" id="waveformTrack">
+              <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+              <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+              <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+              <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+              <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+              <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+              <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+            </div>
+            <div class="visualizer-time-wrap">
+              <span class="progress-time" id="audioCurrentTime">0:00</span>
+              <span style="opacity: 0.4;">/</span>
+              <span class="progress-time" id="audioTotalTime">0:03</span>
+            </div>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="audioProgressBar"></div>
+          </div>
+        </div>
+
+        <!-- Big Play Speech Preview Button -->
+        <button id="btn-main-play" class="btn-play-preview" onclick="playSelectedTTS()">
+          <i data-lucide="play" id="icon-play-btn" style="width: 14px; height: 14px; fill: currentColor;"></i>
+          <span id="lbl-main-play">Play Speech Preview</span>
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Studio Footer -->
+  <div class="lab-footer">
+    <button class="btn-reset" onclick="resetToDefaults()" type="button">
+      <i data-lucide="rotate-ccw" style="width: 12px; height: 12px;"></i>
+      Reset to Defaults
+    </button>
+    
+    <button id="btn-apply" class="btn-apply-accent" onclick="applySettingsToParent()">
+      <i data-lucide="check" style="width: 14px; height: 14px;"></i>
+      <span>Save &amp; Apply Voice</span>
+    </button>
+  </div>
+
+  <!-- Hidden Inputs for data storage -->
+  <input type="hidden" id="edge-voice" value="en-IN-NeerjaNeural" />
+  <input type="hidden" id="local-voice" value="" />
+
+  <script>
+    // State management
+    const state = {
+      selectedVoiceId: 'en-IN-NeerjaNeural',
+      selectedVoiceName: 'Neerja',
+      selectedVoiceAccent: 'Hinglish (IN)',
+      speed: 1.05,
+      pitch: 0,
+      engine: 'neural',
+      isPlaying: false,
+      activeFilter: 'all',
+      searchQuery: '',
+      sampleIdx: 0,
+      cachedLastEvent: null,
+      // Audio caching for instant repeat playback
+      lastGeneratedUrl: null,
+      lastGeneratedText: '',
+      lastGeneratedVoice: '',
+      lastGeneratedSpeed: 1.05,
+      lastGeneratedPitch: 0
+    };
+
+    const EDGE_VOICE_LIST = [
+      { id: 'en-IN-NeerjaNeural', name: 'Neerja', icon: 'user', accent: 'Hinglish (IN)', gender: 'Female', persona: 'Expressive & natural • Streamer favorite for desi banter', tags: 'indian hinglish gaming female', group: 'Indian & Regional' },
+      { id: 'en-IN-PrabhatNeural', name: 'Prabhat', icon: 'mic', accent: 'Hindi & Hinglish', gender: 'Male', persona: 'Punchy bass shoutouts • High energy BGMI / Valorant alerts', tags: 'indian hinglish gaming male', group: 'Indian & Regional' },
+      { id: 'hi-IN-SwaraNeural', name: 'Swara', icon: 'sparkles', accent: 'Hindi (IN)', gender: 'Female', persona: 'Melodic Hindi • Clear & expressive donation announcements', tags: 'indian hindi calm female', group: 'Indian & Regional' },
+      { id: 'hi-IN-MadhurNeural', name: 'Madhur', icon: 'user', accent: 'Hindi (IN)', gender: 'Male', persona: 'Resonant & deep • Authentic Hindi voice for epic moments', tags: 'indian hindi gaming male', group: 'Indian & Regional' },
+      { id: 'en-US-JennyNeural', name: 'Jenny', icon: 'volume-2', accent: 'English (US)', gender: 'Female', persona: 'Warm & welcoming community tone • Crisp Twitch standard', tags: 'us english calm female', group: 'English (US/UK)' },
+      { id: 'en-US-GuyNeural', name: 'Guy', icon: 'radio', accent: 'English (US)', gender: 'Male', persona: 'Broadcast studio clarity • Crisp, resonant esports narrator', tags: 'us english gaming male', group: 'English (US/UK)' },
+      { id: 'en-US-AriaNeural', name: 'Aria', icon: 'zap', accent: 'English (US)', gender: 'Female', persona: 'High cadence & upbeat • Built for rapid succession bits', tags: 'us english gaming female', group: 'English (US/UK)' }
+    ];
+
+    let edgeVoiceCatalog = EDGE_VOICE_LIST;
+    let systemVoicesList = [];
+
+    const SAMPLE_EVENTS = [
+      { sender: 'Rahul Sharma', amount: '₹500', amountValue: 500, sourceApp: 'Google Pay', appName: 'Google Pay', message: 'Bhai maza aa gaya, super stream!' },
+      { sender: 'Priya Singh', amount: '₹1000', amountValue: 1000, sourceApp: 'PhonePe', appName: 'PhonePe', message: 'Awesome stream! Keep it up 🔥' },
+      { sender: 'Amit Patel', amount: '₹2500', amountValue: 2500, sourceApp: 'Amazon Pay', appName: 'Amazon Pay', message: 'Big shoutout to the best streamer!' },
+      { sender: 'Vikramaditya', amount: '₹5000', amountValue: 5000, sourceApp: 'Paytm', appName: 'Paytm', message: 'ULTRA DONATION! 👑' },
+      { sender: 'Sneha Rao', amount: '₹200', amountValue: 200, sourceApp: 'PhonePe', appName: 'PhonePe', message: 'Keep playing bhai!' }
+    ];
+
+    let currentAudio = null;
+    let playbackIntervalId = null;
+
+    // DOM Elements
+    const voiceSearchInput = document.getElementById('voiceSearchInput');
+    const btnClearSearch = document.getElementById('btnClearSearch');
+    const voiceCardRoster = document.getElementById('voiceCardRoster');
+    const voiceCountBadge = document.getElementById('voiceCountBadge');
+    const filterPillsContainer = document.getElementById('filterPillsContainer');
+    const localSettingsBanner = document.getElementById('localSettingsBanner');
+    const ttsText = document.getElementById('tts-text');
+    const charCounter = document.getElementById('char-counter');
+    const resolvedSpeechDisplay = document.getElementById('resolved-speech-display');
+    const currentVoiceNameLabel = document.getElementById('currentVoiceNameLabel');
+    const tuningSummary = document.getElementById('tuningSummary');
+    const speedSlider = document.getElementById('speedSlider');
+    const pitchSlider = document.getElementById('pitchSlider');
+    const btnMainPlay = document.getElementById('btn-main-play');
+    const lblMainPlay = document.getElementById('lbl-main-play');
+    const iconPlayBtn = document.getElementById('icon-play-btn');
+    const btnReplayCached = document.getElementById('btn-replay-cached');
+    const audioProgressBar = document.getElementById('audioProgressBar');
+    const audioCurrentTime = document.getElementById('audioCurrentTime');
+    const audioTotalTime = document.getElementById('audioTotalTime');
+    const waveBars = document.querySelectorAll('.wave-bar');
+    const edgeVoiceHidden = document.getElementById('edge-voice');
+    const localVoiceHidden = document.getElementById('local-voice');
+    const engineNeuralBtn = document.getElementById('engineNeuralBtn');
+    const engineLocalBtn = document.getElementById('engineLocalBtn');
+
+    async function loadAllEdgeVoices() {
+      try {
+        const res = await fetch('/api/tts/voices');
+        const data = await res.json();
+        if (data && Array.isArray(data.voices) && data.voices.length > 0) {
+          edgeVoiceCatalog = data.voices;
+          if (state.engine === 'neural') {
+            renderVoiceRoster();
+          }
+        }
+      } catch (e) {
+        console.warn('Could not fetch remote voices catalog, using fallback.', e);
+      }
+    }
+
+    async function openWindowsSpeechSettings() {
+      try {
+        const res = await fetch('/api/system/open-speech-settings', { method: 'POST' });
+        const data = await res.json();
+        if (!data || !data.success) {
+          window.open('ms-settings:speech', '_blank');
+        }
+      } catch (e) {
+        window.open('ms-settings:speech', '_blank');
+      }
+    }
+
+    function getAvailableVoices() {
+      return state.engine === 'neural' ? edgeVoiceCatalog : systemVoicesList;
+    }
+
+    function getCurrentSelectedVoiceId() {
+      return state.engine === 'neural' ? edgeVoiceHidden.value : localVoiceHidden.value;
+    }
+
+    function getNextSampleEvent() {
+      if (state.cachedLastEvent && state.sampleIdx === 0) {
+        state.sampleIdx++;
+        return state.cachedLastEvent;
+      }
+      const ev = SAMPLE_EVENTS[state.sampleIdx % SAMPLE_EVENTS.length];
+      state.sampleIdx++;
+      return ev;
+    }
+
+    function renderVoiceRoster() {
+      const voices = getAvailableVoices();
+      const currentId = getCurrentSelectedVoiceId();
+      const query = state.searchQuery.trim().toLowerCase();
+      const filter = state.activeFilter;
+
+      const filtered = voices.filter(v => {
+        const name = (v.name || '').toLowerCase();
+        const accent = (v.accent || v.friendlyLocale || '').toLowerCase();
+        const persona = (v.persona || '').toLowerCase();
+        const tagList = (v.tags || '').toLowerCase().split(/\s+/);
+        const id = (v.id || '').toLowerCase();
+        const gender = (v.gender || '').toLowerCase();
+        const locale = (v.locale || '').toLowerCase();
+
+        const matchesQuery = !query || name.includes(query) || accent.includes(query) || persona.includes(query) || id.includes(query) || locale.includes(query);
+        
+        let matchesCategory = true;
+        if (filter === 'all') {
+          matchesCategory = true;
+        } else if (filter === 'male') {
+          matchesCategory = (gender === 'male') || (tagList.includes('male') && !tagList.includes('female'));
+        } else if (filter === 'female') {
+          matchesCategory = (gender === 'female') || tagList.includes('female');
+        } else if (filter === 'indian') {
+          matchesCategory = tagList.includes('indian') || tagList.includes('regional') || tagList.includes('hinglish') || tagList.includes('hindi') || (v.group && v.group.toLowerCase().includes('indian')) || (locale.endsWith('-in') || locale.startsWith('hi') || locale.startsWith('mr') || locale.startsWith('ta') || locale.startsWith('te') || locale.startsWith('bn') || locale.startsWith('gu') || locale.startsWith('kn') || locale.startsWith('ml') || locale.startsWith('pa') || locale.startsWith('ur'));
+        } else if (filter === 'english') {
+          matchesCategory = tagList.includes('us') || tagList.includes('uk') || tagList.includes('english') || locale.startsWith('en');
+        } else if (filter === 'global') {
+          matchesCategory = !locale.endsWith('-in') && !locale.startsWith('en');
+        } else {
+          matchesCategory = tagList.includes(filter) || (v.group && v.group.toLowerCase().includes(filter));
+        }
+
+        return matchesQuery && matchesCategory;
+      });
+
+      voiceCountBadge.textContent = `${filtered.length} Voice${filtered.length === 1 ? '' : 's'}`;
+
+      if (filtered.length === 0) {
+        voiceCardRoster.innerHTML = `
+          <div style="padding: 24px 10px; text-align: center; color: var(--text-dim); font-size: 11.5px;">
+            No voices found matching "${state.searchQuery}"
+          </div>
+        `;
+        return;
+      }
+
+      let html = '';
+      filtered.forEach(v => {
+        const isSelected = v.id === currentId || v.name === currentId || v.shortName === currentId;
+        const iconName = v.icon || (v.gender === 'Male' ? 'mic' : 'user');
+        const genderBadge = v.gender ? `<span class="tag-gender">${v.gender}</span>` : '';
+        const displayAccent = v.accent || v.friendlyLocale || v.locale || '';
+        const accentBadge = displayAccent ? `<span class="tag-accent" title="${displayAccent}">${displayAccent}</span>` : '';
+
+        html += `
+          <div class="voice-card ${isSelected ? 'active' : ''}" data-id="${v.id}" onclick="selectVoice('${v.id}')">
+            <div class="voice-card-left">
+              <div class="voice-avatar">
+                <i data-lucide="${iconName}" style="width: 15px; height: 15px;"></i>
+              </div>
+              <div class="voice-meta">
+                <div class="voice-name-row">
+                  <span class="voice-name" title="${v.name}">${v.shortName || v.name}</span>
+                  ${accentBadge}
+                  ${genderBadge}
+                </div>
+                <div class="voice-desc" title="${v.persona || v.name}">${v.persona || v.name}</div>
+              </div>
+            </div>
+            <div class="voice-card-right">
+              <button class="btn-sample" type="button" onclick="sampleVoice(event, '${v.id}')" title="Preview Voice Sample">
+                <i data-lucide="play" style="width: 11px; height: 11px; fill: currentColor;"></i>
+                <span>Sample</span>
+              </button>
+              <div class="voice-check-dot">
+                <i data-lucide="check" style="width: 11px; height: 11px;"></i>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      voiceCardRoster.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function selectVoice(voiceId) {
+      if (state.engine === 'neural') {
+        edgeVoiceHidden.value = voiceId;
+      } else {
+        localVoiceHidden.value = voiceId;
+      }
+      const voices = getAvailableVoices();
+      const match = voices.find(v => v.id === voiceId || v.name === voiceId || v.shortName === voiceId);
+      if (match) {
+        state.selectedVoiceId = match.id;
+        state.selectedVoiceName = match.shortName || match.name;
+        state.selectedVoiceAccent = match.accent || match.friendlyLocale || '';
+      } else {
+        state.selectedVoiceId = voiceId;
+        state.selectedVoiceName = voiceId;
+        state.selectedVoiceAccent = '';
+      }
+
+      currentVoiceNameLabel.textContent = `${state.selectedVoiceName} Tuning`;
+      currentVoiceNameLabel.title = state.selectedVoiceName;
+
+      renderVoiceRoster();
+      renderLiveSpeech();
+    }
+
+    function sampleVoice(e, voiceId) {
+      if (e) e.stopPropagation();
+      selectVoice(voiceId);
+      playSelectedTTS();
+    }
+
+    function updateTuningSummary() {
+      const pitchStr = state.pitch === 0 ? 'Normal Pitch' : (state.pitch > 0 ? `+${state.pitch}% Pitch` : `${state.pitch}% Pitch`);
+      tuningSummary.textContent = `${state.speed.toFixed(2)}x • ${pitchStr}`;
+    }
+
+    function onSpeedSliderChange(val) {
+      state.speed = parseFloat(val) || 1.0;
+      const input = document.getElementById('speedInput');
+      if (input) input.value = state.speed.toFixed(2);
+      updateTuningSummary();
+      renderLiveSpeech();
+    }
+
+    function onSpeedInputChange(val) {
+      let num = parseFloat(val);
+      if (isNaN(num)) return;
+      if (num < 0.5) num = 0.5;
+      if (num > 2.0) num = 2.0;
+      state.speed = num;
+      if (speedSlider) speedSlider.value = num;
+      updateTuningSummary();
+      renderLiveSpeech();
+    }
+
+    function onPitchSliderChange(val) {
+      state.pitch = parseInt(val, 10) || 0;
+      const input = document.getElementById('pitchInput');
+      if (input) input.value = state.pitch;
+      updateTuningSummary();
+    }
+
+    function onPitchInputChange(val) {
+      let num = parseInt(val, 10);
+      if (isNaN(num)) return;
+      if (num < -20) num = -20;
+      if (num > 20) num = 20;
+      state.pitch = num;
+      if (pitchSlider) pitchSlider.value = num;
+      updateTuningSummary();
+    }
+
+    function renderLiveSpeech(sampleEv) {
+      const template = ttsText.value;
+      const ctx = sampleEv || (state.cachedLastEvent || SAMPLE_EVENTS[0]);
+      let rendered = template;
+      if (typeof TemplateEngine !== 'undefined' && TemplateEngine.render) {
+        try {
+          rendered = TemplateEngine.render(template, ctx);
+        } catch (e) {
+          rendered = template;
+        }
+      }
+      rendered = (rendered || '').trim().slice(0, 200);
+      resolvedSpeechDisplay.textContent = rendered || '(Empty Speech Template)';
+      
+      charCounter.textContent = `${rendered.length} / 200 chars`;
+      charCounter.style.color = rendered.length >= 190 ? 'var(--danger)' : 'var(--success)';
+
+      // Duration estimation
+      const wordCount = rendered ? rendered.trim().split(/\s+/).length : 0;
+      const baseSeconds = Math.max(1.8, (wordCount / (2.6 * state.speed))).toFixed(1);
+      audioTotalTime.textContent = `0:0${Math.round(baseSeconds)}`;
+      return { rendered, ctx };
+    }
+
+    function setPreset(t) {
+      ttsText.value = t;
+      renderLiveSpeech();
+    }
+
+    function insertVariable(v) {
+      const start = ttsText.selectionStart || 0;
+      const end = ttsText.selectionEnd || 0;
+      const text = ttsText.value;
+      ttsText.value = text.substring(0, start) + v + text.substring(end);
+      ttsText.focus();
+      ttsText.selectionStart = ttsText.selectionEnd = start + v.length;
+      renderLiveSpeech();
+    }
+
+    function updateFilterPillsUI() {
+      if (state.engine === 'neural') {
+        filterPillsContainer.innerHTML = `
+          <button class="filter-pill ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">All Voices</button>
+          <button class="filter-pill ${state.activeFilter === 'indian' ? 'active' : ''}" data-filter="indian">Indian &amp; Regional</button>
+          <button class="filter-pill ${state.activeFilter === 'english' ? 'active' : ''}" data-filter="english">English (US/UK)</button>
+          <button class="filter-pill ${state.activeFilter === 'global' ? 'active' : ''}" data-filter="global">Global AI</button>
+          <button class="filter-pill ${state.activeFilter === 'female' ? 'active' : ''}" data-filter="female">Female</button>
+          <button class="filter-pill ${state.activeFilter === 'male' ? 'active' : ''}" data-filter="male">Male</button>
+        `;
+      } else {
+        filterPillsContainer.innerHTML = `
+          <button class="filter-pill ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">All Voices</button>
+          <button class="filter-pill ${state.activeFilter === 'indian' ? 'active' : ''}" data-filter="indian">Indian / Hindi</button>
+          <button class="filter-pill ${state.activeFilter === 'english' ? 'active' : ''}" data-filter="english">English</button>
+          <button class="filter-pill ${state.activeFilter === 'female' ? 'active' : ''}" data-filter="female">Female</button>
+          <button class="filter-pill ${state.activeFilter === 'male' ? 'active' : ''}" data-filter="male">Male</button>
+        `;
+      }
+      attachFilterPillHandlers();
+    }
+
+    function attachFilterPillHandlers() {
+      filterPillsContainer.querySelectorAll('.filter-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          filterPillsContainer.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          state.activeFilter = pill.getAttribute('data-filter');
+          renderVoiceRoster();
+        });
+      });
+    }
+
+    function selectEngine(engine) {
+      state.engine = engine;
+      state.activeFilter = 'all';
+      if (engine === 'neural') {
+        engineNeuralBtn.classList.add('active');
+        engineLocalBtn.classList.remove('active');
+        if (localSettingsBanner) localSettingsBanner.style.display = 'none';
+      } else {
+        engineLocalBtn.classList.add('active');
+        engineNeuralBtn.classList.remove('active');
+        if (localSettingsBanner) localSettingsBanner.style.display = 'flex';
+      }
+      updateFilterPillsUI();
+      selectVoice(getCurrentSelectedVoiceId());
+    }
+
+    // Search input handlers
+    voiceSearchInput.addEventListener('input', (e) => {
+      state.searchQuery = e.target.value;
+      btnClearSearch.style.display = state.searchQuery ? 'flex' : 'none';
+      renderVoiceRoster();
+    });
+
+    function clearVoiceSearch() {
+      voiceSearchInput.value = '';
+      state.searchQuery = '';
+      btnClearSearch.style.display = 'none';
+      renderVoiceRoster();
+      voiceSearchInput.focus();
+    }
+
+    attachFilterPillHandlers();
+
+    // Audio Playback State Controller
+    function setPlayingState(isPlaying, source = 'main') {
+      state.isPlaying = isPlaying;
+
+      const iconReplay = document.getElementById('icon-replay-btn');
+      const iconMain = document.getElementById('icon-play-btn');
+
+      if (isPlaying) {
+        waveBars.forEach(b => b.classList.add('playing'));
+
+        if (source === 'main') {
+          btnMainPlay.classList.add('is-playing');
+          lblMainPlay.textContent = 'Playing Audio...';
+          if (iconMain) iconMain.setAttribute('data-lucide', 'square');
+
+          btnReplayCached.classList.remove('is-playing');
+          if (iconReplay) iconReplay.setAttribute('data-lucide', 'play');
+        } else if (source === 'inline') {
+          btnReplayCached.classList.add('is-playing');
+          if (iconReplay) iconReplay.setAttribute('data-lucide', 'pause');
+
+          btnMainPlay.classList.remove('is-playing');
+          lblMainPlay.textContent = 'Play Speech Preview';
+          if (iconMain) iconMain.setAttribute('data-lucide', 'play');
+        }
+      } else {
+        btnMainPlay.classList.remove('is-playing');
+        lblMainPlay.textContent = 'Play Speech Preview';
+        if (iconMain) iconMain.setAttribute('data-lucide', 'play');
+
+        btnReplayCached.classList.remove('is-playing');
+        if (iconReplay) iconReplay.setAttribute('data-lucide', 'play');
+
+        waveBars.forEach(b => b.classList.remove('playing'));
+        audioProgressBar.style.width = '0%';
+        audioCurrentTime.textContent = '0:00';
+      }
+      lucide.createIcons();
+    }
+
+    function stopAll() {
+      if (currentAudio) {
+        try { currentAudio.pause(); currentAudio.currentTime = 0; } catch(_) {}
+        currentAudio = null;
+      }
+      if (playbackIntervalId) {
+        clearInterval(playbackIntervalId);
+        playbackIntervalId = null;
+      }
+      if (window.speechSynthesis) {
+        try { window.speechSynthesis.cancel(); } catch(_) {}
+      }
+      setPlayingState(false);
+    }
+
+    // Primary action: generates & tests TTS
+    function playSelectedTTS() {
+      if (state.isPlaying) {
+        stopAll();
+        return;
+      }
+      const sampleEv = getNextSampleEvent();
+      const { rendered } = renderLiveSpeech(sampleEv);
+      if (!rendered) return;
+
+      if (state.engine === 'neural') {
+        playNeuralTTS(rendered, 'main');
+      } else {
+        playLocalTTS(rendered, 'main');
+      }
+    }
+
+    // Play/replay currently generated audio directly without generating new API calls
+    function replayCachedTTS() {
+      if (state.isPlaying) {
+        stopAll();
+        return;
+      }
+      if (state.lastGeneratedUrl && state.engine === 'neural') {
+        playFromAudioUrl(state.lastGeneratedUrl, null, 'inline');
+      } else {
+        const sampleEv = state.cachedLastEvent || SAMPLE_EVENTS[0];
+        const { rendered } = renderLiveSpeech(sampleEv);
+        if (!rendered) return;
+        if (state.engine === 'neural') {
+          playNeuralTTS(rendered, 'inline');
+        } else {
+          playLocalTTS(rendered, 'inline');
+        }
+      }
+    }
+
+    function playNeuralTTS(text, source = 'main') {
+      stopAll();
+      const voice = edgeVoiceHidden.value || 'en-IN-NeerjaNeural';
+      const rate = state.speed;
+      const pitch = state.pitch;
+
+      const url = `/api/tts/edge?text=${encodeURIComponent(text)}&voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}&pitch=${encodeURIComponent(pitch)}`;
+
+      // Cache current playback configuration
+      state.lastGeneratedUrl = url;
+      state.lastGeneratedText = text;
+      state.lastGeneratedVoice = voice;
+      state.lastGeneratedSpeed = rate;
+      state.lastGeneratedPitch = pitch;
+
+      playFromAudioUrl(url, text, source);
+    }
+
+    function playFromAudioUrl(url, fallbackText, source = 'main') {
+      stopAll();
+      const audio = new Audio(url);
+      currentAudio = audio;
+
+      audio.onloadedmetadata = () => {
+        setPlayingState(true, source);
+        const totalSec = audio.duration || 3.0;
+        audioTotalTime.textContent = `0:0${Math.round(totalSec)}`;
+
+        playbackIntervalId = setInterval(() => {
+          if (!currentAudio) return;
+          const cur = currentAudio.currentTime || 0;
+          const dur = currentAudio.duration || totalSec;
+          const pct = Math.min((cur / dur) * 100, 100);
+          audioProgressBar.style.width = `${pct}%`;
+          audioCurrentTime.textContent = `0:0${Math.floor(cur)}`;
+        }, 80);
+      };
+
+      audio.onended = () => {
+        stopAll();
+      };
+
+      audio.onerror = () => {
+        if (fallbackText) playLocalTTS(fallbackText, source);
+        else stopAll();
+      };
+
+      audio.play().catch(e => {
+        stopAll();
+      });
+    }
+
+    function playLocalTTS(text, source = 'main') {
+      stopAll();
+      if (!window.speechSynthesis) return;
+
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = state.speed;
+      utter.pitch = 1.0;
+
+      const voiceName = localVoiceHidden.value;
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length) {
+        const match = voices.find(v => v.name === voiceName);
+        if (match) utter.voice = match;
+      }
+
+      utter.onstart = () => {
+        setPlayingState(true, source);
+      };
+      utter.onend = () => {
+        stopAll();
+      };
+      utter.onerror = () => {
+        stopAll();
+      };
+
+      window.speechSynthesis.speak(utter);
+    }
+
+    function populateLocalVoices() {
+      if (!window.speechSynthesis) return;
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices.length) return;
+
+      systemVoicesList = voices.map(v => ({
+        id: v.name,
+        name: v.name,
+        icon: 'mic',
+        accent: v.lang,
+        gender: v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('zira') || v.name.toLowerCase().includes('susan') ? 'Female' : 'Male',
+        persona: `Local offline synthesizer (${v.lang})${v.default ? ' • Default' : ''}`,
+        tags: v.lang.toLowerCase().includes('in') || v.lang.toLowerCase().includes('hi') ? 'indian' : 'us',
+        group: 'Local System'
+      }));
+
+      if (!localVoiceHidden.value && systemVoicesList.length > 0) {
+        const indianMatch = systemVoicesList.find(v => v.accent.includes('IN') || v.accent.includes('hi'));
+        localVoiceHidden.value = indianMatch ? indianMatch.id : systemVoicesList[0].id;
+      }
+
+      if (state.engine === 'local') {
+        renderVoiceRoster();
+      }
+    }
+
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = populateLocalVoices;
+      populateLocalVoices();
+    }
+
+    function resetToDefaults() {
+      state.speed = 1.05;
+      state.pitch = 0;
+      if (speedSlider) speedSlider.value = 1.05;
+      const speedInput = document.getElementById('speedInput');
+      if (speedInput) speedInput.value = '1.05';
+      if (pitchSlider) pitchSlider.value = 0;
+      const pitchInput = document.getElementById('pitchInput');
+      if (pitchInput) pitchInput.value = '0';
+      ttsText.value = '{{sender}} ne {{amountValue}} rupaye bheje {{sourceApp}} se! Bhai maza aa gaya, super stream!';
+      selectEngine('neural');
+      selectVoice('en-IN-NeerjaNeural');
+      updateTuningSummary();
+      renderLiveSpeech();
+    }
+
+    function applySettingsToParent() {
+      const payload = {
+        provider: state.engine === 'neural' ? 'edge' : 'local',
+        voice: state.engine === 'neural' ? edgeVoiceHidden.value : localVoiceHidden.value,
+        rate: state.speed,
+        pitch: state.pitch,
+        template: ttsText.value
+      };
+
+      const saveBtn = document.getElementById('btn-apply');
+      const originalHtml = saveBtn.innerHTML;
+      saveBtn.innerHTML = `
+        <i data-lucide="check" style="width: 14px; height: 14px;"></i>
+        <span>Saved &amp; Applied!</span>
+      `;
+      lucide.createIcons();
+
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'APPLY_TTS_SETTINGS', settings: payload }, '*');
+      }
+
+      setTimeout(() => {
+        saveBtn.innerHTML = originalHtml;
+        lucide.createIcons();
+      }, 1200);
+    }
+
+    // Receive initial settings from parent window
+    window.addEventListener('message', (e) => {
+      if (!e.data || e.data.type !== 'INIT_TTS_PREVIEW') return;
+      const tts = e.data.tts || {};
+      state.cachedLastEvent = e.data.lastEvent || null;
+
+      if (tts.provider === 'local') {
+        selectEngine('local');
+        if (tts.voice) localVoiceHidden.value = tts.voice;
+      } else {
+        selectEngine('neural');
+        if (tts.voice) edgeVoiceHidden.value = tts.voice;
+      }
+      if (tts.rate !== undefined) {
+        state.speed = parseFloat(tts.rate) || 1.05;
+        if (speedSlider) speedSlider.value = state.speed;
+        const speedInput = document.getElementById('speedInput');
+        if (speedInput) speedInput.value = state.speed.toFixed(2);
+      }
+      if (tts.pitch !== undefined) {
+        state.pitch = parseInt(tts.pitch, 10) || 0;
+        if (pitchSlider) pitchSlider.value = state.pitch;
+        const pitchInput = document.getElementById('pitchInput');
+        if (pitchInput) pitchInput.value = state.pitch;
+      }
+      if (tts.templateText) {
+        ttsText.value = tts.templateText;
+      }
+      selectVoice(getCurrentSelectedVoiceId());
+      updateTuningSummary();
+      renderLiveSpeech();
+    });
+
+    // Initial setup
+    loadAllEdgeVoices();
+    selectVoice(getCurrentSelectedVoiceId());
+    updateTuningSummary();
+    renderLiveSpeech();
+    lucide.createIcons();
+  </script>
+</body>
+</html>

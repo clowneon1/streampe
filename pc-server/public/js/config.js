@@ -690,7 +690,171 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Works in both HTTPS (navigator.clipboard) and plain HTTP / OBS browser sources (execCommand fallback).
+  // ── Voice Studio Modal Controller ───────────────────────────
+  const NEURAL_VOICES = [
+    { group: '🇮🇳 Indian Voices (Hinglish & Hindi)', voices: [
+      { id: 'en-IN-NeerjaNeural', label: '👩 Neerja (Indian English / Hinglish - Female)' },
+      { id: 'en-IN-PrabhatNeural', label: '👨 Prabhat (Indian English / Hinglish - Male)' },
+      { id: 'hi-IN-SwaraNeural', label: '👩 Swara (Hindi / Hinglish - Female)' },
+      { id: 'hi-IN-MadhurNeural', label: '👨 Madhur (Hindi / Hinglish - Male)' }
+    ]},
+    { group: '🇺🇸 US & Global AI Voices', voices: [
+      { id: 'en-US-JennyNeural', label: '👩 Jenny (US - Female)' },
+      { id: 'en-US-GuyNeural', label: '👨 Guy (US - Male)' },
+      { id: 'en-US-AriaNeural', label: '👩 Aria (US - Female)' }
+    ]}
+  ];
+
+  function updateTTSVoiceOptions(provider, selectedVoice) {
+    const select = el('tpl-tts-voice');
+    if (!select) return;
+    select.innerHTML = '';
+    if (provider === 'local') {
+      const voices = (typeof window !== 'undefined' && window.speechSynthesis) ? window.speechSynthesis.getVoices() : [];
+      if (!voices.length) {
+        select.innerHTML = '<option value="">Default System Voice</option>';
+      } else {
+        select.innerHTML = voices.map(v => `<option value="${v.name}">${v.name} (${v.lang}) ${v.default ? '★' : ''}</option>`).join('');
+      }
+      if (selectedVoice) select.value = selectedVoice;
+    } else {
+      NEURAL_VOICES.forEach(grp => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = grp.group;
+        grp.voices.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v.id;
+          opt.textContent = v.label;
+          if (v.id === selectedVoice) opt.selected = true;
+          optgroup.appendChild(opt);
+        });
+        select.appendChild(optgroup);
+      });
+      if (selectedVoice) select.value = selectedVoice;
+    }
+  }
+
+  const TTSStudio = {
+    modal: null,
+    iframe: null,
+
+    init() {
+      this.modal = el('modal-tts-studio');
+      this.iframe = el('tts-studio-iframe');
+      if (!this.modal) return;
+
+      on('btn-open-tts-studio', 'click', () => this.open());
+      on('btn-tts-studio-close', 'click', () => this.close());
+      const backdrop = el('tts-studio-backdrop');
+      if (backdrop) backdrop.addEventListener('click', () => this.close());
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && this.modal && this.modal.style.display !== 'none') {
+          this.close();
+        }
+      });
+
+      window.addEventListener('message', (e) => {
+        if (!e.data) return;
+
+        if (e.data.type === 'APPLY_TTS_SETTINGS') {
+          const s = e.data.settings;
+          if (!s) return;
+          setSelectVal('tpl-tts-provider', s.provider);
+          updateTTSVoiceOptions(s.provider, s.voice);
+          setSelectVal('tpl-tts-voice', s.voice);
+          setVal('tpl-tts-rate', s.rate);
+          setVal('tpl-tts-pitch', s.pitch);
+          if (s.template) {
+            setVal('tpl-tts-template', s.template);
+          }
+
+          showToast('<i data-lucide="check"></i> Voice settings & template synced!', 'success');
+          this.close();
+        } else if (e.data.type === 'TRIGGER_OBS_ALERT_FROM_STUDIO') {
+          const sim = e.data.eventData || {};
+          const currentTpl = currentTemplate();
+          const tplId = currentTpl ? currentTpl.id : config.activeTemplateId;
+          const numAmount = TemplateMatcher.parseAmount(sim.amount) || 500;
+          const formattedAmount = numAmount.toLocaleString('en-IN');
+          const isIsolated = config.simulation ? config.simulation.isolatedMode !== false : true;
+
+          const rawNotif = {
+            type: 'payment_notification',
+            alertId: `sim_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            alertTemplateId: tplId,
+            simulated: isIsolated,
+            appName: sim.sourceApp || 'Google Pay',
+            sender: sim.sender || 'Rahul Sharma',
+            amount: sim.amount || '₹500',
+            amountValue: numAmount,
+            message: sim.message || '',
+            text: `${sim.sender || 'Rahul Sharma'} paid you ₹${formattedAmount}`,
+            timestamp: Date.now()
+          };
+
+          fetch('/api/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...rawNotif, settings: config })
+          }).then(() => {
+            showToast('<i data-lucide="send"></i> Dispatched test alert to OBS overlay!', 'success');
+          }).catch(err => {
+            showToast('Failed to trigger alert: ' + err.message, 'error');
+          });
+        }
+      });
+    },
+
+    open() {
+      if (!this.modal) return;
+      readFormValues();
+      this.modal.style.display = 'flex';
+      setTimeout(() => this.modal.classList.add('active'), 10);
+
+      const template = currentTemplate() || (config.alertTemplates && config.alertTemplates[0]);
+      const tts = (template && template.tts) ? template.tts : ConfigSchema.TTS_DEFAULTS;
+
+      // Extract last donation event from recent list or fallback to active simulator settings
+      let lastEvent = null;
+      const recentList = config.widgets && config.widgets.recent && config.widgets.recent.recentDonations;
+      if (Array.isArray(recentList) && recentList.length > 0) {
+        const r = recentList[0];
+        lastEvent = {
+          sender: r.name || r.sender || 'Rahul Kumar',
+          amount: r.amount ? (String(r.amount).startsWith('₹') ? r.amount : `₹${r.amount}`) : '₹500',
+          message: r.message || '',
+          sourceApp: r.app || r.sourceApp || 'Google Pay'
+        };
+      } else {
+        lastEvent = {
+          sender: val('sim-sender', 'Rahul Sharma'),
+          amount: `₹${val('sim-amount', '500')}`,
+          message: val('sim-message', 'Awesome stream bhai!'),
+          sourceApp: val('sim-app-provider', 'Google Pay')
+        };
+      }
+
+      if (this.iframe && this.iframe.contentWindow) {
+        this.iframe.contentWindow.postMessage({
+          type: 'INIT_TTS_PREVIEW',
+          tts: {
+            ...tts,
+            templateText: val('tpl-tts-template', tts.template)
+          },
+          lastEvent: lastEvent
+        }, '*');
+      }
+    },
+
+    close() {
+      if (!this.modal) return;
+      this.modal.classList.remove('active');
+      setTimeout(() => {
+        this.modal.style.display = 'none';
+      }, 200);
+    }
+  };
   // Pass the originating button element as the second argument to get a visual "✓ Copied!" flash animation.
   function copyToClipboard(text, triggerBtn) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1026,14 +1190,13 @@ document.addEventListener('DOMContentLoaded', () => {
       template.tts = {
         enabled: checked('tpl-tts-enabled', false),
         template: val('tpl-tts-template', prevTTS.template),
-        language: val('tpl-tts-language', prevTTS.language || 'en-IN'),
-        voice: val('tpl-tts-voice', prevTTS.voice || 'Aditi'),
-        provider: val('tpl-tts-provider', prevTTS.provider || 'puter'),
-        engine: val('tpl-tts-engine', prevTTS.engine || 'neural'),
-        instructions: val('tpl-tts-instructions', prevTTS.instructions || ''),
+        provider: val('tpl-tts-provider', prevTTS.provider || 'edge'),
+        voice: val('tpl-tts-voice', prevTTS.voice || 'en-IN-NeerjaNeural'),
         rate: numVal('tpl-tts-rate', prevTTS.rate !== undefined ? prevTTS.rate : 1.0),
+        pitch: numVal('tpl-tts-pitch', prevTTS.pitch !== undefined ? prevTTS.pitch : 0),
         volume: numVal('tpl-tts-volume', prevTTS.volume !== undefined ? prevTTS.volume : 100),
-        delay: numVal('tpl-tts-delay', prevTTS.delay !== undefined ? prevTTS.delay : 400)
+        delay: numVal('tpl-tts-delay', prevTTS.delay !== undefined ? prevTTS.delay : 400),
+        maxChars: 200
       };
     }
 
@@ -1229,23 +1392,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const tts = template.tts || ConfigSchema.TTS_DEFAULTS;
       setChecked('tpl-tts-enabled', tts.enabled);
       setVal('tpl-tts-template', tts.template);
-      setSelectVal('tpl-tts-language', tts.language || 'en-IN');
-      updateTTSVoiceOptions(tts.language || 'en-IN', tts.voice || 'Aditi');
-      setSelectVal('tpl-tts-provider', tts.provider || 'puter');
-      setSelectVal('tpl-tts-engine', tts.engine || 'neural');
-      setVal('tpl-tts-instructions', tts.instructions || '');
+      setSelectVal('tpl-tts-provider', tts.provider || 'edge');
+      updateTTSVoiceOptions(tts.provider || 'edge', tts.voice || 'en-IN-NeerjaNeural');
       setVal('tpl-tts-rate', tts.rate !== undefined ? tts.rate : 1.0);
-      const rateValEl = el('tpl-tts-rate-val');
-      if (rateValEl) rateValEl.textContent = (tts.rate !== undefined ? tts.rate : 1.0) + 'x';
+      setVal('tpl-tts-pitch', tts.pitch !== undefined ? tts.pitch : 0);
       setVal('tpl-tts-volume', tts.volume !== undefined ? tts.volume : 100);
-      const volValEl = el('tpl-tts-volume-val');
-      if (volValEl) volValEl.textContent = (tts.volume !== undefined ? tts.volume : 100) + '%';
       setVal('tpl-tts-delay', tts.delay !== undefined ? tts.delay : 400);
-
-      const groupEngine = el('group-tts-engine');
-      const groupInstructions = el('group-tts-instructions');
-      if (groupEngine) groupEngine.style.display = (tts.provider === 'browser') ? 'none' : 'block';
-      if (groupInstructions) groupInstructions.style.display = (tts.provider === 'browser') ? 'none' : 'block';
     }
 
     const goal = config.widgets.goal;
@@ -2160,17 +2312,9 @@ document.addEventListener('DOMContentLoaded', () => {
       syncLivePreview();
     });
 
-    on('tpl-tts-volume', 'input', (e) => {
-      const volValEl = el('tpl-tts-volume-val');
-      if (volValEl) volValEl.textContent = e.target.value + '%';
-      syncLivePreview();
-    });
-
-    ['tpl-tts-enabled', 'tpl-tts-template', 'tpl-tts-voice', 'tpl-tts-engine', 'tpl-tts-instructions', 'tpl-tts-delay'].forEach(id => {
+    ['tpl-tts-enabled', 'tpl-tts-template', 'tpl-tts-provider', 'tpl-tts-voice', 'tpl-tts-rate', 'tpl-tts-pitch', 'tpl-tts-volume', 'tpl-tts-delay'].forEach(id => {
       on(id, 'change', () => syncLivePreview());
-      if (id === 'tpl-tts-template' || id === 'tpl-tts-instructions' || id === 'tpl-tts-delay') {
-        on(id, 'input', () => syncLivePreview());
-      }
+      on(id, 'input', () => syncLivePreview());
     });
   }
 
@@ -2787,6 +2931,9 @@ document.addEventListener('DOMContentLoaded', () => {
       audio.volume = Math.max(0, Math.min(1, numVal('input-sound-volume', 80) / 100));
       audio.play().catch(err => showToast('<i data-lucide="alert-triangle"></i> ' + err.message));
     });
+
+    // ── TTS Controls & Voice Studio
+    TTSStudio.init();
   }
 
   // ── Custom Event Simulator ────────────────────────────────────
