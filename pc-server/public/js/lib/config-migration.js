@@ -244,6 +244,19 @@
     const recentWidgetData = (src.widgets && src.widgets.recent) || {};
     const cyclingWidgetData = (src.widgets && src.widgets.cycling) || {};
 
+    const blankFallback = ConfigSchema.createTemplate({
+      id: 'blank-fallback',
+      name: 'Blank Alert',
+      isDefault: true,
+      priority: -100,
+      amountFilters: [],
+      text: { titleTemplate: '', subtitleTemplate: '' },
+      style: { backgroundOpacity: 0, borderWidth: 0, padding: 0 },
+      image: { imageUrl: '', gifUrl: '', size: 0 },
+      sound: { soundUrl: '', soundVolume: 0 },
+      code: { enableCustomCode: true, customHTML: '', customCSS: '', customJS: '' }
+    });
+
     return {
       version: ConfigSchema.CONFIG_VERSION,
       activeWidget: src.activeWidget,

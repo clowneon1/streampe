@@ -173,7 +173,8 @@
         layout: Object.assign({}, base.layout, template.layout),
         code: Object.assign({}, base.code, template.code),
         image: Object.assign({}, template.image),
-        sound: Object.assign({}, template.sound)
+        sound: Object.assign({}, template.sound),
+        tts: Object.assign({}, base.tts, template.tts)
       };
     }
   };

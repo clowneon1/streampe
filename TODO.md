@@ -42,6 +42,13 @@
 - [x] **Service Discovery Rebranding, Mesh Fixes & Sidecar Token Isolation**: Rebranded mDNS discovery to `_streampe._tcp`, added Android `WifiManager.MulticastLock` with `CHANGE_WIFI_MULTICAST_STATE` permission, added Windows Defender Firewall mDNS UDP 5353 auto-rule, implemented fallback port cascade sequence (`2907 ➔ 8876 ➔ 2708 ➔ 9091 ➔ 1001 ➔ 0`), added mid-session network switch auto-recovery (LAN ⇄ Wi-Fi IP changes), and established desktop sidecar session token handshake (`[INSTANCE_AUTH]`) to eliminate port hijacking.
 - [x] **Declarative Payment Rules Engine & Whitelisting**: Created `payment-rules.json` array rules engine for PhonePe, Google Pay, and Amazon Pay. Refactored `parsePayment()` with positive whitelisting (rejecting non-payment/promotions), ReDoS input guards (<300 chars), startup self-testing, and real-time 🟢/🟡 `[PARSE]` diagnostic log badges. Published authoritative pattern specification in [`PAYMENT_PATTERNS.md`](file:///d:/xwork/projects/payment-alerts-for-obs/PAYMENT_PATTERNS.md).
 - [x] **Mobile Notification Tester Preset Synchronization & bigText Fix**: Updated mobile tester presets in `NotificationTesterActivity.kt` and PC simulator presets in `config.js` to match modern notification formats. Fixed `bigText` calculation so user-edited test notification text is honored.
+- [x] **Alert Template Fallback System & Silent Blank Alert Fallback**:
+  - Shipped dual alert templates by default (`Default Alert` and `Blank Alert`) across `default-profile.json`, schema generator, and migration engine.
+  - Configured `Blank Alert` as the designated fallback (`isDefault: true`, empty custom code, 0 sound volume/opacity) to silently ignore payments not matching specific custom amount filters.
+  - Added fallback star indicator (`⭐`) and badges to template selector and custom event simulator dropdowns (`Blank Alert (fallback) ⭐`).
+- [x] **Dashboard Template Switcher Fix & Clean Logging**:
+  - Fixed template dropdown thrashing by preventing redundant `innerHTML` DOM rewrites on state updates, preserving active template selection.
+  - Cleaned up verbose console logs and terminal spam on dashboard boot and alert trigger dispatch.
 
 ### Version 2.1.0
 

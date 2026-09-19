@@ -7,6 +7,7 @@ const zlib = require('zlib');
 const os = require('os');
 const child_process = require('child_process');
 const { exec } = child_process;
+const crypto = require('crypto');
 const dgram = require('dgram');
 const winston = require('winston');
 require('winston-daily-rotate-file');
@@ -25,7 +26,16 @@ const {
   NETWORK_CHANGE_CHECK_INTERVAL_MS,
   ANDROID_HEARTBEAT_INTERVAL_MS,
   OBS_HEARTBEAT_INTERVAL_MS,
-  getDefaultAppDataDir
+  getDefaultAppDataDir,
+  EDGE_TRUSTED_CLIENT_TOKEN,
+  WIN_EPOCH,
+  EDGE_TTS_VOICES_URL,
+  EDGE_TTS_WS_URL_BASE,
+  EDGE_TTS_TIMEOUT_MS,
+  EDGE_VOICE_CACHE_TTL_MS,
+  GOOGLE_TTS_URL,
+  DEFAULT_TTS_VOICE,
+  FALLBACK_EDGE_VOICES
 } = require('./constants');
 
 // App Configuration and Constants
@@ -117,6 +127,263 @@ app.get('/favicon.ico', (req, res) => {
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'config.html'));
+});
+
+// ── Text-to-Speech (TTS) Endpoints ──
+function getSecMsGec() {
+  const nowUnix = BigInt(Math.floor(Date.now() / 1000));
+  let ticks = nowUnix + WIN_EPOCH;
+  ticks -= ticks % 300n;
+  ticks = ticks * 10000000n;
+  const str = ticks.toString() + EDGE_TRUSTED_CLIENT_TOKEN;
+  return crypto.createHash('sha256').update(str, 'ascii').digest('hex').toUpperCase();
+}
+
+async function synthesizeEdgeSpeech(text, voice = DEFAULT_TTS_VOICE, rate = 1.0, pitch = 0) {
+  return new Promise((resolve, reject) => {
+    const WebSocketClient = require('ws');
+    const secMsGec = getSecMsGec();
+    const connId = crypto.randomUUID().replace(/-/g, '');
+    const wsUrl = `${EDGE_TTS_WS_URL_BASE}?TrustedClientToken=${EDGE_TRUSTED_CLIENT_TOKEN}&Sec-MS-GEC=${secMsGec}&Sec-MS-GEC-Version=1-143.0.3650.75&ConnectionId=${connId}`;
+
+    const ws = new WebSocketClient(wsUrl, {
+      headers: {
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0',
+        'Origin': 'chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
+        'Accept-Language': 'en-US,en;q=0.9'
+      }
+    });
+
+    const chunks = [];
+    const lang = voice.split('-').slice(0, 2).join('-') || 'en-IN';
+    const reqId = crypto.randomUUID().replace(/-/g, '');
+    const dateStr = new Date().toUTCString();
+
+    const ratePct = `${Math.round((rate - 1) * 100)}%`;
+    const pitchHz = `${pitch >= 0 ? '+' : ''}${pitch}Hz`;
+    const safeText = String(text || '').slice(0, 300).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${lang}'><voice name='${voice}'><prosody rate='${ratePct}' pitch='${pitchHz}'>${safeText}</prosody></voice></speak>`;
+
+    const timer = setTimeout(() => {
+      try { ws.close(); } catch (_) {}
+      reject(new Error('Edge TTS synthesis timed out'));
+    }, EDGE_TTS_TIMEOUT_MS);
+
+    ws.on('open', () => {
+      const configPayload = 'Content-Type:application/json; charset=utf-8\r\nPath:speech.config\r\n\r\n{"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":"false","wordBoundaryEnabled":"false"},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}';
+      ws.send(configPayload);
+
+      const ssmlMsg = `X-RequestId:${reqId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${dateStr}\r\nPath:ssml\r\n\r\n${ssml}`;
+      ws.send(ssmlMsg);
+    });
+
+    ws.on('message', (data, isBinary) => {
+      if (!isBinary) {
+        const str = data.toString();
+        if (str.includes('Path:turn.end')) {
+          clearTimeout(timer);
+          ws.close();
+          const buf = Buffer.concat(chunks);
+          resolve(buf);
+        }
+      } else {
+        const headerLen = data.readUInt16BE(0);
+        if (data.length > headerLen + 2) {
+          chunks.push(data.subarray(headerLen + 2));
+        }
+      }
+    });
+
+    ws.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
+}
+
+let cachedEdgeVoiceCatalog = null;
+let lastEdgeVoiceFetchTime = 0;
+
+async function fetchAllEdgeVoices() {
+  if (cachedEdgeVoiceCatalog && (Date.now() - lastEdgeVoiceFetchTime < EDGE_VOICE_CACHE_TTL_MS)) {
+    return cachedEdgeVoiceCatalog;
+  }
+
+  const https = require('https');
+  const listUrl = EDGE_TTS_VOICES_URL;
+
+  return new Promise((resolve) => {
+    const req = https.get(listUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0',
+        'Authority': 'speech.platform.bing.com'
+      },
+      timeout: 5000
+    }, (res) => {
+      if (res.statusCode !== 200) {
+        console.warn(`[TTS:Server] Remote Edge voice list returned status ${res.statusCode}. Using fallback catalog.`);
+        cachedEdgeVoiceCatalog = FALLBACK_EDGE_VOICES;
+        return resolve(FALLBACK_EDGE_VOICES);
+      }
+
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const raw = JSON.parse(data);
+          if (!Array.isArray(raw) || raw.length === 0) {
+            cachedEdgeVoiceCatalog = FALLBACK_EDGE_VOICES;
+            return resolve(FALLBACK_EDGE_VOICES);
+          }
+
+          // Map & Normalize
+          const mapped = raw.map(v => {
+            const shortName = v.ShortName || v.Name || '';
+            const locale = v.Locale || '';
+            const gender = v.Gender || 'Female';
+            const friendlyName = (v.FriendlyName || shortName).replace(/Microsoft\s+/i, '').replace(/Online\s*\(Natural\)\s*-\s*/i, '');
+            const isIndian = locale.endsWith('-IN') || locale.startsWith('hi-') || locale.startsWith('mr-') || locale.startsWith('ta-') || locale.startsWith('te-') || locale.startsWith('bn-') || locale.startsWith('gu-') || locale.startsWith('kn-') || locale.startsWith('ml-') || locale.startsWith('pa-') || locale.startsWith('ur-');
+            const isUS = locale === 'en-US';
+            const isUK = locale === 'en-GB';
+
+            let group = 'Global AI';
+            if (isIndian) group = 'Indian & Regional';
+            else if (isUS) group = 'English (US)';
+            else if (isUK) group = 'English (UK)';
+
+            const cleanName = shortName.split('-').pop()?.replace('Neural', '') || shortName;
+
+            return {
+              id: shortName,
+              name: `${cleanName} (${friendlyName})`,
+              shortName: cleanName,
+              gender: gender,
+              locale: locale,
+              friendlyLocale: v.LocaleDescription || locale,
+              persona: `Natural Neural Voice (${v.LocaleDescription || locale})`,
+              tags: `${locale.toLowerCase()} ${gender.toLowerCase()} ${cleanName.toLowerCase()} ${isIndian ? 'indian regional hinglish' : ''} ${isUS ? 'us english' : ''} ${isUK ? 'uk english' : ''}`,
+              group: group
+            };
+          });
+
+          // Sort prioritizing Indian voices first, then US, then UK, then others
+          mapped.sort((a, b) => {
+            const aInd = a.group === 'Indian & Regional' ? 0 : (a.group === 'English (US)' ? 1 : (a.group === 'English (UK)' ? 2 : 3));
+            const bInd = b.group === 'Indian & Regional' ? 0 : (b.group === 'English (US)' ? 1 : (b.group === 'English (UK)' ? 2 : 3));
+            if (aInd !== bInd) return aInd - bInd;
+            return a.name.localeCompare(b.name);
+          });
+
+          cachedEdgeVoiceCatalog = mapped;
+          lastEdgeVoiceFetchTime = Date.now();
+          console.log(`[TTS:Server] Successfully loaded ${mapped.length} Microsoft Edge Neural voices`);
+          resolve(mapped);
+        } catch (e) {
+          console.warn('[TTS:Server] Failed to parse Edge voice list:', e.message);
+          cachedEdgeVoiceCatalog = FALLBACK_EDGE_VOICES;
+          resolve(FALLBACK_EDGE_VOICES);
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      console.warn('[TTS:Server] Failed to fetch remote Edge voice list:', err.message);
+      cachedEdgeVoiceCatalog = FALLBACK_EDGE_VOICES;
+      resolve(FALLBACK_EDGE_VOICES);
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      cachedEdgeVoiceCatalog = FALLBACK_EDGE_VOICES;
+      resolve(FALLBACK_EDGE_VOICES);
+    });
+  });
+}
+
+// Pre-warm voice catalog
+fetchAllEdgeVoices().catch(() => {});
+
+app.get('/api/tts/voices', async (req, res) => {
+  try {
+    const voices = await fetchAllEdgeVoices();
+    res.json({ voices, count: voices.length });
+  } catch (err) {
+    res.json({ voices: FALLBACK_EDGE_VOICES, count: FALLBACK_EDGE_VOICES.length });
+  }
+});
+
+app.post('/api/system/open-speech-settings', (req, res) => {
+  const { exec } = require('child_process');
+  if (process.platform === 'win32') {
+    exec('start ms-settings:speech', (err) => {
+      if (err) {
+        exec('powershell -Command "Start-Process ms-settings:speech"', (err2) => {
+          if (err2) {
+            console.error('[System] Failed to launch Windows Speech Settings:', err2.message);
+            return res.status(500).json({ error: 'Failed to open Windows Speech Settings' });
+          }
+          res.json({ success: true });
+        });
+      } else {
+        res.json({ success: true });
+      }
+    });
+  } else {
+    res.status(400).json({ error: 'Platform is not Windows' });
+  }
+});
+
+app.get('/api/tts/edge', async (req, res) => {
+  const startTime = Date.now();
+  const text = (req.query.text || '').trim();
+  const voice = req.query.voice || DEFAULT_TTS_VOICE;
+  const rate = parseFloat(req.query.rate) || 1.0;
+  const pitch = parseInt(req.query.pitch, 10) || 0;
+
+  if (!text) {
+    console.warn('[TTS:Server] Request rejected: missing text parameter');
+    return res.status(400).send('Missing text query param');
+  }
+
+  console.log(`[TTS:Server] Synthesizing speech (voice="${voice}", rate=${rate}, pitch=${pitch}): "${text.slice(0, 60)}${text.length > 60 ? '...' : ''}"`);
+
+  try {
+    const audioBuffer = await synthesizeEdgeSpeech(text, voice, rate, pitch);
+    const elapsed = Date.now() - startTime;
+    console.log(`[TTS:Server] Synthesis complete: ${audioBuffer.length} bytes in ${elapsed}ms for voice="${voice}"`);
+
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Length': audioBuffer.length,
+      'Cache-Control': 'public, max-age=86400'
+    });
+    res.send(audioBuffer);
+  } catch (err) {
+    const elapsed = Date.now() - startTime;
+    console.error(`[TTS:Server] Synthesis failed after ${elapsed}ms:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/tts/google', async (req, res) => {
+  try {
+    const text = (req.query.text || '').trim().slice(0, 200);
+    const lang = req.query.lang || 'hi';
+    if (!text) return res.status(400).send('Missing text param');
+    const https = require('https');
+    const url = `${GOOGLE_TTS_URL}?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${encodeURIComponent(lang)}&client=tw-ob`;
+    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (gRes) => {
+      if (gRes.statusCode !== 200) return res.status(502).send('Google TTS failed');
+      res.set('Content-Type', 'audio/mpeg');
+      gRes.pipe(res);
+    }).on('error', (e) => res.status(500).send(e.message));
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 // ── Path Config Bootstrapping ──
@@ -1459,13 +1726,14 @@ function broadcastSettings(settings) {
 // ── Amount filter ─────────────────────────────────────────────────────
 const parseAmountNum = (rawAmount) => TemplateMatcher.parseAmount(rawAmount);
 
-function decorateWithTemplate(event, profile = '') {
+function decorateWithTemplate(event, profile = '', liveSettings = null) {
+  const currentSettings = liveSettings || alertSettings;
   const amount = parseAmountNum(event.amount);
   const rawSender = event.rawSender || event.sender || 'Anonymous';
   const targetProf = profile || (profilesStore && profilesStore.activeProfile) || 'Default';
-  const formattedSender = aliasesStore.formatDonorName(rawSender, alertSettings, targetProf);
+  const formattedSender = aliasesStore.formatDonorName(rawSender, currentSettings, targetProf);
   if (event.alertTemplateId) {
-    const template = alertSettings.alertTemplates.find(t => t.id === event.alertTemplateId);
+    const template = currentSettings.alertTemplates && currentSettings.alertTemplates.find(t => t.id === event.alertTemplateId);
     return {
       ...event,
       rawSender: rawSender,
@@ -1475,7 +1743,7 @@ function decorateWithTemplate(event, profile = '') {
       alertTemplateName: template ? template.name : ''
     };
   }
-  const template = TemplateMatcher.select(alertSettings.alertTemplates, amount);
+  const template = TemplateMatcher.select(currentSettings.alertTemplates, amount);
   return {
     ...event,
     rawSender: rawSender,
@@ -1726,6 +1994,24 @@ app.get('/api/donations/query', (req, res) => {
     totalPages,
     transactions: slice
   });
+});
+
+app.get('/api/tts/google', (req, res) => {
+  const text = (req.query.text || '').trim();
+  const lang = req.query.lang || 'hi';
+  if (!text) return res.status(400).send('Missing text');
+  try {
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${encodeURIComponent(lang)}&q=${encodeURIComponent(text)}`;
+    const https = require('https');
+    https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' } }, (upstream) => {
+      res.setHeader('Content-Type', 'audio/mpeg');
+      upstream.pipe(res);
+    }).on('error', (err) => {
+      res.status(500).send(err.message);
+    });
+  } catch (e) {
+    res.status(500).send(e.message);
+  }
 });
 
 app.get('/api/donations', (req, res) => {
@@ -2797,20 +3083,23 @@ app.post('/api/logs/clear', (req, res) => {
 function broadcastSample(sample) {
   const parsed = parsePayment(sample);
   const isSimulated = sample.simulated !== undefined ? !!sample.simulated : true;
+  const sampleClean = { ...sample };
+  delete sampleClean.settings;
   const decorated = decorateWithTemplate({
-    ...sample,
+    ...sampleClean,
     simulated: isSimulated,
     sender: sample.sender || (parsed ? parsed.sender : 'Test Donor'),
     amount: sample.amount || (parsed ? parsed.amount : '₹500.00'),
     sourceApp: sample.sourceApp || (parsed ? parsed.sourceApp : sample.appName) || 'PhonePe'
-  });
+  }, '', sample.settings || null);
+  delete decorated.settings;
   const payload = JSON.stringify({ type: 'payment_notification', ...decorated });
   let count = 0;
   obsClients.forEach(ws => {
     if (ws.readyState === 1) { ws.send(payload); count++; }
   });
   processPaymentForGoalAndLeaderboard(decorated);
-  log.event('TestEvent', `Sample alert triggered (simulated=${isSimulated}): ₹${decorated.amount || '0'} from "${decorated.sender || 'Test'}"`, decorated);
+  log.event('TestEvent', `Sample alert triggered (simulated=${isSimulated}): ₹${decorated.amount || '0'} from "${decorated.sender || 'Test'}" [Template: ${decorated.alertTemplateName || 'Default'}]`);
   return { count, templateId: decorated.alertTemplateId, templateName: decorated.alertTemplateName, simulated: isSimulated };
 }
 
@@ -2832,6 +3121,9 @@ app.post('/api/test', (req, res) => {
   const body = req.body || {};
   const isIsolated = alertSettings.simulation ? alertSettings.simulation.isolatedMode !== false : true;
   const isSimulated = body.simulated !== undefined ? !!body.simulated : isIsolated;
+  if (body.settings) {
+    broadcastSettings(body.settings);
+  }
   const result = broadcastSample({
     type: 'payment_notification',
     simulated: isSimulated,
@@ -2844,6 +3136,7 @@ app.post('/api/test', (req, res) => {
     amount: body.amount || '',
     sourceApp: body.sourceApp || '',
     alertTemplateId: body.alertTemplateId || null,
+    settings: body.settings || null,
     timestamp: Date.now()
   });
   res.json({ ok: true, sent: result.count, template: result.templateName, templateId: result.templateId, simulated: isSimulated });
@@ -2909,7 +3202,7 @@ wss.on('connection', (ws, req) => {
         const decorated = decorateWithTemplate(enriched);
         const payload = JSON.stringify({ type: 'payment_notification', ...decorated });
 
-        log.event('PaymentEvent', `Payment received: ${decorated.amount || '₹0'} from "${decorated.sender || 'Unknown'}" via ${decorated.sourceApp} [Template: ${decorated.alertTemplateName || 'Default'}]`, decorated);
+        log.event('PaymentEvent', `Payment received: ${decorated.amount || '₹0'} from "${decorated.sender || 'Unknown'}" via ${decorated.sourceApp} [Template: ${decorated.alertTemplateName || 'Default'}]`);
 
         obsClients.forEach(client => {
           if (client.readyState === 1) {

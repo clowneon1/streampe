@@ -556,6 +556,18 @@
     }
   };
 
+  const TTS_DEFAULTS = {
+    enabled: false,
+    template: '{{sender}} ne {{amountValue}} rupees bheje.',
+    provider: 'edge',
+    voice: 'en-IN-NeerjaNeural',
+    rate: 1.0,
+    pitch: 0,
+    volume: 100,
+    delay: 400,
+    maxChars: 200
+  };
+
   const TEMPLATE_DEFAULTS = {
     name: 'Alert Template',
     enabled: true,
@@ -563,7 +575,8 @@
     priority: 0,
     amountFilters: [],
     image: { imageUrl: '', gifUrl: '/media/alert-diamond.gif', position: 'top', size: 100 },
-    sound: { soundUrl: '/sounds/notification.wav', soundVolume: 80 }
+    sound: { soundUrl: '/sounds/notification.wav', soundVolume: 80 },
+    tts: TTS_DEFAULTS
   };
 
   const POSITION_PRESETS = {
@@ -685,6 +698,22 @@
     };
   }
 
+  function normalizeTTS(raw) {
+    const src = raw && typeof raw === 'object' ? raw : {};
+    return {
+      enabled: bool(src.enabled, TTS_DEFAULTS.enabled),
+      template: str(src.template, TTS_DEFAULTS.template),
+      provider: str(src.provider, TTS_DEFAULTS.provider),
+      voice: str(src.voice, TTS_DEFAULTS.voice),
+      language: str(src.language, TTS_DEFAULTS.language),
+      engine: str(src.engine, TTS_DEFAULTS.engine),
+      instructions: str(src.instructions, TTS_DEFAULTS.instructions),
+      rate: num(src.rate, TTS_DEFAULTS.rate, 0.5, 2.0),
+      volume: int(src.volume, TTS_DEFAULTS.volume, 0, 100),
+      delay: int(src.delay, TTS_DEFAULTS.delay, 0, 10000)
+    };
+  }
+
   function normalizeSupporters(raw) {
     const src = raw && typeof raw === 'object' ? raw : {};
     const out = {};
@@ -711,12 +740,14 @@
     WIDGET_KINDS,
     WIDGET_DEFAULTS,
     TEMPLATE_DEFAULTS,
+    TTS_DEFAULTS,
     DEFAULT_CODE,
     TEMPLATE_VARIABLES,
     CSS_CLASSES_MAP,
     POSITION_PRESETS,
     generateId,
     clone,
+    normalizeTTS,
 
     LIST_CONFIG_PRESETS,
     DEFAULT_LIST_BASE,
@@ -824,6 +855,7 @@
           .map(f => TemplateMatcher.normalizeFilter(f)),
         image: normalizeImage(src.image),
         sound: normalizeSound(src.sound),
+        tts: normalizeTTS(src.tts),
         canvas: CanvasPresets.resolve(src.canvas || base.canvas),
         text: WidgetStyle.normalizeText(src.text, base.text),
         style: normalizeStyle(src.style, base.style),
@@ -891,15 +923,27 @@
     },
 
     createDefaultConfig() {
-      const template = this.createTemplate({ id: 'default', name: 'Default Alert', isDefault: true });
+      const defaultTemplate = this.createTemplate({ id: 'default', name: 'Default Alert', isDefault: false });
+      const blankFallback = this.createTemplate({
+        id: 'blank-fallback',
+        name: 'Blank Alert',
+        isDefault: true,
+        priority: -100,
+        amountFilters: [],
+        text: { titleTemplate: '', subtitleTemplate: '' },
+        style: { backgroundOpacity: 0, borderWidth: 0, padding: 0 },
+        image: { imageUrl: '', gifUrl: '', size: 0 },
+        sound: { soundUrl: '', soundVolume: 0 },
+        code: { enableCustomCode: true, customHTML: '', customCSS: '', customJS: '' }
+      });
       const topSupporters = this.createListConfig('top-supporters', { id: 'top-supporters', name: 'Top Supporters', isDefault: true, isBuiltin: true });
       const recentDonations = this.createListConfig('recent-donations', { id: 'recent-donations', name: 'Recent Donations', isDefault: true, isBuiltin: true });
 
       return {
         version: CONFIG_VERSION,
         activeWidget: 'alert',
-        activeTemplateId: template.id,
-        alertTemplates: [template],
+        activeTemplateId: defaultTemplate.id,
+        alertTemplates: [defaultTemplate, blankFallback],
         activeListConfigId: topSupporters.id,
         listConfigs: [topSupporters, recentDonations],
         widgets: {

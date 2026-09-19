@@ -148,6 +148,16 @@
         else { const n = full.match(/[\d,]+(?:\.\d{1,2})?/); amount = n ? n[0] : ''; }
       }
 
+      let amountValue = notif.amountValue;
+      if (amountValue === undefined || amountValue === null || amountValue === '') {
+        const clean = String(amount || '').replace(/^[^\d.]+/g, '').replace(/,/g, '').trim();
+        const parsed = parseFloat(clean);
+        amountValue = !isNaN(parsed) ? Math.round(parsed) : (amount || '0');
+      } else {
+        const parsed = parseFloat(String(amountValue).replace(/,/g, ''));
+        if (!isNaN(parsed)) amountValue = Math.round(parsed);
+      }
+
       let sender = notif.sender || '';
       if (!sender) {
         const m = full.match(/(?:from|by)\s+([A-Z][a-zA-Z\s]{1,25})(?=\s+(?:via|on|ref|upi|txn)|$|\.|\\n)/i);
@@ -164,6 +174,7 @@
         _extracted: true,
         sender,
         amount: amount || '₹0',
+        amountValue: amountValue !== undefined ? amountValue : 0,
         sourceApp: appName,
         message: text || title || 'Payment notification received',
         timestamp: timeStr,
@@ -192,6 +203,15 @@
       // rawData keys take precedence (explicit > inferred)
       const extracted = this.extractNotificationData(rawData);
       const data = Object.assign({}, extracted, rawData || {});
+      if (data.amountValue !== undefined && data.amountValue !== null) {
+        const parsed = parseFloat(String(data.amountValue).replace(/,/g, ''));
+        if (!isNaN(parsed)) data.amountValue = Math.round(parsed);
+      } else if (data.amount !== undefined) {
+        const str = String(data.amount);
+        const clean = str.replace(/^[^\d.]+/g, '').replace(/,/g, '').trim();
+        const parsed = parseFloat(clean);
+        data.amountValue = !isNaN(parsed) ? Math.round(parsed) : (clean || str);
+      }
 
       // ── SafeString wrapping ───────────────────────────────────────────
       // These keys contain pre-rendered HTML and must never be escaped,

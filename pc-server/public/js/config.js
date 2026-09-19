@@ -26,6 +26,95 @@ document.addEventListener('DOMContentLoaded', () => {
   let suppressSync = false;
   const editors = {};
 
+  const TTS_VOICE_CATALOG = {
+    'en-IN': [
+      { id: 'Aditi', name: 'Aditi (Indian English - Female)' },
+      { id: 'Raveena', name: 'Raveena (Indian English - Female)' }
+    ],
+    'hi-IN': [
+      { id: 'Kajal', name: 'Kajal (Hindi - Female)' },
+      { id: 'Aditi', name: 'Aditi (Bilingual Hindi/English)' }
+    ],
+    'en-US': [
+      { id: 'Joanna', name: 'Joanna (US English - Female)' },
+      { id: 'Kendra', name: 'Kendra (US English - Female)' },
+      { id: 'Matthew', name: 'Matthew (US English - Male)' },
+      { id: 'Joey', name: 'Joey (US English - Male)' },
+      { id: 'Ivy', name: 'Ivy (US English - Child)' },
+      { id: 'Justin', name: 'Justin (US English - Child Male)' }
+    ],
+    'en-GB': [
+      { id: 'Amy', name: 'Amy (British - Female)' },
+      { id: 'Emma', name: 'Emma (British - Female)' },
+      { id: 'Brian', name: 'Brian (British - Male)' },
+      { id: 'Arthur', name: 'Arthur (British - Male)' }
+    ],
+    'es-ES': [
+      { id: 'Lucia', name: 'Lucia (Spanish - Female)' },
+      { id: 'Enrique', name: 'Enrique (Spanish - Male)' },
+      { id: 'Mia', name: 'Mia (Spanish Mexico - Female)' }
+    ],
+    'fr-FR': [
+      { id: 'Lea', name: 'Lea (French - Female)' },
+      { id: 'Mathieu', name: 'Mathieu (French - Male)' },
+      { id: 'Celine', name: 'Celine (French - Female)' }
+    ],
+    'de-DE': [
+      { id: 'Vicki', name: 'Vicki (German - Female)' },
+      { id: 'Daniel', name: 'Daniel (German - Male)' },
+      { id: 'Marlene', name: 'Marlene (German - Female)' }
+    ],
+    'ja-JP': [
+      { id: 'Mizuki', name: 'Mizuki (Japanese - Female)' },
+      { id: 'Takumi', name: 'Takumi (Japanese - Male)' },
+      { id: 'Kazuha', name: 'Kazuha (Japanese - Female)' }
+    ],
+    'ru-RU': [
+      { id: 'Tatyana', name: 'Tatyana (Russian - Female)' },
+      { id: 'Maxim', name: 'Maxim (Russian - Male)' }
+    ],
+    'pt-BR': [
+      { id: 'Camila', name: 'Camila (Portuguese BR - Female)' },
+      { id: 'Vitoria', name: 'Vitoria (Portuguese BR - Female)' },
+      { id: 'Ricardo', name: 'Ricardo (Portuguese BR - Male)' }
+    ]
+  };
+
+  const MULTILINGUAL_AI_VOICES = [
+    { id: 'Puck', name: 'Puck (Gemini AI - Playful & Upbeat)' },
+    { id: 'Charon', name: 'Charon (Gemini AI - Deep & Resonant)' },
+    { id: 'Kore', name: 'Kore (Gemini AI - Warm & Friendly)' },
+    { id: 'Fenrir', name: 'Fenrir (Gemini AI - Bold & Strong)' },
+    { id: 'Aoede', name: 'Aoede (Gemini AI - Melodic & Calm)' },
+    { id: 'eve', name: 'Eve (xAI Grok - Energetic)' },
+    { id: 'ara', name: 'Ara (xAI Grok - Warm)' },
+    { id: 'rex', name: 'Rex (xAI Grok - Confident)' },
+    { id: 'sal', name: 'Sal (xAI Grok - Smooth)' },
+    { id: 'leo', name: 'Leo (xAI Grok - Authoritative)' }
+  ];
+
+  function updateTTSVoiceOptions(selectedLang, currentVoice) {
+    const voiceSelect = el('tpl-tts-voice');
+    if (!voiceSelect) return;
+    const langVoices = TTS_VOICE_CATALOG[selectedLang] || TTS_VOICE_CATALOG['en-IN'];
+    const activeVoice = currentVoice || (langVoices[0] ? langVoices[0].id : 'Aditi');
+
+    let html = `<optgroup label="Voices for ${selectedLang}">`;
+    langVoices.forEach(v => {
+      html += `<option value="${TemplateEngine.escapeHtml(v.id)}"${v.id === activeVoice ? ' selected' : ''}>${TemplateEngine.escapeHtml(v.name)}</option>`;
+    });
+    html += `</optgroup><optgroup label="AI Multilingual Voices (Gemini & xAI)">`;
+    MULTILINGUAL_AI_VOICES.forEach(v => {
+      html += `<option value="${TemplateEngine.escapeHtml(v.id)}"${v.id === activeVoice ? ' selected' : ''}>${TemplateEngine.escapeHtml(v.name)}</option>`;
+    });
+    html += `</optgroup>`;
+
+    voiceSelect.innerHTML = html;
+    if (activeVoice && voiceSelect.value !== activeVoice) {
+      voiceSelect.value = activeVoice;
+    }
+  }
+
   const iframe = el('preview-iframe');
 
   function initCodeEditors() {
@@ -601,7 +690,171 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Works in both HTTPS (navigator.clipboard) and plain HTTP / OBS browser sources (execCommand fallback).
+  // ── Voice Studio Modal Controller ───────────────────────────
+  const NEURAL_VOICES = [
+    { group: '🇮🇳 Indian Voices (Hinglish & Hindi)', voices: [
+      { id: 'en-IN-NeerjaNeural', label: '👩 Neerja (Indian English / Hinglish - Female)' },
+      { id: 'en-IN-PrabhatNeural', label: '👨 Prabhat (Indian English / Hinglish - Male)' },
+      { id: 'hi-IN-SwaraNeural', label: '👩 Swara (Hindi / Hinglish - Female)' },
+      { id: 'hi-IN-MadhurNeural', label: '👨 Madhur (Hindi / Hinglish - Male)' }
+    ]},
+    { group: '🇺🇸 US & Global AI Voices', voices: [
+      { id: 'en-US-JennyNeural', label: '👩 Jenny (US - Female)' },
+      { id: 'en-US-GuyNeural', label: '👨 Guy (US - Male)' },
+      { id: 'en-US-AriaNeural', label: '👩 Aria (US - Female)' }
+    ]}
+  ];
+
+  function updateTTSVoiceOptions(provider, selectedVoice) {
+    const select = el('tpl-tts-voice');
+    if (!select) return;
+    select.innerHTML = '';
+    if (provider === 'local') {
+      const voices = (typeof window !== 'undefined' && window.speechSynthesis) ? window.speechSynthesis.getVoices() : [];
+      if (!voices.length) {
+        select.innerHTML = '<option value="">Default System Voice</option>';
+      } else {
+        select.innerHTML = voices.map(v => `<option value="${v.name}">${v.name} (${v.lang}) ${v.default ? '★' : ''}</option>`).join('');
+      }
+      if (selectedVoice) select.value = selectedVoice;
+    } else {
+      NEURAL_VOICES.forEach(grp => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = grp.group;
+        grp.voices.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v.id;
+          opt.textContent = v.label;
+          if (v.id === selectedVoice) opt.selected = true;
+          optgroup.appendChild(opt);
+        });
+        select.appendChild(optgroup);
+      });
+      if (selectedVoice) select.value = selectedVoice;
+    }
+  }
+
+  const TTSStudio = {
+    modal: null,
+    iframe: null,
+
+    init() {
+      this.modal = el('modal-tts-studio');
+      this.iframe = el('tts-studio-iframe');
+      if (!this.modal) return;
+
+      on('btn-open-tts-studio', 'click', () => this.open());
+      on('btn-tts-studio-close', 'click', () => this.close());
+      const backdrop = el('tts-studio-backdrop');
+      if (backdrop) backdrop.addEventListener('click', () => this.close());
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && this.modal && this.modal.style.display !== 'none') {
+          this.close();
+        }
+      });
+
+      window.addEventListener('message', (e) => {
+        if (!e.data) return;
+
+        if (e.data.type === 'APPLY_TTS_SETTINGS') {
+          const s = e.data.settings;
+          if (!s) return;
+          setSelectVal('tpl-tts-provider', s.provider);
+          updateTTSVoiceOptions(s.provider, s.voice);
+          setSelectVal('tpl-tts-voice', s.voice);
+          setVal('tpl-tts-rate', s.rate);
+          setVal('tpl-tts-pitch', s.pitch);
+          if (s.template) {
+            setVal('tpl-tts-template', s.template);
+          }
+
+          showToast('<i data-lucide="check"></i> Voice settings & template synced!', 'success');
+          this.close();
+        } else if (e.data.type === 'TRIGGER_OBS_ALERT_FROM_STUDIO') {
+          const sim = e.data.eventData || {};
+          const currentTpl = currentTemplate();
+          const tplId = currentTpl ? currentTpl.id : config.activeTemplateId;
+          const numAmount = TemplateMatcher.parseAmount(sim.amount) || 500;
+          const formattedAmount = numAmount.toLocaleString('en-IN');
+          const isIsolated = config.simulation ? config.simulation.isolatedMode !== false : true;
+
+          const rawNotif = {
+            type: 'payment_notification',
+            alertId: `sim_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            alertTemplateId: tplId,
+            simulated: isIsolated,
+            appName: sim.sourceApp || 'Google Pay',
+            sender: sim.sender || 'Rahul Sharma',
+            amount: sim.amount || '₹500',
+            amountValue: numAmount,
+            message: sim.message || '',
+            text: `${sim.sender || 'Rahul Sharma'} paid you ₹${formattedAmount}`,
+            timestamp: Date.now()
+          };
+
+          fetch('/api/test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...rawNotif, settings: config })
+          }).then(() => {
+            showToast('<i data-lucide="send"></i> Dispatched test alert to OBS overlay!', 'success');
+          }).catch(err => {
+            showToast('Failed to trigger alert: ' + err.message, 'error');
+          });
+        }
+      });
+    },
+
+    open() {
+      if (!this.modal) return;
+      readFormValues();
+      this.modal.style.display = 'flex';
+      setTimeout(() => this.modal.classList.add('active'), 10);
+
+      const template = currentTemplate() || (config.alertTemplates && config.alertTemplates[0]);
+      const tts = (template && template.tts) ? template.tts : ConfigSchema.TTS_DEFAULTS;
+
+      // Extract last donation event from recent list or fallback to active simulator settings
+      let lastEvent = null;
+      const recentList = config.widgets && config.widgets.recent && config.widgets.recent.recentDonations;
+      if (Array.isArray(recentList) && recentList.length > 0) {
+        const r = recentList[0];
+        lastEvent = {
+          sender: r.name || r.sender || 'Rahul Kumar',
+          amount: r.amount ? (String(r.amount).startsWith('₹') ? r.amount : `₹${r.amount}`) : '₹500',
+          message: r.message || '',
+          sourceApp: r.app || r.sourceApp || 'Google Pay'
+        };
+      } else {
+        lastEvent = {
+          sender: val('sim-sender', 'Rahul Sharma'),
+          amount: `₹${val('sim-amount', '500')}`,
+          message: val('sim-message', 'Awesome stream bhai!'),
+          sourceApp: val('sim-app-provider', 'Google Pay')
+        };
+      }
+
+      if (this.iframe && this.iframe.contentWindow) {
+        this.iframe.contentWindow.postMessage({
+          type: 'INIT_TTS_PREVIEW',
+          tts: {
+            ...tts,
+            templateText: val('tpl-tts-template', tts.template)
+          },
+          lastEvent: lastEvent
+        }, '*');
+      }
+    },
+
+    close() {
+      if (!this.modal) return;
+      this.modal.classList.remove('active');
+      setTimeout(() => {
+        this.modal.style.display = 'none';
+      }, 200);
+    }
+  };
   // Pass the originating button element as the second argument to get a visual "✓ Copied!" flash animation.
   function copyToClipboard(text, triggerBtn) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -807,18 +1060,26 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderTemplateList() {
     const select = el('select-template');
     if (!select) return;
-    select.innerHTML = config.alertTemplates.map(t => {
+    const active = currentTemplate();
+    const activeId = active ? active.id : config.activeTemplateId;
+    const newOptionsHtml = config.alertTemplates.map(t => {
+      const star = t.isDefault ? ' ⭐' : '';
       const flags = [t.isDefault ? 'fallback' : '', t.enabled ? '' : 'disabled']
         .filter(Boolean).join(', ');
-      const label = TemplateEngine.escapeHtml(t.name) + (flags ? ` (${flags})` : '');
-      return `<option value="${TemplateEngine.escapeHtml(t.id)}"${t.id === config.activeTemplateId ? ' selected' : ''}>${label}</option>`;
+      const label = TemplateEngine.escapeHtml(t.name) + (flags ? ` (${flags})` : '') + star;
+      return `<option value="${TemplateEngine.escapeHtml(t.id)}"${t.id === activeId ? ' selected' : ''}>${label}</option>`;
     }).join('');
+    if (select.innerHTML !== newOptionsHtml) {
+      select.innerHTML = newOptionsHtml;
+    }
+    if (activeId && select.value !== activeId) {
+      select.value = activeId;
+    }
 
     const summary = el('template-summary');
     if (summary) {
-      const t = currentTemplate();
-      summary.textContent = t
-        ? `${config.alertTemplates.length} template(s). "${t.name}" matches: ${describeFilters(t)}.`
+      summary.textContent = active
+        ? `${config.alertTemplates.length} template(s). "${active.name}" matches: ${describeFilters(active)}.`
         : '';
     }
 
@@ -851,13 +1112,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const select = el('select-active-list');
     if (!select) return;
     const lists = Array.isArray(config.listConfigs) ? config.listConfigs : [];
-    select.innerHTML = lists.map(l => {
+    const active = currentListConfig();
+    const activeId = active ? active.id : config.activeListConfigId;
+    const newHtml = lists.map(l => {
       const typeLabel = l.type === 'recent' ? 'Recent Feed' : 'Leaderboard';
       const flags = [typeLabel, l.enabled ? '' : 'disabled'].filter(Boolean).join(', ');
-      return `<option value="${TemplateEngine.escapeHtml(l.id)}"${l.id === config.activeListConfigId ? ' selected' : ''}>${TemplateEngine.escapeHtml(l.name)} (${flags})</option>`;
+      return `<option value="${TemplateEngine.escapeHtml(l.id)}"${l.id === activeId ? ' selected' : ''}>${TemplateEngine.escapeHtml(l.name)} (${flags})</option>`;
     }).join('');
+    if (select.innerHTML !== newHtml) {
+      select.innerHTML = newHtml;
+    }
+    if (activeId && select.value !== activeId) {
+      select.value = activeId;
+    }
 
-    const active = currentListConfig();
     const badge = el('badge-list-url');
     if (badge && active) {
       badge.textContent = `/overlay/list?id=${active.id}`;
@@ -878,15 +1146,16 @@ document.addEventListener('DOMContentLoaded', () => {
         subtitleTemplate: val('input-subtitle-template', template.text.subtitleTemplate)
       });
       template.canvas = readCanvas(TEXT_PREFIXES.template, template.canvas);
+      const mediaVal = val('input-image-url', '').trim();
       template.image = {
-        imageUrl: val('input-image-url', ''),
-        gifUrl: template.image.gifUrl,
-        position: val('select-media-position', template.image.position),
-        size: numVal('input-media-size', template.image.size)
+        imageUrl: mediaVal,
+        gifUrl: '',
+        position: val('select-media-position', template.image?.position || 'top'),
+        size: numVal('input-media-size', template.image?.size || 100)
       };
       template.sound = {
-        soundUrl: val('input-sound-url', ''),
-        soundVolume: numVal('input-sound-volume', template.sound.soundVolume)
+        soundUrl: val('input-sound-url', '').trim(),
+        soundVolume: numVal('input-sound-volume', template.sound?.soundVolume !== undefined ? template.sound.soundVolume : 80)
       };
       template.style = Object.assign({}, template.style, {
         backgroundColor: val('input-bg-color-hex') || val('input-bg-color', template.style.backgroundColor),
@@ -912,9 +1181,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const prevTplCode = template.code || ConfigSchema.DEFAULT_CODE.alert;
       template.code = {
         enableCustomCode: checked('chk-enable-custom-code', false),
-        customHTML: (typeof prevTplCode.customHTML === 'string') ? prevTplCode.customHTML : ConfigSchema.DEFAULT_CODE.alert.customHTML,
-        customCSS: (typeof prevTplCode.customCSS === 'string') ? prevTplCode.customCSS : ConfigSchema.DEFAULT_CODE.alert.customCSS,
-        customJS: (typeof prevTplCode.customJS === 'string') ? prevTplCode.customJS : ConfigSchema.DEFAULT_CODE.alert.customJS
+        customHTML: val('input-custom-html', (typeof prevTplCode.customHTML === 'string') ? prevTplCode.customHTML : ConfigSchema.DEFAULT_CODE.alert.customHTML),
+        customCSS: val('input-custom-css', (typeof prevTplCode.customCSS === 'string') ? prevTplCode.customCSS : ConfigSchema.DEFAULT_CODE.alert.customCSS),
+        customJS: val('input-custom-js', (typeof prevTplCode.customJS === 'string') ? prevTplCode.customJS : ConfigSchema.DEFAULT_CODE.alert.customJS)
+      };
+
+      const prevTTS = template.tts || ConfigSchema.TTS_DEFAULTS;
+      template.tts = {
+        enabled: checked('tpl-tts-enabled', false),
+        template: val('tpl-tts-template', prevTTS.template),
+        provider: val('tpl-tts-provider', prevTTS.provider || 'edge'),
+        voice: val('tpl-tts-voice', prevTTS.voice || 'en-IN-NeerjaNeural'),
+        rate: numVal('tpl-tts-rate', prevTTS.rate !== undefined ? prevTTS.rate : 1.0),
+        pitch: numVal('tpl-tts-pitch', prevTTS.pitch !== undefined ? prevTTS.pitch : 0),
+        volume: numVal('tpl-tts-volume', prevTTS.volume !== undefined ? prevTTS.volume : 100),
+        delay: numVal('tpl-tts-delay', prevTTS.delay !== undefined ? prevTTS.delay : 400),
+        maxChars: 200
       };
     }
 
@@ -1106,6 +1388,16 @@ document.addEventListener('DOMContentLoaded', () => {
       setVal('input-custom-html', template.code.customHTML);
       setVal('input-custom-css', template.code.customCSS);
       setVal('input-custom-js', template.code.customJS);
+
+      const tts = template.tts || ConfigSchema.TTS_DEFAULTS;
+      setChecked('tpl-tts-enabled', tts.enabled);
+      setVal('tpl-tts-template', tts.template);
+      setSelectVal('tpl-tts-provider', tts.provider || 'edge');
+      updateTTSVoiceOptions(tts.provider || 'edge', tts.voice || 'en-IN-NeerjaNeural');
+      setVal('tpl-tts-rate', tts.rate !== undefined ? tts.rate : 1.0);
+      setVal('tpl-tts-pitch', tts.pitch !== undefined ? tts.pitch : 0);
+      setVal('tpl-tts-volume', tts.volume !== undefined ? tts.volume : 100);
+      setVal('tpl-tts-delay', tts.delay !== undefined ? tts.delay : 400);
     }
 
     const goal = config.widgets.goal;
@@ -1489,7 +1781,6 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ name: targetName, settings: config })
       });
       const data = await res.json();
-      console.log('[Server IO] Save response:', data);
       if (data.ok && data.settings) {
         config = ConfigMigration.migrate(data.settings);
         if (data.profiles) await loadProfilesList(data.activeProfile);
@@ -1507,17 +1798,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const select = el('select-profile');
     if (!select) return;
     try {
-      console.log('[Profiles] Requesting profile list from /api/profiles...');
       const res = await fetch('/api/profiles');
       const data = await res.json();
-      console.log('[Profiles] Received profiles data:', data);
       if (!data || !data.profiles) return;
       const profileNames = Array.isArray(data.profiles)
         ? data.profiles
         : Object.keys(data.profiles);
       const active = activeProfile || data.activeProfile || profileNames[0] || 'Default';
       window.__activeProfile = active;
-      console.log('[Profiles] Populating select dropdown with profiles:', profileNames, '| Active:', active);
       select.innerHTML = profileNames.map(name =>
         `<option value="${TemplateEngine.escapeHtml(name)}"${name === active ? ' selected' : ''}>${TemplateEngine.escapeHtml(name)}</option>`
       ).join('');
@@ -1914,16 +2202,20 @@ document.addEventListener('DOMContentLoaded', () => {
   function setupTemplateManager() {
     const select = el('select-template');
     if (select) {
-      select.addEventListener('change', () => {
+      const handleTemplateChange = (e) => {
+        const nextId = (e && e.target && e.target.value) || select.value;
+        if (!nextId || nextId === config.activeTemplateId) return;
         readFormValues();
-        config.activeTemplateId = select.value;
+        config.activeTemplateId = nextId;
         populateForm(config);
-      });
+      };
+      select.addEventListener('change', handleTemplateChange);
+      select.addEventListener('input', handleTemplateChange);
     }
 
-    const withTemplate = (fn) => () => {
+    const withTemplate = (fn) => async () => {
       readFormValues();
-      fn(currentTemplate());
+      await fn(currentTemplate());
       populateForm(config);
     };
 
@@ -1947,7 +2239,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       config.alertTemplates.push(created);
       config.activeTemplateId = created.id;
-      populateForm(config);
       showToast('<i data-lucide="sparkles"></i> Created template "' + created.name + '"');
     }));
 
@@ -1961,7 +2252,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (name) {
         template.name = name;
-        populateForm(config);
+        showToast('<i data-lucide="check"></i> Template renamed to "' + name + '"');
       }
     }));
 
@@ -1996,19 +2287,25 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!confirmed) return;
       config.alertTemplates = config.alertTemplates.filter(t => t.id !== template.id);
       config.activeTemplateId = config.alertTemplates[0].id;
-      populateForm(config);
       showToast('<i data-lucide="trash-2"></i> Template deleted');
     }));
 
     el('chk-template-enabled').addEventListener('change', () => syncLivePreview());
+
+    ['tpl-tts-enabled', 'tpl-tts-template', 'tpl-tts-provider', 'tpl-tts-voice', 'tpl-tts-rate', 'tpl-tts-pitch', 'tpl-tts-volume', 'tpl-tts-delay'].forEach(id => {
+      on(id, 'change', () => syncLivePreview());
+      on(id, 'input', () => syncLivePreview());
+    });
   }
 
   function setupListConfigManager() {
     const select = el('select-active-list');
     if (select) {
-      select.addEventListener('change', () => {
+      const handleListChange = () => {
+        const nextId = select.value;
+        if (!nextId || nextId === config.activeListConfigId) return;
         readFormValues();
-        config.activeListConfigId = select.value;
+        config.activeListConfigId = nextId;
         populateForm(config);
         if (iframe && iframe.contentWindow) {
           const tab = document.querySelector('.tab-btn.active')?.dataset?.tab;
@@ -2016,7 +2313,9 @@ document.addEventListener('DOMContentLoaded', () => {
             iframe.src = `/overlay/list?id=${currentListConfig().id}`;
           }
         }
-      });
+      };
+      select.addEventListener('change', handleListChange);
+      select.addEventListener('input', handleListChange);
     }
 
     on('select-list-max', 'change', (e) => {
@@ -2224,7 +2523,7 @@ document.addEventListener('DOMContentLoaded', () => {
       await fetch('/api/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...testData, alertTemplateId: resolved.templateId })
+        body: JSON.stringify({ ...testData, alertTemplateId: resolved.templateId, settings: config })
       });
     } catch (e) {
       console.warn('[Config] Live overlay test trigger error:', e.message);
@@ -2281,7 +2580,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const loadedTemplate = currentTemplate();
       const testData = {
         ...sampleAlert(),
-        alertTemplateId: loadedTemplate ? loadedTemplate.id : null
+        alertTemplateId: loadedTemplate ? loadedTemplate.id : null,
+        settings: config
       };
       if (iframe && iframe.contentWindow) {
         iframe.contentWindow.postMessage({
@@ -2611,6 +2911,9 @@ document.addEventListener('DOMContentLoaded', () => {
       audio.volume = Math.max(0, Math.min(1, numVal('input-sound-volume', 80) / 100));
       audio.play().catch(err => showToast('<i data-lucide="alert-triangle"></i> ' + err.message));
     });
+
+    // ── TTS Controls & Voice Studio
+    TTSStudio.init();
   }
 
   // ── Custom Event Simulator ────────────────────────────────────
@@ -2784,7 +3087,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const res = await fetch('/api/test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(rawNotif)
+          body: JSON.stringify({ ...rawNotif, settings: config })
         });
         const data = await res.json();
         if (c) {
@@ -4436,7 +4739,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Boot ─────────────────────────────────────────────────────
   async function initDashboard() {
-    console.log('[Config] Starting dashboard boot sequence...');
     initCodeEditors();
     CodeStudio.init();
     setupTabs();
@@ -4460,10 +4762,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let activeProf = 'Default';
     try {
-      console.log('[Config] Fetching settings from /api/settings...');
       const res = await fetch('/api/settings');
       const data = await res.json();
-      console.log('[Config] Loaded settings payload:', data);
       activeProf = data.activeProfile || 'Default';
       window.__activeProfile = activeProf;
       await loadProfilesList(activeProf);
@@ -4480,8 +4780,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       await refreshEarningsAnalytics();
     }
-
-    console.log('[Config] Dashboard boot sequence completed with active profile:', activeProf);
 
     // Dismiss boot loader dynamically after all loads complete, with a standard 500ms backoff buffer for smooth icon/font painting
     setTimeout(() => {
