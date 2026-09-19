@@ -810,9 +810,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const active = currentTemplate();
     const activeId = active ? active.id : config.activeTemplateId;
     const newOptionsHtml = config.alertTemplates.map(t => {
+      const star = t.isDefault ? ' ⭐' : '';
       const flags = [t.isDefault ? 'fallback' : '', t.enabled ? '' : 'disabled']
         .filter(Boolean).join(', ');
-      const label = TemplateEngine.escapeHtml(t.name) + (flags ? ` (${flags})` : '');
+      const label = TemplateEngine.escapeHtml(t.name) + (flags ? ` (${flags})` : '') + star;
       return `<option value="${TemplateEngine.escapeHtml(t.id)}"${t.id === activeId ? ' selected' : ''}>${label}</option>`;
     }).join('');
     if (select.innerHTML !== newOptionsHtml) {

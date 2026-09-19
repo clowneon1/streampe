@@ -894,7 +894,7 @@
       const defaultTemplate = this.createTemplate({ id: 'default', name: 'Default Alert', isDefault: false });
       const blankFallback = this.createTemplate({
         id: 'blank-fallback',
-        name: 'Blank Fallback',
+        name: 'Blank Alert',
         isDefault: true,
         priority: -100,
         amountFilters: [],

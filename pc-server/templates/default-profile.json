@@ -48,7 +48,7 @@
     },
     {
       "id": "tpl_blank_fallback",
-      "name": "Blank Fallback",
+      "name": "Blank Alert",
       "enabled": true,
       "isDefault": true,
       "priority": -100,

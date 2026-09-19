@@ -246,7 +246,7 @@
 
     const blankFallback = ConfigSchema.createTemplate({
       id: 'blank-fallback',
-      name: 'Blank Fallback',
+      name: 'Blank Alert',
       isDefault: true,
       priority: -100,
       amountFilters: [],
